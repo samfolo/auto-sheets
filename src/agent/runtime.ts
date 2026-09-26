@@ -33,6 +33,44 @@ const SESSIONS_FOLDER = 'sessions';
 
 const MINUTE_MS = 60_000;
 
+/** How often a reply still being written reports its progress, so a long reply isn't mistaken for a hang. */
+const HEARTBEAT_MS = 30_000;
+
+/** The parts of a reply that stream in, by the delta event that carries each. */
+const STREAMED_PARTS = {
+  thinking_delta: 'thinking',
+  text_delta: 'text',
+  toolcall_delta: 'toolCall',
+} as const;
+
+type StreamedPart = (typeof STREAMED_PARTS)[keyof typeof STREAMED_PARTS];
+
+/**
+ * Traces a reply's progress while it streams: how many characters of thinking, text and tool
+ * calls have arrived, at most once per heartbeat. Raw deltas are never logged; they would repeat
+ * the whole reply many times over.
+ */
+const createHeartbeat = (trace: Trace) => {
+  const reply = { started: 0, lastBeat: 0, chars: { thinking: 0, text: 0, toolCall: 0 } };
+  return {
+    start: (): void => {
+      reply.started = performance.now();
+      reply.lastBeat = reply.started;
+      reply.chars = { thinking: 0, text: 0, toolCall: 0 };
+    },
+    grow: (part: StreamedPart, delta: string): void => {
+      reply.chars[part] += delta.length;
+      const now = performance.now();
+      if (now - reply.lastBeat < HEARTBEAT_MS) return;
+      reply.lastBeat = now;
+      trace('agent.streaming', {
+        seconds: Math.round((now - reply.started) / 1000),
+        ...reply.chars,
+      });
+    },
+  };
+};
+
 /** Where an agent works: its workspace, and the run's folder for its session and the tools' logs. */
 export interface AgentPlace {
   readonly workspace: string;
@@ -165,7 +203,13 @@ export const runAgent = async (
   const session = opened.data;
 
   const state = { timedOut: false, error: null as string | null };
+  const heartbeat = createHeartbeat(trace);
   session.subscribe((event) => {
+    if (event.type === 'message_start' && event.message.role === 'assistant') heartbeat.start();
+    if (event.type === 'message_update' && 'delta' in event.assistantMessageEvent) {
+      const { type, delta } = event.assistantMessageEvent;
+      heartbeat.grow(STREAMED_PARTS[type], delta);
+    }
     if (event.type === 'tool_execution_start') trace('agent.tool', { tool: event.toolName });
     if (event.type === 'tool_execution_end' && event.isError) {
       trace('agent.tool.error', { tool: event.toolName });
