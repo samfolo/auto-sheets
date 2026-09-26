@@ -1,0 +1,276 @@
+{
+  "recordedAt": "2026-09-26T20:54:21.184Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 1,
+      "cells": {},
+      "selection": {
+        "active": "I8",
+        "range": "I6:I8",
+        "editing": false
+      }
+    },
+    {
+      "step": 3,
+      "cells": {},
+      "selection": {
+        "active": "J20",
+        "range": null,
+        "areas": [
+          "I6:I8",
+          "J20"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 5,
+      "cells": {},
+      "selection": {
+        "active": "A12",
+        "range": null,
+        "areas": [
+          "I6:I8",
+          "J20",
+          "12:12"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 7,
+      "cells": {},
+      "selection": {
+        "active": "L1",
+        "range": null,
+        "areas": [
+          "I6:I8",
+          "J20",
+          "12:12",
+          "L:L"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 9,
+      "cells": {},
+      "selection": {
+        "active": "A6",
+        "range": null,
+        "areas": [
+          "I6:I8",
+          "J20",
+          "12:12",
+          "L:L",
+          "5:6"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 11,
+      "cells": {},
+      "selection": {
+        "active": "A5",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "J20",
+          "12:12",
+          "L7:L1048576",
+          "L1:L5",
+          "5:5"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 13,
+      "cells": {},
+      "selection": {
+        "active": "I4",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "J20",
+          "12:12",
+          "L7:L1048576",
+          "L1:L5",
+          "5:5",
+          "I4"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 15,
+      "cells": {},
+      "selection": {
+        "active": "I1",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "J20",
+          "12:12",
+          "L7:L1048576",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I:I"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 17,
+      "cells": {},
+      "selection": {
+        "active": "J1",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "J20",
+          "12:12",
+          "L7:L1048576",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I:I",
+          "J:J"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 19,
+      "cells": {},
+      "selection": {
+        "active": "A20",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "J20",
+          "12:12",
+          "L7:L1048576",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I:I",
+          "J:J",
+          "8:20"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 21,
+      "cells": {},
+      "selection": {
+        "active": "A8",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "12:12",
+          "L21:L1048576",
+          "L7:L12",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I21:I1048576",
+          "I1:I12",
+          "J21:J1048576",
+          "J1:J12",
+          "8:12"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 23,
+      "cells": {},
+      "selection": {
+        "active": "C1",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "12:12",
+          "L21:L1048576",
+          "L7:L12",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I21:I1048576",
+          "I1:I12",
+          "J21:J1048576",
+          "J1:J12",
+          "8:12",
+          "C:N"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 25,
+      "cells": {},
+      "selection": {
+        "active": "C1",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "12:12",
+          "L21:L1048576",
+          "L7:L12",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I21:I1048576",
+          "I1:I12",
+          "J21:J1048576",
+          "J1:J12",
+          "10:12",
+          "I9:XFD9",
+          "A9:G9",
+          "8:8",
+          "C10:N1048576",
+          "I9:N9",
+          "C9:G9",
+          "C1:N8"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 27,
+      "cells": {},
+      "selection": {
+        "active": "K1",
+        "range": null,
+        "areas": [
+          "I7:I8",
+          "12:12",
+          "L21:L1048576",
+          "L7:L12",
+          "L1:L5",
+          "5:5",
+          "I4",
+          "I21:I1048576",
+          "I1:I12",
+          "J21:J1048576",
+          "J1:J12",
+          "10:12",
+          "I9:XFD9",
+          "A9:G9",
+          "8:8",
+          "C10:N1048576",
+          "I9:N9",
+          "C9:G9",
+          "C1:N8",
+          "K:K"
+        ],
+        "editing": false
+      }
+    }
+  ]
+}

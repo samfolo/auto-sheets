@@ -1,0 +1,297 @@
+{
+  "recordedAt": "2026-09-26T20:57:29.136Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 1,
+      "cells": {},
+      "selection": {
+        "active": "A5",
+        "range": "A5:F8",
+        "editing": false
+      }
+    },
+    {
+      "step": 3,
+      "cells": {},
+      "selection": {
+        "active": "A14",
+        "range": null,
+        "areas": [
+          "A5:F8",
+          "6:14"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 5,
+      "cells": {},
+      "selection": {
+        "active": "A5",
+        "range": null,
+        "areas": [
+          "A5:F8",
+          "6:14",
+          "5:5"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 7,
+      "cells": {},
+      "selection": {
+        "active": "M1",
+        "range": null,
+        "areas": [
+          "A5:F8",
+          "6:14",
+          "5:5",
+          "M:M"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 9,
+      "cells": {},
+      "selection": {
+        "active": "N1",
+        "range": null,
+        "areas": [
+          "A5:F8",
+          "6:14",
+          "5:5",
+          "M:M",
+          "F:N"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 11,
+      "cells": {},
+      "selection": {
+        "active": "N1",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A6:B14",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 13,
+      "cells": {},
+      "selection": {
+        "active": "B1",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A6:B14",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "B:L"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 15,
+      "cells": {},
+      "selection": {
+        "active": "B1",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A6:B14",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K:L",
+          "B:I"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 17,
+      "cells": {},
+      "selection": {
+        "active": "A4",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A6:B14",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K:L",
+          "B:I",
+          "4:4"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 19,
+      "cells": {},
+      "selection": {
+        "active": "A4",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A6:B14",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K:L",
+          "B5:I1048576",
+          "D4:I4",
+          "B4",
+          "B1:I3",
+          "D4:XFD4",
+          "A4:B4"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 21,
+      "cells": {},
+      "selection": {
+        "active": "A4",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A13:B14",
+          "A6:B8",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K13:L1048576",
+          "K1:L8",
+          "B13:I1048576",
+          "B5:I8",
+          "D4:I4",
+          "B4",
+          "B1:I3",
+          "D4:XFD4",
+          "A4:B4"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 23,
+      "cells": {},
+      "selection": {
+        "active": "A4",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A13:B14",
+          "A6:B8",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K13:L1048576",
+          "K1:L8",
+          "B21:I1048576",
+          "H13:I20",
+          "B13:B20",
+          "H5:I8",
+          "B5:B8",
+          "H4:I4",
+          "B4",
+          "H2:I3",
+          "B2:B3",
+          "B1:I1",
+          "H4:XFD4",
+          "A4:B4"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 25,
+      "cells": {},
+      "selection": {
+        "active": "A10",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A13:B14",
+          "A6:B8",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K13:L1048576",
+          "K1:L8",
+          "B21:I1048576",
+          "H13:I20",
+          "B13:B20",
+          "H5:I8",
+          "B5:B8",
+          "H4:I4",
+          "B4",
+          "H2:I3",
+          "B2:B3",
+          "B1:I1",
+          "H4:XFD4",
+          "A4:B4",
+          "A10"
+        ],
+        "editing": false
+      }
+    },
+    {
+      "step": 27,
+      "cells": {},
+      "selection": {
+        "active": "I1",
+        "range": null,
+        "areas": [
+          "A5:B8",
+          "N6:XFD14",
+          "A13:B14",
+          "A6:B8",
+          "N5:XFD5",
+          "A5:B5",
+          "N:N",
+          "K13:L1048576",
+          "K1:L8",
+          "B21:I1048576",
+          "H13:I20",
+          "B13:B20",
+          "H5:I8",
+          "B5:B8",
+          "H4:I4",
+          "B4",
+          "H2:I3",
+          "B2:B3",
+          "B1:I1",
+          "H4:XFD4",
+          "A4:B4",
+          "A10",
+          "A:I"
+        ],
+        "editing": false
+      }
+    }
+  ]
+}
