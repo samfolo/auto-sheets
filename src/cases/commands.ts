@@ -1,11 +1,10 @@
 /**
- * `factory case …`: listing cases, recording them against Excel, and verifying a clone against
- * the recordings.
+ * `factory case …`: listing cases and recording them against Excel. Checking a clone against the
+ * recordings is `factory clone check`.
  */
 import type { CommandRegistry } from '../cli/index.ts';
-import { PROJECT, fail, ok, type Result, type Trace } from '../kernel/index.ts';
+import { fail, ok, type Result } from '../kernel/index.ts';
 import type { Verdict } from './contract.ts';
-import { judgeClone, type VerifyOptions } from './judge.ts';
 import { recordCase, renderRecording } from './record.ts';
 import { loadAllCases } from './repository.ts';
 
@@ -58,19 +57,6 @@ export const reportVerdicts = (verdicts: Verdict[], hint: string): Result<Verdic
   });
 };
 
-/** The `case verify` command: fails, with every difference, if any case differs from Excel. */
-export const verifyClone = async (
-  options: VerifyOptions,
-  trace: Trace,
-): Promise<Result<Verdict[]>> => {
-  const verdicts = await judgeClone(options, trace);
-  if (!verdicts.success) return verdicts;
-  return reportVerdicts(
-    verdicts.data,
-    `Run one case with \`${PROJECT.cli} case verify <id> --url ${options.url} --headed\` to watch it.`,
-  );
-};
-
 export const renderVerdicts = (verdicts: readonly Verdict[]): string =>
   [...verdicts.map(({ id }) => `✔ ${id}`), `All ${verdicts.length} cases match Excel.`].join('\n');
 
@@ -89,18 +75,4 @@ export const registerCaseCommands = ({ program, run }: CommandRegistry): void =>
     .description('run a case on Excel twice and, if the runs agree, save it as the reference')
     .argument('<id>', 'the case id, which is its folder under the cases directory')
     .action((id) => run('case record', (trace) => recordCase(id, trace), renderRecording));
-
-  cases
-    .command('verify')
-    .description('run recorded cases on a clone and compare what it shows with what Excel showed')
-    .argument('[ids...]', 'the cases to run; every recorded case if none are given')
-    .requiredOption('--url <url>', 'where the clone is running, such as http://localhost:4321')
-    .option('--headed', 'show the browser window while the cases run')
-    .action((ids, { url, headed }) =>
-      run(
-        'case verify',
-        (trace) => verifyClone({ url, ids, headed: headed === true }, trace),
-        renderVerdicts,
-      ),
-    );
 };

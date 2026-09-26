@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import pino, { type Logger } from 'pino';
-import type { Runtime } from './environment.ts';
 
 /**
  * Records one event with its fields, such as a driver action and how long it took. Code that
@@ -15,7 +14,7 @@ export const NO_TRACE: Trace = () => undefined;
  * Structured telemetry, one JSON object per line.
  *
  * Every line carries the run and invocation IDs, so one build's events can be pulled out
- * with jq. A build points every command it runs at the build's own log (see Runtime).
+ * with jq. A build writes its own log in its run's folder.
  */
 export interface Telemetry {
   readonly logger: Logger;
@@ -25,7 +24,13 @@ export interface Telemetry {
   readonly file: string;
 }
 
-export const openTelemetry = ({ logFile, runId }: Runtime): Telemetry => {
+/** Where telemetry goes, and the build it belongs to, if any. */
+export interface TelemetryTarget {
+  readonly logFile: string;
+  readonly runId?: string | null;
+}
+
+export const openTelemetry = ({ logFile, runId = null }: TelemetryTarget): Telemetry => {
   const logger = pino(
     {
       base: { run: runId, invocation: randomUUID() },

@@ -49,7 +49,7 @@ export const runFactory = (
   const logFile = join(mkdtempSync(join(tmpdir(), 'factory-test-')), 'events.jsonl');
   const child = spawnSync(process.execPath, [PATHS.cli, '--json', ...args], {
     encoding: 'utf8',
-    env: { ...process.env, ...TEST_CREDENTIALS, ...env, FACTORY_LOG: logFile },
+    env: { ...process.env, ...TEST_CREDENTIALS, FACTORY_LOG: logFile, ...env },
   });
   return {
     args,

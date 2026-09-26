@@ -36,13 +36,14 @@ describe('readCredentials', () => {
 });
 
 describe('readRuntime', () => {
-  it('writes to the shared log outside a build', () => {
-    expect(readRuntime({})).toEqual(ok({ logFile: PATHS.defaultLog, runId: null }));
-  });
-
-  it('writes to the build’s own log inside a build', () => {
-    expect(readRuntime({ FACTORY_LOG: '/tmp/run.jsonl', FACTORY_RUN_ID: 'run-1' })).toEqual(
-      ok({ logFile: '/tmp/run.jsonl', runId: 'run-1' }),
-    );
+  it.each([
+    { where: 'the shared log by default', source: {}, logFile: PATHS.defaultLog },
+    {
+      where: 'the log FACTORY_LOG names',
+      source: { FACTORY_LOG: '/tmp/run.jsonl' },
+      logFile: '/tmp/run.jsonl',
+    },
+  ])('writes to $where', ({ source, logFile }) => {
+    expect(readRuntime(source)).toEqual(ok({ logFile }));
   });
 });

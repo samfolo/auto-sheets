@@ -19,8 +19,6 @@ export const buildOptionsSchema = z
   })
   .meta({ description: 'What `factory build` was asked to do.' });
 
-export type BuildOptions = z.output<typeof buildOptionsSchema>;
-
 export const finalCheckSchema = z
   .strictObject({
     score: cloneScoreSchema.nullable().meta({
@@ -66,5 +64,3 @@ export const scoreEventSchema = logLineSchema
     total: z.number().int().min(0).meta({ description: 'How many cases were checked.' }),
   })
   .meta({ description: 'A check_cases result in a run’s log: one point on its score curve.' });
-
-export type ScoreEvent = z.output<typeof scoreEventSchema>;

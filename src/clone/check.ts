@@ -23,16 +23,16 @@ export const scoreClone = (verdicts: readonly Verdict[]): CloneScore => ({
 });
 
 export type CheckOptions = Pick<VerifyOptions, 'ids' | 'withoutTags' | 'screenshots'> & {
+  /** Show the browser window while the cases run. */
+  readonly headed?: boolean;
   /** Where the clone's own output goes. */
   readonly logFile: string;
 };
 
-/** Starts the clone in the workspace, runs the cases on it headlessly, and stops it. */
+/** Starts the clone in the workspace, runs the cases on it, and stops it. */
 export const checkClone = (
   workspace: string,
-  { logFile, ...selection }: CheckOptions,
+  { logFile, headed = false, ...selection }: CheckOptions,
   trace: Trace,
 ): Promise<Result<Verdict[]>> =>
-  withCloneApp(workspace, logFile, (url) =>
-    judgeClone({ url, headed: false, ...selection }, trace),
-  );
+  withCloneApp(workspace, logFile, (url) => judgeClone({ url, headed, ...selection }, trace));

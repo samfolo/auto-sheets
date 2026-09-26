@@ -29,20 +29,13 @@ export const childEnvironment = (): Readonly<Record<string, string | undefined>>
 const runtimeSchema = z
   .object({
     FACTORY_LOG: z.string().min(1, { error: 'is empty' }).optional().meta({
-      description: 'The file telemetry lines are appended to. A build sets it to its own log.',
-    }),
-    FACTORY_RUN_ID: z.string().min(1, { error: 'is empty' }).optional().meta({
-      description: 'The build this process belongs to. Unset outside a build.',
+      description: 'The file telemetry lines are appended to. Tests point it at their own file.',
     }),
   })
-  .meta({
-    description: 'How this process reports. A build sets both, so its commands share one log.',
-  })
+  .meta({ description: 'Where this process reports.' })
   .transform((env) => ({
     /** Where telemetry lines go. */
     logFile: env.FACTORY_LOG ?? PATHS.defaultLog,
-    /** The build this process belongs to, or null outside a build. */
-    runId: env.FACTORY_RUN_ID ?? null,
   }));
 
 export type Runtime = z.output<typeof runtimeSchema>;

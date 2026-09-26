@@ -1,6 +1,7 @@
 /**
- * `factory clone check`: starts the clone in a build's workspace and runs every recorded case on
- * it, as a build's final check does. It re-checks an earlier build against cases added since.
+ * `factory clone check`: starts the clone in a workspace and runs recorded cases on it, as a
+ * build's final check does. It is the one way a person checks a clone: re-checking an earlier
+ * build against cases added since, or watching one case run with `--headed`.
  */
 import { join } from 'node:path';
 import { renderVerdicts, reportVerdicts, type Verdict } from '../cases/index.ts';
@@ -17,17 +18,18 @@ const CHECK_OUTPUT = {
 export const checkWorkspace = async (
   workspace: string,
   ids: readonly string[],
+  headed: boolean,
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
   const verdicts = await checkClone(
     workspace,
-    { ids, logFile: CHECK_OUTPUT.log, screenshots: CHECK_OUTPUT.screenshots },
+    { ids, headed, logFile: CHECK_OUTPUT.log, screenshots: CHECK_OUTPUT.screenshots },
     trace,
   );
   if (!verdicts.success) return verdicts;
   return reportVerdicts(
     verdicts.data,
-    `Start the clone with \`npm start\` in ${workspace}, then watch one case with \`${PROJECT.cli} case verify <id> --url <its address> --headed\`.`,
+    `Watch one case run with \`${PROJECT.cli} clone check ${workspace} <id> --headed\`.`,
   );
 };
 
@@ -38,7 +40,12 @@ export const registerCloneCommands = ({ program, run }: CommandRegistry): void =
     .description('start the clone in a workspace and run recorded cases on it')
     .argument('<workspace>', 'the build workspace holding the clone')
     .argument('[ids...]', 'the cases to run; every recorded case if none are given')
-    .action((workspace, ids) =>
-      run('clone check', (trace) => checkWorkspace(workspace, ids, trace), renderVerdicts),
+    .option('--headed', 'show the browser window while the cases run')
+    .action((workspace, ids, { headed }) =>
+      run(
+        'clone check',
+        (trace) => checkWorkspace(workspace, ids, headed === true, trace),
+        renderVerdicts,
+      ),
     );
 };

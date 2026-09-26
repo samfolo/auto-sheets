@@ -24,8 +24,8 @@ describe('factory CLI', () => {
   });
 
   it('rejects invalid runtime settings before running any command', () => {
-    expect(runFactory(['doctor'], { FACTORY_RUN_ID: '' })).toFailWith('ENVIRONMENT_NOT_READY', {
-      details: ['FACTORY_RUN_ID is empty'],
+    expect(runFactory(['doctor'], { FACTORY_LOG: '' })).toFailWith('ENVIRONMENT_NOT_READY', {
+      details: ['FACTORY_LOG is empty'],
     });
   });
 });
