@@ -3,3 +3,5 @@ package-lock.json
 targets/**/reference.json
 # Written only by `factory case explore`.
 targets/**/explore/**/case.json
+# The clone the factory built, with its own formatter settings.
+clone/

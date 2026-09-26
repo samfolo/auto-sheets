@@ -20,8 +20,13 @@
   "overrides": [
     {
       "files": ["src/kernel/environment.ts", "src/testing/**"],
-      "rules": { "node/no-process-env": "off" }
+      "rules": {
+        "node/no-process-env": "off"
+      }
     }
   ],
-  "options": { "typeAware": true }
+  "options": {
+    "typeAware": true
+  },
+  "ignorePatterns": ["clone/**"]
 }

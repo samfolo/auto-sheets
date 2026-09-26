@@ -13,7 +13,7 @@
   "scripts": {
     "factory": "node src/main.ts",
     "typecheck": "tsc",
-    "lint": "oxlint",
+    "lint": "oxlint --disable-nested-config",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
