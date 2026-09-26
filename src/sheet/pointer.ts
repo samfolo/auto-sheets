@@ -14,7 +14,7 @@ import { columnNumber, positionOf, type Position } from './address.ts';
 import type { CellAddress, HELD_KEYS, PointerStep, PointerTarget } from './contract.ts';
 
 type HeldKey = (typeof HELD_KEYS)[number];
-import { poll } from '../kernel/index.ts';
+import { poll, type Trace } from '../kernel/index.ts';
 import type { Surface } from './surface.ts';
 
 /** Where the grid's cells are, in the page's coordinates. */
@@ -231,30 +231,43 @@ const selectionText = async ({ frame, selectors }: Surface): Promise<string> =>
  * time, or until the step's time is up. Excel updates the Name Box before the readout, so the
  * first change isn't the end of it.
  */
-const waitUntilSettled = async (surface: Surface, before: string): Promise<void> => {
+const waitUntilSettled = async (surface: Surface, before: string): Promise<boolean> => {
   const { actionMs, pollMs, settleMs } = surface.timing;
   const deadline = performance.now() + actionMs;
-  const watch = async (last: string, stillSince: number): Promise<void> => {
+  const watch = async (last: string, stillSince: number): Promise<boolean> => {
     await surface.page.waitForTimeout(pollMs);
     const now = await selectionText(surface);
     const time = performance.now();
-    const settled = now !== before && now === last && time - stillSince >= settleMs;
-    if (settled || time >= deadline) return;
+    if (now !== before && now === last && time - stillSince >= settleMs) return true;
+    if (time >= deadline) return now !== before;
     return watch(now, now === last ? stillSince : time);
   };
   return watch(before, performance.now());
 };
 
 /**
+ * Whether a step may be repeated when it changed nothing. A click or drag with no key held only
+ * sets the selection, so doing it again gives the same result. With a key held it may toggle
+ * the selection back, and a double-click starts editing, so those are never repeated.
+ */
+const repeatable = (step: PointerStep): boolean =>
+  step.do !== 'double-click' && !('hold' in step && step.hold !== undefined);
+
+/**
  * Does one pointer step, then waits for the sheet to show its effect, so the next step sees what
- * a person would. A step that leaves the selection as it was waits out its time.
+ * a person would. A step that may be repeated and changed nothing is done once more, since a
+ * sheet that has only just opened can miss a gesture; each repeat is traced.
  */
 export const pointAndWait = async (
   surface: Surface,
   grid: GridGeometry,
   step: PointerStep,
+  trace: Trace,
 ): Promise<void> => {
   const before = await selectionText(surface);
+  await point(surface, grid, step);
+  if ((await waitUntilSettled(surface, before)) || !repeatable(step)) return;
+  trace('sheet.retry', { step: step.do, reason: 'the selection did not change' });
   await point(surface, grid, step);
   await waitUntilSettled(surface, before);
 };

@@ -199,7 +199,7 @@ export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => 
     perform: (step) =>
       act(formatStep(step), async (surface) =>
         isPointerStep(step)
-          ? pointAndWait(surface, await gridOf(surface), step)
+          ? pointAndWait(surface, await gridOf(surface), step, trace)
           : performStep(surface, step, trace),
       ),
 
