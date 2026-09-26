@@ -41,3 +41,21 @@ describe('the areas focus', () => {
     expect(caseSchema.safeParse(explored).success).toBe(true);
   });
 });
+
+describe('the entry focus', () => {
+  it.each([1, 2, 3, 4, 5])(
+    'writes a valid case that observes what it entered (number %i)',
+    (index) => {
+      const explored = exploredCase(9, index, 8, 'entry');
+      expect(caseSchema.safeParse(explored).success).toBe(true);
+      expect(explored.steps.some((step) => step.do === 'observe')).toBe(true);
+    },
+  );
+
+  it('refers to cells it wrote earlier in its formulas', () => {
+    const typed = Array.from({ length: 20 }, (_, index) => exploredCase(9, index + 1, 8, 'entry'))
+      .flatMap(({ steps }) => steps)
+      .flatMap((step) => ('text' in step ? [step.text] : []));
+    expect(typed.some((text) => /^=(SUM|AVERAGE|MAX|MIN|COUNT|IF|ROUND)\(/.test(text))).toBe(true);
+  });
+});

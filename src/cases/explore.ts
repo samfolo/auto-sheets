@@ -49,18 +49,6 @@ interface Space {
 
 type Gesture = (random: Random, space: Space) => ActionStep;
 
-/**
- * What an exploration concentrates on: where it aims, how each sequence begins, and the gestures
- * that follow. `mixed` samples everything a person might do; `areas` builds up complicated
- * selections of many separate areas with Command held, as Sam suggested, which is where Excel's
- * selections and their shading get interesting.
- */
-interface Focus {
-  readonly space: Space;
-  readonly start: readonly Gesture[];
-  readonly gestures: readonly Gesture[];
-}
-
 const pick = <T>(random: Random, items: readonly T[]): T => {
   const item = items[Math.floor(random() * items.length)];
   // Every list here is a fixed, non-empty table.
@@ -123,24 +111,155 @@ const COMMAND_GESTURES: readonly Gesture[] = [
   (random, space) => ({ do: 'drag', from: row(random, space), to: row(random, space), ...COMMAND }),
 ];
 
+/** Writes a sequence of steps from its randomness: `length` gestures, each followed by a look. */
+type Sequence = (random: Random, length: number) => Step[];
+
+/** Gestures from a table, the first from its own, each followed by a look at the selection. */
+const gestureSequence =
+  (space: Space, start: readonly Gesture[], gestures: readonly Gesture[]): Sequence =>
+  (random, length) =>
+    Array.from({ length }, (_, step) => [
+      pick(random, step === 0 ? start : gestures)(random, space),
+      OBSERVE_SELECTION,
+    ]).flat();
+
+/** Where entry sequences write: a small block, so formulas can refer to what came before. */
+const ENTRY_SPACE: Space = { columns: ['A', 'B', 'C', 'D', 'E', 'F'], rows: 8 };
+
+/** What entry sequences type: numbers in the forms people use, and a few words. */
+const ENTRY = {
+  numbers: ['1', '2', '3', '5', '10', '2.5', '-4', '0', '100', '7%'],
+  words: ['apple', 'Total', 'x', 'yes'],
+  /** What a double-click adds to the end of a cell's content. */
+  appended: ['1', '0', '5'],
+  /** How often a gesture types a formula, once there is something to refer to, and a word. */
+  formulaChance: 0.4,
+  wordChance: 0.15,
+  /** How many of the cells written so far each look observes, the latest first. */
+  observed: 6,
+} as const;
+
+/** Formulas over one or two cells written earlier, using the functions and operators in scope. */
+const FORMULAS: readonly ((a: string, b: string) => string)[] = [
+  (a, b) => `=${a}+${b}`,
+  (a) => `=${a}*2`,
+  (a, b) => `=${a}-${b}/2`,
+  (a, b) => `=SUM(${a}:${b})`,
+  (a, b) => `=AVERAGE(${a},${b})`,
+  (a, b) => `=MAX(${a},${b})`,
+  (a, b) => `=MIN(${a}:${b})`,
+  (a, b) => `=COUNT(${a}:${b})`,
+  (a) => `=IF(${a}>2,"big","small")`,
+  (a) => `=ROUND(${a}/3,2)`,
+  (a) => `=${a}&"!"`,
+];
+
+/** What to type next: a formula over cells already written, a number, or a word. */
+const content = (random: Random, written: readonly string[]): string => {
+  if (written.length > 0 && random() < ENTRY.formulaChance) {
+    return pick(random, FORMULAS)(pick(random, written), pick(random, written));
+  }
+  return random() < ENTRY.wordChance ? pick(random, ENTRY.words) : pick(random, ENTRY.numbers);
+};
+
+/** A route's steps, and the cell it wrote, if it wrote one. */
+interface Entry {
+  readonly steps: readonly Step[];
+  readonly wrote: string | null;
+}
+
+type Route = (random: Random, target: string, text: string, written: readonly string[]) => Entry;
+
+/** The ways content reaches a cell, as a person uses them, and undo and redo. */
+const ENTRY_ROUTES: readonly Route[] = [
+  (_, target, text) => ({ steps: [{ do: 'enter', cell: target, text }], wrote: target }),
+  (_, target, text) => ({
+    steps: [
+      { do: 'click', cell: target },
+      { do: 'type', text, commit: true },
+    ],
+    wrote: target,
+  }),
+  (random, target, text) => ({
+    steps: [
+      { do: 'click', cell: target },
+      { do: 'type', text, commit: false },
+      { do: 'click', cell: cell(random, ENTRY_SPACE) },
+    ],
+    wrote: target,
+  }),
+  (_, target, text) => ({
+    steps: [
+      { do: 'click', cell: target },
+      { do: 'edit-in-formula-bar', text },
+    ],
+    wrote: target,
+  }),
+  (random, target, text, written) => {
+    if (written.length === 0)
+      return { steps: [{ do: 'enter', cell: target, text }], wrote: target };
+    const reopened = pick(random, written);
+    return {
+      steps: [
+        { do: 'double-click', cell: reopened },
+        { do: 'type', text: pick(random, ENTRY.appended), commit: true },
+      ],
+      wrote: reopened,
+    };
+  },
+  () => ({ steps: [{ do: 'undo' }], wrote: null }),
+  () => ({ steps: [{ do: 'redo' }], wrote: null }),
+];
+
+/**
+ * Entry: numbers, words and formulas that refer to what was written before, typed by every route
+ * a person uses, with undo and redo among them; after each, a look at the latest cells written.
+ */
+const entrySequence: Sequence = (random, length) => {
+  const written: string[] = [];
+  return Array.from({ length }, () => {
+    const target = cell(random, ENTRY_SPACE);
+    const { steps, wrote } = pick(random, ENTRY_ROUTES)(
+      random,
+      target,
+      content(random, written),
+      written,
+    );
+    if (wrote !== null && !written.includes(wrote)) written.push(wrote);
+    const latest = written.slice(-ENTRY.observed).toReversed();
+    return [...steps, ...(latest.length === 0 ? [] : [{ do: 'observe', cells: latest } as const])];
+  }).flat();
+};
+
+/**
+ * What an exploration concentrates on, and what it looks at after each gesture. `mixed` samples
+ * everything a person might do; `areas` builds up selections of many separate areas with Command
+ * held, where Excel's selections get complicated; `entry` fills in values and formulas that refer
+ * to each other, by every route in.
+ */
 export const FOCUSES = {
   mixed: {
-    space: { columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], rows: 12 },
-    start: MIXED,
-    gestures: MIXED,
+    looksAt: 'what Excel selected',
+    sequence: gestureSequence(
+      { columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], rows: 12 },
+      MIXED,
+      MIXED,
+    ),
   },
   // Fourteen columns: the most that fit the checker's window on a clone with wider cells.
   areas: {
-    space: {
-      columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
-      rows: 20,
-    },
-    start: [
-      (random, space) => ({ do: 'drag', from: cell(random, space), to: cell(random, space) }),
-    ],
-    gestures: COMMAND_GESTURES,
+    looksAt: 'what Excel selected',
+    sequence: gestureSequence(
+      {
+        columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+        rows: 20,
+      },
+      [(random, space) => ({ do: 'drag', from: cell(random, space), to: cell(random, space) })],
+      COMMAND_GESTURES,
+    ),
   },
-} as const satisfies Record<string, Focus>;
+  entry: { looksAt: 'what Excel showed in the cells written', sequence: entrySequence },
+} as const satisfies Record<string, { looksAt: string; sequence: Sequence }>;
 
 export type FocusName = keyof typeof FOCUSES;
 
@@ -164,13 +283,11 @@ export const exploredCase = (
   length: number,
   focus: FocusName = 'mixed',
 ): Case => {
-  const random = seededRandom(seedOf(focus, seed, index));
-  const { space, start, gestures } = FOCUSES[focus];
-  const gesture = (step: number) => pick(random, step === 0 ? start : gestures)(random, space);
+  const { looksAt, sequence } = FOCUSES[focus];
   return {
-    description: `An explored sequence of ${length} random gestures (${focus} focus, seed ${seed}, number ${index}); the recording says what Excel selected after each.`,
+    description: `An explored sequence of ${length} random gestures (${focus} focus, seed ${seed}, number ${index}); the recording says ${looksAt} after each.`,
     tags: [CASE_TAGS.explored],
-    steps: Array.from({ length }, (_, step) => [gesture(step), OBSERVE_SELECTION]).flat(),
+    steps: sequence(seededRandom(seedOf(focus, seed, index)), length),
   };
 };
 

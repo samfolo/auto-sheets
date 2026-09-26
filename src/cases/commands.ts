@@ -87,7 +87,11 @@ export const registerCaseCommands = ({ program, run }: CommandRegistry): void =>
     )
     .option('--count <count>', 'how many sequences to generate and record', '5')
     .option('--steps <steps>', 'how many gestures each sequence makes', '6')
-    .option('--focus <focus>', 'mixed, or areas for many separate areas with Command held', 'mixed')
+    .option(
+      '--focus <focus>',
+      'mixed; areas for many separate areas with Command held; entry for values and formulas',
+      'mixed',
+    )
     .action((options) =>
       run('case explore', (trace) => exploreCases(options, trace), renderExploration),
     );
