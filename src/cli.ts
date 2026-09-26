@@ -9,7 +9,19 @@ import {
   startBrowser,
   stopBrowser,
 } from './commands/browser.ts';
+import { listCases, recordCase, renderCases, renderRecording } from './commands/case.ts';
 import { doctor, renderChecks } from './commands/doctor.ts';
+import {
+  enterCell,
+  excelSignIn,
+  observe,
+  openWorkbook,
+  redoLast,
+  renderDone,
+  renderObservations,
+  renderSignIn,
+  undoLast,
+} from './commands/excel.ts';
 import { loadEnvFile, readRuntime } from './contracts/environment.ts';
 import { exitCodeFor } from './contracts/errors.ts';
 import { internalError, runCommand, write } from './core/command.ts';
@@ -80,6 +92,71 @@ const createProgram = (telemetry: Telemetry) => {
     .command('inspect')
     .description('list the controls on the current page, by frame, and save a screenshot')
     .action(() => runCommand(invocation('browser inspect'), inspectPage, renderInspection));
+
+  const excel = program
+    .command('excel')
+    .description('act on Excel for the web in the browser session, one step at a time');
+
+  excel
+    .command('sign-in')
+    .description('sign in to the test account: first request a code, then pass it with --code')
+    .option('--code <digits>', 'the six-digit code Microsoft emailed')
+    .action(({ code }) =>
+      runCommand(invocation('excel sign-in'), () => excelSignIn({ code }), renderSignIn),
+    );
+
+  excel
+    .command('open')
+    .description('create a blank workbook and make it the one later commands act on')
+    .action(() =>
+      runCommand(invocation('excel open'), openWorkbook, renderDone('Opened a blank workbook.')),
+    );
+
+  excel
+    .command('enter')
+    .description('select a cell, type text into the formula bar and press Enter')
+    .argument('<cell>', 'the cell, in A1 notation, such as B7')
+    .argument('<text>', 'exactly what a person would type, such as =SUM(A1:A3)')
+    .action((cell, text) =>
+      runCommand(
+        invocation('excel enter'),
+        () => enterCell(cell, text),
+        renderDone(`Entered ${JSON.stringify(text)} in ${cell}.`),
+      ),
+    );
+
+  excel
+    .command('observe')
+    .description('read what the formula bar and the cell show, for each cell')
+    .argument('<cells...>', 'one or more cells, in A1 notation')
+    .action((cells) =>
+      runCommand(invocation('excel observe'), () => observe(cells), renderObservations),
+    );
+
+  excel
+    .command('undo')
+    .description('press Ctrl+Z (Cmd+Z on a Mac)')
+    .action(() => runCommand(invocation('excel undo'), undoLast, renderDone('Undid.')));
+
+  excel
+    .command('redo')
+    .description('press Ctrl+Y (Cmd+Y on a Mac)')
+    .action(() => runCommand(invocation('excel redo'), redoLast, renderDone('Redid.')));
+
+  const cases = program
+    .command('case')
+    .description('cases: scenarios run on Excel and the clone, with what Excel did recorded');
+
+  cases
+    .command('list')
+    .description('list every case, grouped by area; ● means Excel has been recorded')
+    .action(() => runCommand(invocation('case list'), listCases, renderCases));
+
+  cases
+    .command('record')
+    .description('run a case on Excel twice and, if the runs agree, save it as the reference')
+    .argument('<id>', 'the case id, which is its folder under the cases directory')
+    .action((id) => runCommand(invocation('case record'), () => recordCase(id), renderRecording));
 
   return program;
 };
