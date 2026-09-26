@@ -1,3 +1,5 @@
 package-lock.json
 # Written only by `factory case record`, never by hand or by a formatter.
 targets/**/reference.json
+# Written only by `factory case explore`.
+targets/**/explore/**/case.json

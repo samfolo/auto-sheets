@@ -1,0 +1,54 @@
+{
+  "description": "An explored sequence of 6 random gestures (seed 1, number 2); the recording says what Excel selected after each.",
+  "tags": [
+    "explored"
+  ],
+  "steps": [
+    {
+      "do": "drag",
+      "from": 5,
+      "to": "D6"
+    },
+    {
+      "do": "observe-selection"
+    },
+    {
+      "do": "drag",
+      "from": "H",
+      "to": "A10"
+    },
+    {
+      "do": "observe-selection"
+    },
+    {
+      "do": "click",
+      "cell": "G4",
+      "hold": [
+        "Shift"
+      ]
+    },
+    {
+      "do": "observe-selection"
+    },
+    {
+      "do": "click",
+      "cell": "D1"
+    },
+    {
+      "do": "observe-selection"
+    },
+    {
+      "do": "click-corner"
+    },
+    {
+      "do": "observe-selection"
+    },
+    {
+      "do": "click-row",
+      "row": 8
+    },
+    {
+      "do": "observe-selection"
+    }
+  ]
+}
