@@ -1,0 +1,151 @@
+{
+  "recordedAt": "2026-09-26T22:06:40.090Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 2,
+      "cells": {
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 4,
+      "cells": {
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 8,
+      "cells": {
+        "A3": {
+          "raw": "=ROUND(E5/3,2)",
+          "display": "#VALUE!",
+          "annotations": [
+            "Contains error"
+          ]
+        },
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 12,
+      "cells": {
+        "E1": {
+          "raw": "3",
+          "display": "3",
+          "annotations": []
+        },
+        "A3": {
+          "raw": "=ROUND(E5/3,2)",
+          "display": "#VALUE!",
+          "annotations": [
+            "Contains error"
+          ]
+        },
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 16,
+      "cells": {
+        "C1": {
+          "raw": "3",
+          "display": "3",
+          "annotations": []
+        },
+        "E1": {
+          "raw": "3",
+          "display": "3",
+          "annotations": []
+        },
+        "A3": {
+          "raw": "=ROUND(E5/3,2)",
+          "display": "#VALUE!",
+          "annotations": [
+            "Contains error"
+          ]
+        },
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 18,
+      "cells": {
+        "C1": {
+          "raw": "",
+          "display": "",
+          "annotations": []
+        },
+        "E1": {
+          "raw": "3",
+          "display": "3",
+          "annotations": []
+        },
+        "A3": {
+          "raw": "=ROUND(E5/3,2)",
+          "display": "#VALUE!",
+          "annotations": [
+            "Contains error"
+          ]
+        },
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 22,
+      "cells": {
+        "C4": {
+          "raw": "-4",
+          "display": "-4",
+          "annotations": []
+        },
+        "C1": {
+          "raw": "",
+          "display": "",
+          "annotations": []
+        },
+        "E1": {
+          "raw": "3",
+          "display": "3",
+          "annotations": []
+        },
+        "A3": {
+          "raw": "=ROUND(E5/3,2)",
+          "display": "#VALUE!",
+          "annotations": [
+            "Contains error"
+          ]
+        },
+        "E5": {
+          "raw": "Total",
+          "display": "Total",
+          "annotations": []
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "description": "An explored sequence of 8 random gestures (entry focus, seed 1, number 2); the recording says what Excel showed in the cells written after each.",
+  "tags": [
+    "explored"
+  ],
+  "steps": [
+    {
+      "do": "undo"
+    },
+    {
+      "do": "enter",
+      "cell": "D3",
+      "text": "-4"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "D3"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "D3"
+    },
+    {
+      "do": "type",
+      "text": "0",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "D3"
+      ]
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "x"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "D3"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "D3"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "D3"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "C1"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "D3"
+      ]
+    },
+    {
+      "do": "enter",
+      "cell": "E7",
+      "text": "0"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "E7",
+        "C1",
+        "D3"
+      ]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "E7",
+        "C1",
+        "D3"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "description": "An explored sequence of 8 random gestures (entry focus, seed 1, number 4); the recording says what Excel showed in the cells written after each.",
+  "tags": [
+    "explored"
+  ],
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A4",
+      "text": "2.5"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "A4"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "D6"
+    },
+    {
+      "do": "edit-in-formula-bar",
+      "text": "x"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "A4"
+    },
+    {
+      "do": "type",
+      "text": "1",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "A4"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "enter",
+      "cell": "A5",
+      "text": "=MAX(A4,D6)"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "A5",
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "C1"
+    },
+    {
+      "do": "type",
+      "text": "=COUNT(D6:A5)",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "A5",
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "A4"
+    },
+    {
+      "do": "type",
+      "text": "0",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "A5",
+        "D6",
+        "A4"
+      ]
+    },
+    {
+      "do": "double-click",
+      "cell": "C1"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C1",
+        "A5",
+        "D6",
+        "A4"
+      ]
+    }
+  ]
+}

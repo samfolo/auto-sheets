@@ -1,0 +1,130 @@
+{
+  "description": "An explored sequence of 8 random gestures (entry focus, seed 1, number 1); the recording says what Excel showed in the cells written after each.",
+  "tags": [
+    "explored"
+  ],
+  "steps": [
+    {
+      "do": "click",
+      "cell": "F6"
+    },
+    {
+      "do": "type",
+      "text": "2",
+      "commit": false
+    },
+    {
+      "do": "click",
+      "cell": "B2"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "F6"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "B7"
+    },
+    {
+      "do": "type",
+      "text": "=COUNT(F6:F6)",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "C8"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C8",
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C8",
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "redo"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "C8",
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "A7"
+    },
+    {
+      "do": "type",
+      "text": "5",
+      "commit": true
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "A7",
+        "C8",
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "redo"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "A7",
+        "C8",
+        "B7",
+        "F6"
+      ]
+    },
+    {
+      "do": "click",
+      "cell": "B5"
+    },
+    {
+      "do": "edit-in-formula-bar",
+      "text": "7%"
+    },
+    {
+      "do": "observe",
+      "cells": [
+        "B5",
+        "A7",
+        "C8",
+        "B7",
+        "F6"
+      ]
+    }
+  ]
+}

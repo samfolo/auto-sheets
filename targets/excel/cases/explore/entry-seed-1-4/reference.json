@@ -1,0 +1,170 @@
+{
+  "recordedAt": "2026-09-26T22:05:40.054Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 1,
+      "cells": {
+        "A4": {
+          "raw": "2.5",
+          "display": "2.5",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 4,
+      "cells": {
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.5",
+          "display": "2.5",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 7,
+      "cells": {
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.51",
+          "display": "2.51",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 10,
+      "cells": {
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.515",
+          "display": "2.515",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 12,
+      "cells": {
+        "A5": {
+          "raw": "=MAX(A4,D6)",
+          "display": "2.515",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.515",
+          "display": "2.515",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 15,
+      "cells": {
+        "C1": {
+          "raw": "=COUNT(A5:D6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "A5": {
+          "raw": "=MAX(A4,D6)",
+          "display": "2.515",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.515",
+          "display": "2.515",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 18,
+      "cells": {
+        "C1": {
+          "raw": "=COUNT(A5:D6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "A5": {
+          "raw": "=MAX(A4,D6)",
+          "display": "2.515",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.515",
+          "display": "2.515",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 21,
+      "cells": {
+        "C1": {
+          "raw": "=COUNT(A5:D6)5",
+          "display": "=COUNT(A5:D6)5 . overflowing",
+          "annotations": [
+            "The formula in this cell contains an error."
+          ]
+        },
+        "A5": {
+          "raw": "=MAX(A4,D6)",
+          "display": "2.515",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "D6": {
+          "raw": "x",
+          "display": "x",
+          "annotations": []
+        },
+        "A4": {
+          "raw": "2.515",
+          "display": "2.515",
+          "annotations": []
+        }
+      }
+    }
+  ]
+}

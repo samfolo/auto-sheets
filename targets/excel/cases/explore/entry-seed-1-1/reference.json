@@ -1,0 +1,185 @@
+{
+  "recordedAt": "2026-09-26T22:02:57.613Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 3,
+      "cells": {
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 6,
+      "cells": {
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 9,
+      "cells": {
+        "C8": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 11,
+      "cells": {
+        "C8": {
+          "raw": "",
+          "display": "",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 13,
+      "cells": {
+        "C8": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 16,
+      "cells": {
+        "A7": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "C8": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 18,
+      "cells": {
+        "A7": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "C8": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 21,
+      "cells": {
+        "B5": {
+          "raw": "7%",
+          "display": "7%",
+          "annotations": []
+        },
+        "A7": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "C8": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        },
+        "B7": {
+          "raw": "=COUNT(F6:F6)",
+          "display": "1",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "F6": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        }
+      }
+    }
+  ]
+}
