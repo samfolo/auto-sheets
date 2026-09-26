@@ -1,0 +1,31 @@
+{
+  "name": "replica",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test"
+  },
+  "dependencies": {
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "vite": "7.1.5",
+    "@vitejs/plugin-react": "5.0.4",
+    "tsx": "4.20.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.3",
+    "@types/react": "19.1.13",
+    "@types/react-dom": "19.1.9",
+    "oxlint": "1.85.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "prettier": "3.9.9",
+    "typescript": "7.0.2",
+    "vitest": "5.0.2"
+  }
+}

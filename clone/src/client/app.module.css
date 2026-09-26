@@ -1,0 +1,18 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  font:
+    13px/1.4 'Segoe UI',
+    system-ui,
+    sans-serif;
+  color: #1f1f1f;
+  background: #ffffff;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
