@@ -105,6 +105,8 @@ export interface AgentOptions extends AgentPlace {
   readonly minutes: number;
   /** The cases the agent may check against, fixed when the run started. */
   readonly caseIds: readonly string[];
+  /** A spending limit in dollars, or null for none. */
+  readonly maxUsd: number | null;
 }
 
 /** What an agent is given, exactly as Pi will send it. */
@@ -245,7 +247,19 @@ const NOT_DONE =
 const MAX_FOLLOW_UPS = 5;
 
 /** Traces what the session does: tools, replies, retries, compactions and a streaming heartbeat. */
-const traceSession = (session: AgentSession, trace: Trace, state: { error: string | null }) => {
+/** What a run has come to: whether it was stopped, and the latest reply's error. */
+interface RunState {
+  timedOut: boolean;
+  overBudget: boolean;
+  error: string | null;
+}
+
+const traceSession = (
+  session: AgentSession,
+  trace: Trace,
+  state: RunState,
+  maxUsd: number | null,
+) => {
   const heartbeat = createHeartbeat(trace);
   session.subscribe((event) => {
     if (event.type === 'message_start' && event.message.role === 'assistant') heartbeat.start();
@@ -274,8 +288,21 @@ const traceSession = (session: AgentSession, trace: Trace, state: { error: strin
       // Only the latest reply counts: a failed reply that Pi then retries successfully is
       // not the run's error.
       state.error = stopReason === 'error' ? (errorMessage ?? 'The model call failed.') : null;
+      const spent = session.getSessionStats().cost;
+      if (maxUsd !== null && spent >= maxUsd && !state.overBudget) {
+        state.overBudget = true;
+        trace('agent.over-budget', { spentUsd: spent, maxUsd });
+        void session.abort();
+      }
     }
   });
+};
+
+/** Why the run ended: a limit it reached, or else whether its last reply failed. */
+const outcomeOf = (state: RunState, error: string | null): AgentRun['outcome'] => {
+  if (state.timedOut) return 'timedOut';
+  if (state.overBudget) return 'overBudget';
+  return error === null ? 'finished' : 'failed';
 };
 
 /**
@@ -299,8 +326,8 @@ export const runAgent = async (
   );
   if (!opened.success) return opened;
   const session = opened.data;
-  const state = { timedOut: false, error: null as string | null };
-  traceSession(session, trace, state);
+  const state: RunState = { timedOut: false, overBudget: false, error: null };
+  traceSession(session, trace, state, options.maxUsd);
   const deadline = performance.now() + options.minutes * MINUTE_MS;
   const minutesLeft = () => (deadline - performance.now()) / MINUTE_MS;
   const timer = setTimeout(() => {
@@ -321,7 +348,9 @@ export const runAgent = async (
         session.prompt(`${prompt}\n\n${timeLeft(minutesLeft())}`, { expandPromptTemplates: false }),
       (reason) => fail('INTERNAL', `The agent stopped unexpectedly: ${reason}`),
     );
-    if (!prompted.success || state.timedOut || state.error !== null) return prompted;
+    if (!prompted.success || state.timedOut || state.overBudget || state.error !== null) {
+      return prompted;
+    }
     if (followUps >= MAX_FOLLOW_UPS) return prompted;
     const outcome = await checker.check([]);
     if (outcome.complete || state.timedOut) return prompted;
@@ -335,7 +364,7 @@ export const runAgent = async (
   session.dispose();
   const error = worked.success ? state.error : worked.error.message;
   return ok({
-    outcome: state.timedOut ? 'timedOut' : error === null ? 'finished' : 'failed',
+    outcome: outcomeOf(state, error),
     error,
     toolCalls: stats.toolCalls,
     replies: stats.assistantMessages,

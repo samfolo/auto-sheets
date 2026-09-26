@@ -9,12 +9,7 @@
  */
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-import {
-  type AgentDefinition,
-  loadAgentDefinition,
-  runAgent,
-  type AgentRun,
-} from '../agent/index.ts';
+import { type AgentDefinition, loadAgentDefinition, OUTCOMES, runAgent } from '../agent/index.ts';
 import { CASE_TAGS, selectCases } from '../cases/index.ts';
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
@@ -134,6 +129,7 @@ export const build = async (
       runDir,
       apiKey: credentials.data.openRouterApiKey,
       minutes,
+      maxUsd: options.data.maxUsd ?? null,
       caseIds: visible.map(({ id }) => id),
     },
     runTrace,
@@ -164,12 +160,6 @@ export const build = async (
 };
 
 const formatTally = ({ passed, total }: Tally): string => `${passed} of ${total}`;
-
-const OUTCOMES: Readonly<Record<AgentRun['outcome'], string>> = {
-  finished: 'finished',
-  timedOut: 'stopped at its time limit',
-  failed: 'failed',
-};
 
 export const renderBuild = ({ runId, workspace, agent, run, check }: BuildSummary): string =>
   [

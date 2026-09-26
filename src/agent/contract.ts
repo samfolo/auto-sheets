@@ -69,9 +69,9 @@ export type AgentSettings = z.output<typeof agentSettingsSchema>;
 
 export const agentRunSchema = z
   .strictObject({
-    outcome: z.enum(['finished', 'timedOut', 'failed']).meta({
+    outcome: z.enum(['finished', 'timedOut', 'overBudget', 'failed']).meta({
       description:
-        'Why the agent stopped: it said it was done, it ran out of time, or a model call failed.',
+        'Why the agent stopped: it said it was done, it ran out of time, it reached its spending limit, or a model call failed.',
     }),
     error: z
       .string()
@@ -88,3 +88,11 @@ export const agentRunSchema = z
   .meta({ description: 'How a run of an agent went.' });
 
 export type AgentRun = z.output<typeof agentRunSchema>;
+
+/** How each way a run can end reads in a sentence: "the agent stopped at its time limit". */
+export const OUTCOMES: Readonly<Record<AgentRun['outcome'], string>> = {
+  finished: 'finished',
+  timedOut: 'stopped at its time limit',
+  overBudget: 'stopped at its spending limit',
+  failed: 'failed',
+};

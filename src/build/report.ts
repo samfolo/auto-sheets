@@ -5,6 +5,7 @@
 import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { OUTCOMES } from '../agent/index.ts';
 import type { Tally } from '../clone/index.ts';
 import { attempt, fail, ok, PATHS, PROJECT, readJsonFile, type Result } from '../kernel/index.ts';
 import { RUN_FILES } from './build.ts';
@@ -75,12 +76,6 @@ const clock = (ms: number): string => {
   const seconds = Math.round(ms / SECOND_MS);
   const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
   return `${minutes}:${String(seconds % SECONDS_PER_MINUTE).padStart(2, '0')}`;
-};
-
-const OUTCOMES: Readonly<Record<BuildSummary['run']['outcome'], string>> = {
-  finished: 'finished',
-  timedOut: 'stopped at its time limit',
-  failed: 'failed',
 };
 
 const tallied = ({ passed, total }: Tally): string => `${passed} of ${total}`;

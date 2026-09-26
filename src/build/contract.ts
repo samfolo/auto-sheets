@@ -23,6 +23,10 @@ export const buildOptionsSchema = z
         description:
           'Another model for this build only, as provider/id, to compare models on the same agent.',
       }),
+    maxUsd: z.coerce.number().positive().optional().meta({
+      description:
+        'A spending limit in dollars: the agent is stopped once its model calls have cost this much.',
+    }),
     minutes: z.coerce.number().int().min(1).max(240).optional().meta({
       description: 'How long the agent may work, in whole minutes. By default, its own budget.',
     }),

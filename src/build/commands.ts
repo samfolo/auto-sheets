@@ -15,6 +15,7 @@ export const registerBuildCommands = ({ program, run }: CommandRegistry): void =
     .option('--out <dir>', 'a new directory outside the factory; by default named after the run')
     .option('--model <provider/id>', 'another model for this build only, to compare models')
     .option('--minutes <minutes>', 'how long the agent may work; by default its own budget')
+    .option('--max-usd <dollars>', 'stop the agent once its model calls have cost this much')
     .action((options) => run('build', (trace) => build(options, trace), renderBuild));
 
   const runs = program
