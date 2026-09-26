@@ -38,4 +38,10 @@ Moments where the thinking shifted: tensions, wrong assumptions and ideas worth 
 
 **"From scratch" has to mean from scratch.** Sam's requirement: clones must not be able to see each other, and the factory must not remember past clones. Otherwise a later run can borrow from an earlier clone and look better than the factory really is. It's the same leak as training on the test set. Claude proposed the dividing line: facts about Excel may flow back into the factory, but clone code may not. Without a sandbox, isolation comes from how runs are set up (a fresh directory and an explicit list of inputs), plus a check afterwards for any access outside the run's directory. (Proposed.)
 
+**The domain chose the data format.** Sam questioned why we had both YAML and JSON. Checking YAML against spreadsheet input settled it. YAML silently retypes the very inputs whose treatment by Excel we're testing: `001`, `1.0`, `TRUE`, and `#N/A`, which YAML reads as a comment. JSON makes every typed value an explicit string, and using one format also removed the need for an index file.
+
+**Purpose over metadata.** Sam's rule: everything that exists must have a purpose. Applying it removed the integrity hash, the schema version fields and the index. The hash's job, stopping the agent from editing expected values, moves to where verification runs. The launcher checks the clone against the factory's original `reference.json` files, not the build's copies, so the rule is enforced by the design rather than by a field.
+
+**A test account changed the autonomy claim.** A dedicated Microsoft account removed the reason for keeping credentials out of the harness. It also removed the privacy problems with videos and workbook metadata. The harness can now sign itself back in.
+
 **Determinism versus volatile functions.** The brief requires a deterministic, resettable clone, but `RAND` and `NOW` are nondeterministic in Excel. The clone therefore needs a seeded random number generator and an injectable clock, and those functions can only be checked against Excel through properties, such as "`RAND` is in [0, 1) and changes on every recalculation", not through exact values.

@@ -13,12 +13,12 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 3. **Workflow: seed the sheet → edit → inspect dependent results → introduce an error → confirm it → correct it → reset.**
 4. **We build the factory; the factory builds the clone.** Our code is the case schema, the adapters for Excel and the clone, the runners, the comparator, the knowledge corpus and the agent instructions. The factory's agent generates the evaluator, API and UI.
 5. **Breadth is not descoped up front.** The factory covers as much of the formula language as it can verify. Only behaviour confirmed against Excel is claimed as faithful; everything else is reported as unverified.
-6. **The harness never holds Microsoft credentials.** It launches its own browser profile, a person signs in once, and the harness reuses that session. Reference access is autonomous only after that step.
+6. **The harness never holds Microsoft credentials.** It launches its own browser profile, a person signs in once, and the harness reuses that session. Reference access is autonomous only after that step. *Superseded by 38.*
 7. **Reference cases are checked in, including the `.xlsx` files Excel produced.** Any observation can be re-checked from the repository.
 8. **Documentation is a static local corpus, not live web search.** Runs don't depend on Microsoft's site being reachable, and every cited source is pinned. Sources include Microsoft's Excel support pages, ECMA-376 (the published spreadsheet file format standard, which includes a formula grammar) and Microsoft's notes on where Excel departs from that standard. Documentation is a hypothesis: observed Excel behaviour wins when they disagree.
 9. **TypeScript throughout.**
 10. **Commits are single-line conventional commits.**
-11. **Every artifact the harness consumes has a Zod schema in a contracts directory and is validated before use.** A JSON Schema is exported from each one for editor support. The model receives validation errors in Zod's human-readable format, so it can fix its own output precisely.
+11. **Every artifact the harness consumes has a Zod schema in a contracts directory and is validated before use.** A JSON Schema is exported from each one for editor support. The model receives validation errors in Zod's human-readable format, so it can fix its own output precisely. *The JSON Schema export is superseded: it's deferred until editing cases by hand needs it.*
 12. **Expected values always come from Excel.** The model writes scenarios; the harness runs them in Excel and records what happens as the expectations.
 13. **The clone's internal architecture is not prescribed.** Only the contracts at its boundaries are fixed.
 14. **Agent runtime: Pi with a Playwright extension.** A spike confirmed it can drive the browser.
@@ -34,24 +34,29 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 24. **The agent works through deterministic tools.** Tools are Node scripts that import documents and workbooks, run scenarios, validate and compare. The agent doesn't bring files in by hand.
 25. **Every run produces a JSONL log** of each tool call, its inputs, its result and its duration, so a run can be analysed afterwards, including by a model. Pino is the likely logger.
 26. **Errors use central codes with English messages and exact locations** (file, line, field, step, cell). "Something went wrong" is never an acceptable error.
-27. **Files we author are YAML.** The workbook library and the documentation corpus each have an index that tools maintain. Every manifest is dated and records the schema and factory versions that produced it.
+27. **Files we author are YAML.** The workbook library and the documentation corpus each have an index that tools maintain. Every manifest is dated and records the schema and factory versions that produced it. *Superseded by 34 and 36.*
 28. **The factory is versioned, so every run can be matched to the factory state that produced it.**
 29. **Reference documents are not front-loaded.** The agent is told where they are and searches them with grep; there are no embeddings. The corpus also includes the Glide documentation, pulled in selectively.
 30. **A launcher points the factory at a directory and builds the clone from scratch, repeatedly.** A `doctor` command first checks Playwright, Pi, the Excel session and the configuration.
 31. **No formal verification (Lean) in this submission.**
 32. **Every clone build starts clean.** No clone can see another clone, and the factory carries nothing from past clones into a new build.
-33. **Each recorded Excel observation keeps a video of the run that produced it, one-to-one.** Replacing an observation deletes its video. This is provenance for reviewers, not test input.
+33. **Each recorded Excel observation keeps a video of the run that produced it, one-to-one.** Replacing an observation deletes its video. This is provenance for reviewers, not test input. *Superseded by 37.*
+34. **JSON for data, Markdown for prose.** YAML silently retypes exactly the inputs we test: `001`, `1.0` and `TRUE` become numbers or booleans, and `#N/A` becomes a comment. In JSON every typed value is an explicit string. One data format also means `jq` works on every file, so no index files are needed.
+35. **One directory per case.** It holds `case.json` (steps and tags), `reference.json` (what Excel did, written only by the recorder) and an optional `seed.xlsx` (a blank workbook if absent). "Golden" is a tag. `targets/README.md` explains every file and field in at most 50 lines.
+36. **Data files carry no schema or factory version fields for now.** How contracts evolve once cases exist is an open problem.
+37. **Videos and traces are local artifacts and are never committed.** They would bloat history, and traces can contain session cookies.
+38. **The harness uses a dedicated test Microsoft account.** Its credentials live in the ignored `.env`. The harness signs in through a saved browser profile and uses the credentials only when it needs to sign in again.
+39. **One command-line tool, `factory`, built on commander.** It prints readable text by default and JSON with `--json`. The agent always uses `--json` and discovers commands through `--help`.
+40. **Failures are values.** Functions return `{ success: true, data }` or `{ success: false, error }`, the same shape as Zod's `safeParse`. Only bugs throw; the command-line entry point turns them into an `INTERNAL` error and logs the stack trace.
+41. **Node runs the TypeScript directly, with no build step; TypeScript 7 only type-checks.** Dependencies are kept to Zod 4, commander and pino until a step needs more.
+42. **Every command logs the factory version, Git commit and whether there were uncommitted changes.** This is how runs are matched to factory states (28), with nothing to bump by hand.
 
 ## Open questions
 
 - **What Excel exposes to Playwright.** Which controls and cell states can be read from the page (address box, formula bar, cell text, alignment, dialogs) decides the snapshot contents and whether one script can drive both targets unchanged.
 - **Excel setup and reset.** Proposed: upload a fresh copy of the seed workbook for each scenario and delete it afterwards.
-- **Where clones and run outputs live.** Proposed: each build runs in a new directory outside this repository, with its own Git history, and only the factory's declared inputs are copied in. Facts about Excel can flow back into the factory; clone code never does. The clone chosen for submission is copied into this repository at the end.
-- **Case layout.** Proposed: one directory per case, holding the steps, the seed workbook, what Excel did and the evidence. The golden path is a label on cases, not a separate kind of file.
-- **Evidence privacy.** Videos of the signed-in Excel session may show account details, and Playwright traces can contain session cookies. Decide what gets checked in.
-- **How versions are recorded.** Proposed: every run records the factory's version number, Git commit and whether there were uncommitted changes, automatically. The version number is bumped when a contract changes.
-- **Index format.** JSON for querying with `jq`, or YAML like other authored files. Proposed: people and models write YAML, and tools write JSON.
-- **Observation integrity.** Proposed: observations are written only by tools and carry a hash of their evidence, so an edited expectation fails validation.
+- **Where clones and run outputs live.** Proposed: each build runs in a new directory outside this repository, with its own Git history, and only the factory's declared inputs are copied in. Facts about Excel can flow back into the factory; clone code never does. The clone chosen for submission is copied into this repository at the end. Verification uses the factory's original `reference.json` files, so a build that edits its copies gains nothing.
+- **Schema changes.** How to change a contract once cases written against it exist.
 - **Stall detection.** Proposed: the verify script detects repeated failures and tells the agent to stop and reassess.
 - **Grid.** Glide Data Grid is the likely choice. It exposes an accessible table, but its peer dependencies cap React at 18.
 - **Reference capture of typed values.** Whether to read typed values from a downloaded `.xlsx` as well as from the page. A spike will settle this.
