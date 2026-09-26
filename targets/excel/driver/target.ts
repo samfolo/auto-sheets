@@ -1,5 +1,5 @@
 import type { BrowserContext } from 'playwright';
-import type { SheetTarget } from '../../../src/sheet/driver.ts';
+import type { SheetTarget } from '../../../src/sheet/index.ts';
 import { EXCEL } from './excel.ts';
 import { findOpenWorkbook, openWorkbook } from './workbook.ts';
 

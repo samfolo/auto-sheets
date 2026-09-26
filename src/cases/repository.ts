@@ -6,11 +6,17 @@
 import { existsSync } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { dirname, join, sep } from 'node:path';
-import { caseSchema, type Case } from '../contracts/case.ts';
-import { displayPath, readJsonFile, writeJsonFile } from '../contracts/files.ts';
-import { referenceSchema, type Reference } from '../contracts/reference.ts';
-import { PATHS, PROJECT } from '../core/project.ts';
-import { fail, ok, type Result } from '../core/result.ts';
+import { caseSchema, type Case, referenceSchema, type Reference } from './contract.ts';
+import {
+  displayPath,
+  readJsonFile,
+  writeJsonFile,
+  PATHS,
+  PROJECT,
+  fail,
+  ok,
+  type Result,
+} from '../kernel/index.ts';
 
 export const CASE_FILES = {
   /** The steps, written by a person or the agent. */

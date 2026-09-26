@@ -22,11 +22,17 @@ import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, rmSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { chromium, type BrowserContext, type Page } from 'playwright';
-import { browserSessionSchema, type BrowserSession } from '../contracts/browser.ts';
-import { readJsonFile, writeJsonFile } from '../contracts/files.ts';
-import { attempt } from '../core/attempt.ts';
-import { PATHS, PROJECT } from '../core/project.ts';
-import { fail, ok, type Result } from '../core/result.ts';
+import { browserSessionSchema, type BrowserSession } from './contract.ts';
+import {
+  readJsonFile,
+  writeJsonFile,
+  attempt,
+  PATHS,
+  PROJECT,
+  fail,
+  ok,
+  type Result,
+} from '../kernel/index.ts';
 
 /** How the session's browser is launched. host.ts reads the same settings. */
 export const BROWSER = {

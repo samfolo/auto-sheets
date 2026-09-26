@@ -3,9 +3,8 @@ import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as z from 'zod';
-import { commandOutputSchema, type CommandOutput } from '../contracts/output.ts';
-import { logLineSchema, type LogLine } from '../contracts/telemetry.ts';
-import { PATHS } from '../core/project.ts';
+import { commandOutputSchema, type CommandOutput } from '../cli/index.ts';
+import { logLineSchema, type LogLine, PATHS } from '../kernel/index.ts';
 import { TEST_CREDENTIALS } from './settings.ts';
 
 /** A finished run of the real CLI. */

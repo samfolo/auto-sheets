@@ -1,6 +1,5 @@
 import { expect } from 'vitest';
-import { exitCodeFor, type ErrorCode, type FactoryError } from '../contracts/errors.ts';
-import type { Result } from '../core/result.ts';
+import { exitCodeFor, type ErrorCode, type FactoryError, type Result } from '../kernel/index.ts';
 import type { CliRun } from './cli.ts';
 
 /*

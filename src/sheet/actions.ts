@@ -12,10 +12,8 @@
  *   reported, or traced when it can't be proved, and recording each case twice catches the rest.
  */
 import { cellBelow } from './address.ts';
-import type { CellAddress, RangeAddress } from '../contracts/case.ts';
-import type { CellObservation } from '../contracts/reference.ts';
-import { poll } from '../core/poll.ts';
-import type { Trace } from '../core/telemetry.ts';
+import type { CellAddress, CellObservation, RangeAddress } from './contract.ts';
+import { poll, type Trace } from '../kernel/index.ts';
 import { KEYS } from './keys.ts';
 import { describesSelection, parseReadout } from './readout.ts';
 import type { Surface } from './surface.ts';

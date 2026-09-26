@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Step } from '../contracts/case.ts';
-import { ok } from '../core/result.ts';
+import type { Step } from '../sheet/index.ts';
+import { ok } from '../kernel/index.ts';
 import { createFakeDriver } from '../testing/fake-driver.ts';
 import { runSteps } from './run.ts';
 

@@ -5,8 +5,12 @@
  */
 import { readFile } from 'node:fs/promises';
 import type { BrowserContext, Page } from 'playwright';
-import type { SheetTarget } from '../../../src/sheet/driver.ts';
-import type { SheetSelectors, SheetTiming, Surface } from '../../../src/sheet/surface.ts';
+import type {
+  SheetTarget,
+  SheetSelectors,
+  SheetTiming,
+  Surface,
+} from '../../../src/sheet/index.ts';
 
 export const CLONE = {
   environment: 'auto-sheets clone of Excel for the web',

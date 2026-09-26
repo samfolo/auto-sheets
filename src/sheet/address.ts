@@ -1,4 +1,4 @@
-import type { CellAddress, RangeAddress } from '../contracts/case.ts';
+import type { CellAddress, RangeAddress } from './contract.ts';
 
 /** Column letters and row number of a validated A1 address. */
 const PARTS = /^([A-Z]+)(\d+)$/;

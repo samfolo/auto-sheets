@@ -8,9 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { chmod, cp, mkdir, writeFile } from 'node:fs/promises';
 import { isAbsolute, join, relative, resolve } from 'node:path';
-import { attempt } from '../core/attempt.ts';
-import { PATHS } from '../core/project.ts';
-import { fail, ok, type Result } from '../core/result.ts';
+import { attempt, PATHS, fail, ok, type Result } from '../kernel/index.ts';
 
 /** What a new workspace is given, and where each copy goes inside it. */
 const INPUTS = [

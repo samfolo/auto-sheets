@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Checkpoint } from '../contracts/reference.ts';
+import type { Checkpoint } from './contract.ts';
 import { compareTrajectories, formatDifference } from './compare.ts';
 
 const checkpoint = (step: number, display: string): Checkpoint => ({

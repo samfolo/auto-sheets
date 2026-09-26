@@ -1,7 +1,12 @@
-import type { Driver } from '../cases/driver.ts';
-import type { ActionStep, CellAddress, RangeAddress } from '../contracts/case.ts';
-import { fail, ok, type Result } from '../core/result.ts';
-import { cellBelow, cellsIn } from '../sheet/address.ts';
+import {
+  type Driver,
+  type ActionStep,
+  type CellAddress,
+  type RangeAddress,
+  cellBelow,
+  cellsIn,
+} from '../sheet/index.ts';
+import { fail, ok, type Result } from '../kernel/index.ts';
 
 type Sheet = Readonly<Record<CellAddress, string>>;
 

@@ -5,13 +5,13 @@
   "private": true,
   "type": "module",
   "bin": {
-    "factory": "./src/cli.ts"
+    "factory": "./src/main.ts"
   },
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "factory": "node src/cli.ts",
+    "factory": "node src/main.ts",
     "typecheck": "tsc",
     "lint": "oxlint",
     "format": "prettier --write .",

@@ -4,9 +4,7 @@
  * reads it from the inbox and passes it to the second. The session then lasts across restarts.
  */
 import type { BrowserContext, Page } from 'playwright';
-import { attempt } from '../../../src/core/attempt.ts';
-import { PROJECT } from '../../../src/core/project.ts';
-import { fail, type Result } from '../../../src/core/result.ts';
+import { attempt, PROJECT, fail, type Result } from '../../../src/kernel/index.ts';
 import { EXCEL } from './excel.ts';
 
 export type SignInState = 'signed-in' | 'code-sent';

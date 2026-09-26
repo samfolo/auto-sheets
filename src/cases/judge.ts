@@ -3,16 +3,14 @@
  * The references come from the factory's own cases, so a clone's workspace can't change what
  * it's judged against.
  */
-import { cloneTarget, CLONE } from '../../targets/excel/clone/target.ts';
-import { withFreshBrowser } from '../browser/fresh.ts';
+import { cloneTarget, CLONE } from '../../targets/excel/index.ts';
+import { withFreshBrowser } from '../browser/index.ts';
 import { compareTrajectories, formatDifference } from './compare.ts';
 import { listCaseIds, loadCase, readReference, type LoadedCase } from './repository.ts';
 import { runSteps } from './run.ts';
-import type { Checkpoint, Reference } from '../contracts/reference.ts';
-import { attempt } from '../core/attempt.ts';
-import { fail, ok, type Result } from '../core/result.ts';
-import type { Trace } from '../core/telemetry.ts';
-import { createSheetDriver } from '../sheet/driver.ts';
+import type { Checkpoint, Reference } from './contract.ts';
+import { attempt, fail, ok, type Result, type Trace } from '../kernel/index.ts';
+import { createSheetDriver } from '../sheet/index.ts';
 
 /** How one case went on the clone. */
 export interface Verdict {

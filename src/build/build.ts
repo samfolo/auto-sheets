@@ -10,15 +10,20 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { judgeClone, type Verdict } from '../cases/judge.ts';
-import { buildOptionsSchema } from '../contracts/build.ts';
-import { childEnvironment, readCredentials } from '../contracts/environment.ts';
-import { validate } from '../contracts/validate.ts';
-import { PATHS } from '../core/project.ts';
-import { ok, type Result } from '../core/result.ts';
-import { readStamp, type FactoryStamp } from '../core/stamp.ts';
-import type { Trace } from '../core/telemetry.ts';
-import { AGENT, runAgent, type AgentRun } from './agent.ts';
+import { judgeClone, type Verdict } from '../cases/index.ts';
+import { buildOptionsSchema } from './contract.ts';
+import {
+  childEnvironment,
+  readCredentials,
+  validate,
+  PATHS,
+  ok,
+  type Result,
+  readStamp,
+  type FactoryStamp,
+  type Trace,
+} from '../kernel/index.ts';
+import { AGENT, runAgent, type AgentRun } from '../agent/index.ts';
 import { prepareWorkspace } from './workspace.ts';
 
 export const BUILD = {

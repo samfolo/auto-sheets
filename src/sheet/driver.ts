@@ -3,19 +3,40 @@
  * the clone) only says how to open a sheet and where its controls are; everything a step does
  * is defined once, in actions.ts, so both targets are driven the same way.
  */
-import { screenshot } from '../browser/inspect.ts';
-import type { Driver } from '../cases/driver.ts';
-import { formatStep } from '../cases/steps.ts';
-import type { ActionStep } from '../contracts/case.ts';
-import { displayPath } from '../contracts/files.ts';
-import { attempt } from '../core/attempt.ts';
-import { PROJECT } from '../core/project.ts';
-import { fail, ok, type Result } from '../core/result.ts';
-import type { Trace } from '../core/telemetry.ts';
-import { unreachable } from '../core/unreachable.ts';
+import { screenshot } from '../browser/index.ts';
+import { formatStep } from './steps.ts';
+import type { ActionStep, CellAddress, CellObservation } from './contract.ts';
+import {
+  displayPath,
+  attempt,
+  PROJECT,
+  fail,
+  ok,
+  type Result,
+  type Trace,
+  unreachable,
+} from '../kernel/index.ts';
 import { enter, enterInSelection, press, readCell, select } from './actions.ts';
 import { KEYS } from './keys.ts';
 import type { Surface } from './surface.ts';
+
+/**
+ * What the factory needs from any system it runs cases on: Excel, or a clone. Steps are
+ * performed one at a time, and observing a cell is the one step that reads, so the same case
+ * runs on either system.
+ */
+export interface Driver {
+  /** The system being driven, as named in reports. */
+  readonly target: string;
+  /** Describes the system and its regional format, for reference.json. */
+  readonly environment: string;
+  /** Opens a new sheet: blank, or from a seed workbook on disk. Every case starts here. */
+  readonly open: (seed: string | null) => Promise<Result<void>>;
+  /** Does one thing a person does, such as entering text or pressing undo. */
+  readonly perform: (step: ActionStep) => Promise<Result<void>>;
+  /** Selects the cell and reads what the formula bar and the cell show. */
+  readonly observe: (cell: CellAddress) => Promise<Result<CellObservation>>;
+}
 
 /** What a target provides so the sheet driver can run on it. */
 export interface SheetTarget {

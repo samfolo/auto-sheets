@@ -1,5 +1,6 @@
-import type { CellObservation, Checkpoint } from '../contracts/reference.ts';
-import { formatPath } from '../contracts/validate.ts';
+import type { CellObservation } from '../sheet/index.ts';
+import type { Checkpoint } from './contract.ts';
+import { formatPath } from '../kernel/index.ts';
 
 /** One way two trajectories disagree: a cell field, or a checkpoint or cell that's missing. */
 export interface Difference {

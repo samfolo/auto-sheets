@@ -3,7 +3,7 @@
  * here was observed, not documented: see ../knowledge/observability.md. If Excel changes, this
  * is the file to update.
  */
-import type { SheetSelectors, SheetTiming } from '../../../src/sheet/surface.ts';
+import type { SheetSelectors, SheetTiming } from '../../../src/sheet/index.ts';
 
 export const EXCEL = {
   homeUrl: 'https://excel.cloud.microsoft/',

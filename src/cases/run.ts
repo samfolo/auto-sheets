@@ -1,10 +1,6 @@
-import type { CellAddress, Step } from '../contracts/case.ts';
-import type { CellObservation, Checkpoint } from '../contracts/reference.ts';
-import { formatPath } from '../contracts/validate.ts';
-import { ok, type Result } from '../core/result.ts';
-import type { Driver } from './driver.ts';
-
-type Observed = Checkpoint['cells'];
+import { type Step, performStep, type Driver } from '../sheet/index.ts';
+import type { Checkpoint } from './contract.ts';
+import { formatPath, ok, type Result } from '../kernel/index.ts';
 
 /** Adds which step failed to a failure, so the report points at the step in case.json. */
 const atStep = <T>(result: Result<T>, index: number): Result<T> =>
@@ -17,29 +13,6 @@ const atStep = <T>(result: Result<T>, index: number): Result<T> =>
           details: [`at ${formatPath(['steps', index])}`, ...(result.error.details ?? [])],
         },
       };
-
-/** Observes each cell in turn and returns what each one showed, by address. */
-export const observeCells = async (
-  driver: Driver,
-  cells: readonly CellAddress[],
-): Promise<Result<Observed>> => {
-  const observed: Record<CellAddress, CellObservation> = {};
-  for (const cell of cells) {
-    // Observing a cell selects it, so cells are read one at a time.
-    // oxlint-disable-next-line no-await-in-loop
-    const observation = await driver.observe(cell);
-    if (!observation.success) return observation;
-    observed[cell] = observation.data;
-  }
-  return ok(observed);
-};
-
-/** Does one step. An observe step returns what it saw; every other step returns null. */
-export const performStep = async (driver: Driver, step: Step): Promise<Result<Observed | null>> => {
-  if (step.do === 'observe') return observeCells(driver, step.cells);
-  const done = await driver.perform(step);
-  return done.success ? ok(null) : done;
-};
 
 /**
  * Runs a case's steps on a new sheet, blank or seeded, and returns what was seen at each observe

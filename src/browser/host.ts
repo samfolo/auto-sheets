@@ -4,7 +4,7 @@
  * argument, `headless` or `headed`, and exits when the browser closes.
  */
 import { chromium } from 'playwright';
-import { PATHS } from '../core/project.ts';
+import { PATHS } from '../kernel/index.ts';
 import { BROWSER } from './session.ts';
 
 const context = await chromium.launchPersistentContext(PATHS.browser.profile, {

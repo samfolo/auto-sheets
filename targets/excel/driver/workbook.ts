@@ -8,7 +8,7 @@
  * the page is at a saved address and the new editor has loaded its clipboard frame.
  */
 import type { BrowserContext, Frame, Page } from 'playwright';
-import type { Surface } from '../../../src/sheet/surface.ts';
+import type { Surface } from '../../../src/sheet/index.ts';
 import { EXCEL } from './excel.ts';
 
 const { timeouts } = EXCEL;

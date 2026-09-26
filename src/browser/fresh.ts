@@ -1,6 +1,5 @@
 import { chromium, type BrowserContext } from 'playwright';
-import { attempt } from '../core/attempt.ts';
-import { fail, type Result } from '../core/result.ts';
+import { attempt, fail, type Result } from '../kernel/index.ts';
 import { BROWSER } from './session.ts';
 
 /**

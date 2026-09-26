@@ -31,7 +31,7 @@ Each case folder holds up to three files.
 
 - `description`: the behaviour, in one sentence. It's a hypothesis until the case is recorded.
 - `tags`: labels that cut across areas. `golden` marks the walkthrough that must pass identically on Excel and on the clone.
-- `steps`: what a person does, in order: `select`, `enter`, `enter-in-selection`, `clear`, `fill-down`, `copy`, `paste`, `undo` and `redo`. `observe` is a checkpoint listing cells to record. `factory excel do --help` describes each step.
+- `steps`: what a person does, in order: `select`, `enter`, `enter-in-selection`, `clear`, `fill-down`, `copy`, `paste`, `undo` and `redo`. `observe` is a checkpoint listing cells to record. `./factory.sh excel do --help` describes each step.
 
 **`seed.xlsx`** is optional: a workbook the case starts from instead of a blank sheet.
 
@@ -46,5 +46,5 @@ Why this shape: a case is a [characterization test](https://en.wikipedia.org/wik
 
 ## Commands
 
-- `factory case list` shows every case: ● recorded, ○ not yet. `factory case record <id>` records one.
-- `factory excel open [--seed <file>]` then `factory excel do <step> …` try steps by hand before writing them down.
+- `./factory.sh case list` shows every case: ● recorded, ○ not yet. `./factory.sh case record <id>` records one.
+- `./factory.sh excel open [--seed <file>]` then `./factory.sh excel do <step> …` try steps by hand before writing them down.

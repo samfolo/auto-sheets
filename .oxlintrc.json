@@ -19,7 +19,7 @@
   },
   "overrides": [
     {
-      "files": ["src/contracts/environment.ts", "src/testing/**"],
+      "files": ["src/kernel/environment.ts", "src/testing/**"],
       "rules": { "node/no-process-env": "off" }
     }
   ],

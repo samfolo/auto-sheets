@@ -6,9 +6,7 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Frame, Page } from 'playwright';
-import { attempt } from '../core/attempt.ts';
-import { PATHS } from '../core/project.ts';
-import { fail, type Result } from '../core/result.ts';
+import { attempt, PATHS, fail, type Result } from '../kernel/index.ts';
 
 /** Accessibility roles worth listing when exploring: things a person can read or operate. */
 const CONTROL_ROLES =
