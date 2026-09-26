@@ -2,6 +2,18 @@
 
 This repository is the factory. Clones are built elsewhere. Landed decisions are in `docs/decisions.md`, and the reasoning behind them is in `docs/log.md`.
 
+## Terms
+
+- **Target**: the product being replicated, Excel for the web. **Clone**: the app an agent builds to behave like it; the agent's prompts call it the replica.
+- **Case**: a scenario a person performs on a sheet, as semantic **steps** (select, enter, undo, observe and so on).
+- **Checkpoint**: what the sheet showed at one observe step: each observed cell's raw content, displayed text and readout annotations.
+- **Trajectory**: the checkpoints from running one case on one target, in order. It is what the sheet showed, not what anyone did. An agent's own sequence of actions is its **transcript**, kept in Pi's session file.
+- **Reference**: Excel's trajectory for a case, recorded twice and kept only when both runs agree. It is the ground truth.
+- **Verdict**: whether a clone's trajectory matches the reference, with every difference. Judging is deterministic: exact comparison, with no model involved.
+- **Golden** and **held-out** are case tags: the walkthrough that must pass, and the cases kept from the agent.
+- **Run** (or build): one attempt by an agent to build a clone, named after the time it started. **Workspace**: where that clone is built, beside the factory.
+- **Score**: how many cases a clone passes. The **scoreboard** compares each check with the last, naming what was fixed and what broke.
+
 ## Commands
 
 - `./factory.sh --help` lists the CLI's commands. `./factory.sh doctor` checks prerequisites.
