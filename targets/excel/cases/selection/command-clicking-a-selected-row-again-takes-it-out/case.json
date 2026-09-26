@@ -1,0 +1,10 @@
+{
+  "description": "With Command held, clicking another row's header adds that row, and clicking a selected row's header again takes it back out of the selection.",
+  "steps": [
+    { "do": "click-row", "row": 3 },
+    { "do": "click-row", "row": 5, "hold": ["Command"] },
+    { "do": "observe-selection" },
+    { "do": "click-row", "row": 3, "hold": ["Command"] },
+    { "do": "observe-selection" }
+  ]
+}

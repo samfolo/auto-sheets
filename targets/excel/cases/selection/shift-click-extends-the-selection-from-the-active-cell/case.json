@@ -1,0 +1,10 @@
+{
+  "description": "Shift-clicking a cell, or a column's header, extends the selection from the active cell to it, and the active cell stays where it was.",
+  "steps": [
+    { "do": "click", "cell": "B2" },
+    { "do": "click", "cell": "D5", "hold": ["Shift"] },
+    { "do": "observe-selection" },
+    { "do": "click-column", "column": "F", "hold": ["Shift"] },
+    { "do": "observe-selection" }
+  ]
+}

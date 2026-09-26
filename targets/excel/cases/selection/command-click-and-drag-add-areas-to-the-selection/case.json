@@ -1,0 +1,12 @@
+{
+  "description": "With Command held, clicking a cell, dragging a range or clicking a column's header adds it to the selection as a separate area.",
+  "steps": [
+    { "do": "drag", "from": "B2", "to": "C3" },
+    { "do": "click", "cell": "E5", "hold": ["Command"] },
+    { "do": "observe-selection" },
+    { "do": "drag", "from": "G2", "to": "H4", "hold": ["Command"] },
+    { "do": "observe-selection" },
+    { "do": "click-column", "column": "K", "hold": ["Command"] },
+    { "do": "observe-selection" }
+  ]
+}

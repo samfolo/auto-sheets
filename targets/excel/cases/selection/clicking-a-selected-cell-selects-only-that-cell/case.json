@@ -1,0 +1,8 @@
+{
+  "description": "Clicking a cell inside a selected range, without a key held, replaces the range with that one cell.",
+  "steps": [
+    { "do": "drag", "from": "B2", "to": "E6" },
+    { "do": "click", "cell": "C4" },
+    { "do": "observe-selection" }
+  ]
+}

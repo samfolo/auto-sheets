@@ -1,0 +1,8 @@
+{
+  "description": "A drag with Shift held extends the existing selection rather than starting a new one.",
+  "steps": [
+    { "do": "click", "cell": "B2" },
+    { "do": "drag", "from": "D4", "to": "F6", "hold": ["Shift"] },
+    { "do": "observe-selection" }
+  ]
+}

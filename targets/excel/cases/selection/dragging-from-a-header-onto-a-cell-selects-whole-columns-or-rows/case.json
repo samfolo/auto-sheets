@@ -1,0 +1,9 @@
+{
+  "description": "A drag that starts on a column's or a row's header selects whole columns or rows, even when it ends on a cell.",
+  "steps": [
+    { "do": "drag", "from": "B", "to": "D8" },
+    { "do": "observe-selection" },
+    { "do": "drag", "from": 2, "to": "C4" },
+    { "do": "observe-selection" }
+  ]
+}

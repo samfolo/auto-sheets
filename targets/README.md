@@ -30,13 +30,13 @@ A case is a folder, and its path is its id, such as `errors/division-by-zero-spr
 
 - `description`: the behaviour, in one sentence. It's a hypothesis until the case is recorded.
 - `tags`: labels that cut across areas. `golden` marks the walkthrough that must pass identically on Excel and on the clone. `held-out` keeps a case from the agent building a clone, so the final check shows whether it learned the rules or fitted the cases it saw.
-- `steps`: what a person does, in order: with the keyboard (`select`, `enter`, `enter-in-selection`, `type`, `clear`, `fill-down`, `copy`, `paste`, `undo`, `redo`) or the mouse (`click`, `double-click`, `drag`, `click-column`, `click-row`, `drag-columns`, `drag-rows`, `click-corner`). `observe` is a checkpoint listing cells to record, and `observe-selection` records the selection. `./factory.sh excel do --help` describes each step.
+- `steps`: what a person does, in order: with the keyboard (`select`, `enter`, `enter-in-selection`, `type`, `clear`, `fill-down`, `copy`, `paste`, `undo`, `redo`) or the mouse (`click`, `double-click`, `drag`, `click-column`, `click-row`, `drag-columns`, `drag-rows`, `click-corner`), where a click or drag can hold Shift or Command and a drag can start or end on a header. `observe` is a checkpoint listing cells to record, and `observe-selection` records the selection. `./factory.sh excel do --help` describes each step.
 
 **`seed.xlsx`** is optional: a workbook the case starts from instead of a blank sheet.
 
 **`reference.json`** is written only by `factory case record`, which runs the case on Excel twice and keeps the result only if both runs agree.
 
-- `checkpoints`: for each observe step, each cell's `raw` content (the formula bar), its `display` (what the cell shows), and `annotations` (what Excel's screen-reader readout adds, such as "Contains Formula"); for each observe-selection step, the active cell and the selected range.
+- `checkpoints`: for each observe step, each cell's `raw` content (the formula bar), its `display` (what the cell shows), and `annotations` (what Excel's screen-reader readout adds, such as "Contains Formula"); for each observe-selection step, the active cell and the selected range, or each area when several are selected.
 - `environment`: the regional format, which changes how dates and numbers are read.
 
 Every field is also described in its Zod schema, in `src/sheet/contract.ts` (steps and observations) and `src/cases/contract.ts` (the case and reference files), and validation errors quote those descriptions.
