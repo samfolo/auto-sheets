@@ -77,6 +77,9 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 67. **A reply that is still streaming reports that it is alive.** The runtime traces a heartbeat every 30 seconds while a reply streams (characters of thinking, text and tool calls so far), and traces Pi's retries and compactions. In the first SDK run, one reply streamed for over eight minutes at a few tokens a second; without a heartbeat that looks exactly like a hang, and a supervisor would kill a working agent.
 68. **Deterministic, imperative tools exist so nobody improvises them.** A person debugging uses `excel do <step>`, `browser inspect` and `clone check --headed`; the agent gets the same kind of capability on its own app as harness tools. Reports about runs, such as `runs show`, are for people and are never given to the agent.
 69. **There is one way to check a clone: `clone check <workspace>`.** It starts the clone itself, exactly as a build's final check does. The earlier `case verify --url`, and the `FACTORY_RUN_ID` setting that only the subprocess agent used, were removed.
+70. **Builds run in parallel, one model each, with `build --model`.** Each run has its own workspace, its own clone ports and its own browser. Its id is its start time plus a short random suffix, because two builds can start in the same millisecond.
+71. **The harness retries a model for about five minutes before a run fails.** Pi's defaults give up after about 14 seconds, which is shorter than a free model's shared rate limit takes to clear. A run that still fails records the provider's error in its summary.
+72. **The agent is told how much time it has, and is sent back to work if it stops early.** Done is definite: every visible case passes. If the agent stops before that, the harness replies with the scoreboard and the time left, up to five times.
 
 ## Open questions
 
