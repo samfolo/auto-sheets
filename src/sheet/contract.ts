@@ -143,6 +143,18 @@ export const STEP_SCHEMAS = {
     description:
       'Click the corner above the row headers and left of the column headers, which selects everything.',
   }),
+  'press-mouse': z
+    .strictObject({ do: z.literal('press-mouse'), on: pointerTargetSchema, hold: heldKeys })
+    .meta({
+      description:
+        'Press the mouse button on a cell or a header and keep holding it, to start a drag whose progress can be observed.',
+    }),
+  'move-mouse': z
+    .strictObject({ do: z.literal('move-mouse'), to: pointerTargetSchema })
+    .meta({ description: 'Move the mouse to a cell or a header, with the button still held.' }),
+  'release-mouse': z
+    .strictObject({ do: z.literal('release-mouse') })
+    .meta({ description: 'Release the mouse button, ending the drag.' }),
   press: z
     .strictObject({
       do: z.literal('press'),
@@ -156,10 +168,25 @@ export const STEP_SCHEMAS = {
   'select-all': z
     .strictObject({ do: z.literal('select-all') })
     .meta({ description: 'Press Command+A (Control+A outside a Mac).' }),
-  type: z.strictObject({ do: z.literal('type'), text: typedText }).meta({
-    description:
-      'Type the text where the sheet has the focus, without selecting anything first, then press Enter.',
-  }),
+  type: z
+    .strictObject({
+      do: z.literal('type'),
+      text: typedText,
+      commit: z.boolean().default(true).meta({
+        description:
+          'Whether to press Enter afterwards. Without it, the text stays in the editor until a later step, such as a click elsewhere, commits or cancels it.',
+      }),
+    })
+    .meta({
+      description:
+        'Type the text where the sheet has the focus, without selecting anything first, then press Enter unless told not to.',
+    }),
+  'edit-in-formula-bar': z
+    .strictObject({ do: z.literal('edit-in-formula-bar'), text: typedText })
+    .meta({
+      description:
+        'Click the formula bar, replace what it shows with the text, and press Enter: another way to enter a cell’s content.',
+    }),
   'observe-selection': z.strictObject({ do: z.literal('observe-selection') }).meta({
     description:
       'A checkpoint: record the selection as the Name Box and the screen-reader readout describe it, without changing it.',
@@ -196,9 +223,13 @@ export const stepSchema = z
     STEP_SCHEMAS['drag-columns'],
     STEP_SCHEMAS['drag-rows'],
     STEP_SCHEMAS['click-corner'],
+    STEP_SCHEMAS['press-mouse'],
+    STEP_SCHEMAS['move-mouse'],
+    STEP_SCHEMAS['release-mouse'],
     STEP_SCHEMAS.press,
     STEP_SCHEMAS['select-all'],
     STEP_SCHEMAS.type,
+    STEP_SCHEMAS['edit-in-formula-bar'],
     STEP_SCHEMAS['observe-selection'],
     STEP_SCHEMAS.observe,
   ])
@@ -212,21 +243,25 @@ export type Step = z.output<typeof stepSchema>;
 /** Every step except the checkpoints: the things a person does to the sheet. */
 export type ActionStep = Exclude<Step, { do: 'observe' } | { do: 'observe-selection' }>;
 
-/** A step that only makes sense with a mouse: the driver finds the grid's geometry first. */
-export type PointerStep = Extract<
-  ActionStep,
-  {
-    do:
-      | 'click'
-      | 'double-click'
-      | 'drag'
-      | 'click-column'
-      | 'click-row'
-      | 'drag-columns'
-      | 'drag-rows'
-      | 'click-corner';
-  }
->;
+/**
+ * The steps that only make sense with a mouse, for which the driver measures the grid first. The
+ * one list the type and the driver both come from.
+ */
+export const POINTER_STEP_NAMES = [
+  'click',
+  'double-click',
+  'drag',
+  'click-column',
+  'click-row',
+  'drag-columns',
+  'drag-rows',
+  'click-corner',
+  'press-mouse',
+  'move-mouse',
+  'release-mouse',
+] as const;
+
+export type PointerStep = Extract<ActionStep, { do: (typeof POINTER_STEP_NAMES)[number] }>;
 
 export const selectionObservationSchema = z
   .strictObject({

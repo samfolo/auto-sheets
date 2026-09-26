@@ -7,12 +7,13 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { screenshot } from '../browser/index.ts';
 import { formatStep } from './steps.ts';
-import type {
-  ActionStep,
-  CellAddress,
-  CellObservation,
-  PointerStep,
-  SelectionObservation,
+import {
+  POINTER_STEP_NAMES,
+  type ActionStep,
+  type CellAddress,
+  type CellObservation,
+  type PointerStep,
+  type SelectionObservation,
 } from './contract.ts';
 import { measureGrid, pointAndWait, type GridGeometry } from './pointer.ts';
 import {
@@ -32,7 +33,8 @@ import {
   readCell,
   readSelection,
   select,
-  typeAndCommit,
+  editInFormulaBar,
+  typeText,
 } from './actions.ts';
 import { HELD_KEY_CODES, KEYS } from './keys.ts';
 import type { Surface } from './surface.ts';
@@ -72,16 +74,7 @@ export interface SheetTarget {
 }
 
 /** The pointer steps, which need the grid measured first. */
-const POINTER_STEPS: ReadonlySet<string> = new Set([
-  'click',
-  'double-click',
-  'drag',
-  'click-column',
-  'click-row',
-  'drag-columns',
-  'drag-rows',
-  'click-corner',
-] satisfies PointerStep['do'][]);
+const POINTER_STEPS: ReadonlySet<string> = new Set(POINTER_STEP_NAMES);
 
 const isPointerStep = (step: ActionStep): step is PointerStep => POINTER_STEPS.has(step.do);
 
@@ -106,7 +99,9 @@ const performStep = (surface: Surface, step: ActionStep, trace: Trace): Promise<
     case 'redo':
       return press(surface, KEYS.redo);
     case 'type':
-      return typeAndCommit(surface, step.text);
+      return typeText(surface, step.text, step.commit);
+    case 'edit-in-formula-bar':
+      return editInFormulaBar(surface, step.text);
     case 'press':
       return press(
         surface,
@@ -122,6 +117,9 @@ const performStep = (surface: Surface, step: ActionStep, trace: Trace): Promise<
     case 'drag-columns':
     case 'drag-rows':
     case 'click-corner':
+    case 'press-mouse':
+    case 'move-mouse':
+    case 'release-mouse':
       throw new Error(`${step.do} needs the grid's geometry; the driver measures it first.`);
     default:
       return unreachable(step);

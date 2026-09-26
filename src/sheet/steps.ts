@@ -47,6 +47,10 @@ const STEP_USAGE: Readonly<Record<StepName, StepUsage>> = {
   press: { arguments: ['key'], build: ([key]) => ({ key }) },
   'select-all': NO_ARGUMENTS,
   type: { arguments: ['text'], build: ([text]) => ({ text }) },
+  'edit-in-formula-bar': { arguments: ['text'], build: ([text]) => ({ text }) },
+  'press-mouse': { arguments: ['on'], build: ([on]) => ({ on: targetOf(on) }) },
+  'move-mouse': { arguments: ['to'], build: ([to]) => ({ to: targetOf(to) }) },
+  'release-mouse': NO_ARGUMENTS,
   'observe-selection': NO_ARGUMENTS,
   observe: { arguments: ['cells...'], build: (cells) => ({ cells }) },
 };

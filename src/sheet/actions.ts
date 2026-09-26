@@ -214,9 +214,27 @@ export const enterInSelection = async (
 
 /**
  * Types text where the sheet has the focus, as a person does after clicking or double-clicking a
- * cell, and presses Enter. It changes the undo history, so it is never repeated.
+ * cell, and presses Enter unless told not to. It changes the undo history, so it is never
+ * repeated.
  */
-export const typeAndCommit = async ({ page, timing }: Surface, text: string): Promise<void> => {
+export const typeText = async (
+  { page, timing }: Surface,
+  text: string,
+  commit: boolean,
+): Promise<void> => {
+  await page.keyboard.type(text, { delay: timing.keystrokeMs });
+  if (commit) await page.keyboard.press(KEYS.commit);
+  await page.waitForTimeout(timing.settleMs);
+};
+
+/**
+ * Enters content through the formula bar: clicks it, selects what it shows, types over it and
+ * presses Enter. It changes the undo history, so it is never repeated.
+ */
+export const editInFormulaBar = async (surface: Surface, text: string): Promise<void> => {
+  const { frame, page, selectors, timing } = surface;
+  await frame.locator(selectors.formulaBar).click();
+  await page.keyboard.press(KEYS.selectAllText);
   await page.keyboard.type(text, { delay: timing.keystrokeMs });
   await page.keyboard.press(KEYS.commit);
   await page.waitForTimeout(timing.settleMs);

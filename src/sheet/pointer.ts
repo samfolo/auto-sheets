@@ -299,13 +299,21 @@ const waitUntilSettled = async (surface: Surface, before: string): Promise<boole
   return watch(before, performance.now());
 };
 
+/** Steps that are never repeated: a double-click edits, and a held drag is one gesture in parts. */
+const UNREPEATABLE: ReadonlySet<string> = new Set([
+  'double-click',
+  'press-mouse',
+  'move-mouse',
+  'release-mouse',
+] satisfies PointerStep['do'][]);
+
 /**
  * Whether a step may be repeated when it changed nothing. A click or drag with no key held only
  * sets the selection, so doing it again gives the same result. With a key held it may toggle
  * the selection back, and a double-click starts editing, so those are never repeated.
  */
 const repeatable = (step: PointerStep): boolean =>
-  step.do !== 'double-click' && !('hold' in step && step.hold !== undefined);
+  !UNREPEATABLE.has(step.do) && !('hold' in step && step.hold !== undefined);
 
 /**
  * Does one pointer step, then waits for the sheet to show its effect, so the next step sees what
@@ -349,6 +357,18 @@ const point = async (surface: Surface, grid: GridGeometry, step: PointerStep): P
       return drag(surface, columnHeader(grid, step.from), columnHeader(grid, step.to));
     case 'drag-rows':
       return drag(surface, rowHeader(grid, step.from), rowHeader(grid, step.to));
+    case 'press-mouse':
+      return holding(surface, step.hold, async () => {
+        const { x, y } = targetPoint(grid, step.on);
+        await mouse.move(x, y);
+        await mouse.down();
+      });
+    case 'move-mouse': {
+      const { x, y } = targetPoint(grid, step.to);
+      return mouse.move(x, y, { steps: DRAG_MOVES });
+    }
+    case 'release-mouse':
+      return mouse.up();
     case 'click-corner':
       return click({
         x: grid.originX - (grid.originX - grid.left) * CORNER_DEPTH,
