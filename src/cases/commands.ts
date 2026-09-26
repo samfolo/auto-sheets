@@ -5,6 +5,7 @@
 import type { CommandRegistry } from '../cli/index.ts';
 import { fail, ok, type Result } from '../kernel/index.ts';
 import type { Verdict } from './contract.ts';
+import { exploreCases, renderExploration } from './explore.ts';
 import { recordCase, renderRecording } from './record.ts';
 import { loadAllCases } from './repository.ts';
 
@@ -75,4 +76,18 @@ export const registerCaseCommands = ({ program, run }: CommandRegistry): void =>
     .description('run a case on Excel twice and, if the runs agree, save it as the reference')
     .argument('<id>', 'the case id, which is its folder under the cases directory')
     .action((id) => run('case record', (trace) => recordCase(id, trace), renderRecording));
+
+  cases
+    .command('explore')
+    .description('generate random sequences of gestures and record what Excel does in each')
+    .option(
+      '--seed <seed>',
+      'where the random sequences start; the same seed gives the same cases',
+      String(Date.now() % 1_000_000),
+    )
+    .option('--count <count>', 'how many sequences to generate and record', '5')
+    .option('--steps <steps>', 'how many gestures each sequence makes', '6')
+    .action((options) =>
+      run('case explore', (trace) => exploreCases(options, trace), renderExploration),
+    );
 };

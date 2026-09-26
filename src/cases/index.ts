@@ -5,3 +5,4 @@ export * from './judge.ts';
 export * from './record.ts';
 export * from './repository.ts';
 export * from './run.ts';
+export * from './explore.ts';
