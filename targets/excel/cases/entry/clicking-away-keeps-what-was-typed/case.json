@@ -1,0 +1,13 @@
+{
+  "description": "Text typed into a cell is kept when the next click lands on another cell, without Enter, including after a double-click adds to what was there.",
+  "steps": [
+    { "do": "click", "cell": "B2" },
+    { "do": "type", "text": "7", "commit": false },
+    { "do": "click", "cell": "D4" },
+    { "do": "observe", "cells": ["B2"] },
+    { "do": "double-click", "cell": "B2" },
+    { "do": "type", "text": "5", "commit": false },
+    { "do": "click", "cell": "D5" },
+    { "do": "observe", "cells": ["B2"] }
+  ]
+}

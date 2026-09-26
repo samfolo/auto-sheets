@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-09-26T21:57:38.784Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 3,
+      "cells": {
+        "B2": {
+          "raw": "7",
+          "display": "7",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 7,
+      "cells": {
+        "B2": {
+          "raw": "75",
+          "display": "75",
+          "annotations": []
+        }
+      }
+    }
+  ]
+}

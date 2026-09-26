@@ -1,0 +1,14 @@
+{
+  "description": "While the mouse button is held, the selection follows the pointer, before the button is released.",
+  "steps": [
+    { "do": "press-mouse", "on": "B2" },
+    { "do": "move-mouse", "to": "D4" },
+    { "do": "observe-selection" },
+    { "do": "move-mouse", "to": "F6" },
+    { "do": "observe-selection" },
+    { "do": "move-mouse", "to": "C3" },
+    { "do": "observe-selection" },
+    { "do": "release-mouse" },
+    { "do": "observe-selection" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "description": "However many cells are selected, the formula bar shows the active cell's content, not the selection.",
+  "steps": [
+    { "do": "enter", "cell": "A1", "text": "=1+1" },
+    { "do": "drag", "from": "A1", "to": "C3" },
+    { "do": "observe-selection" },
+    { "do": "click", "cell": "E5", "hold": ["Command"] },
+    { "do": "observe-selection" },
+    { "do": "click-column", "column": "A", "hold": ["Command"] },
+    { "do": "observe-selection" }
+  ]
+}

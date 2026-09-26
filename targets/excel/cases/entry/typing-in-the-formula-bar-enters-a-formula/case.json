@@ -1,0 +1,11 @@
+{
+  "description": "A formula typed into the formula bar and entered with Enter is stored in the active cell and calculated.",
+  "steps": [
+    { "do": "enter", "cell": "A1", "text": "2" },
+    { "do": "enter", "cell": "A2", "text": "3" },
+    { "do": "click", "cell": "A3" },
+    { "do": "edit-in-formula-bar", "text": "=A1*A2" },
+    { "do": "observe-selection" },
+    { "do": "observe", "cells": ["A3"] }
+  ]
+}
