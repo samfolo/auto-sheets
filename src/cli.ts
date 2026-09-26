@@ -12,16 +12,13 @@ import {
 import { listCases, recordCase, renderCases, renderRecording } from './commands/case.ts';
 import { doctor, renderChecks } from './commands/doctor.ts';
 import {
-  enterCell,
+  doStep,
   excelSignIn,
-  observe,
   openWorkbook,
-  redoLast,
-  renderDone,
-  renderObservations,
   renderSignIn,
-  undoLast,
+  renderStepOutcome,
 } from './commands/excel.ts';
+import { stepHelp } from './commands/steps.ts';
 import { loadEnvFile, readRuntime } from './contracts/environment.ts';
 import { exitCodeFor } from './contracts/errors.ts';
 import { internalError, runCommand, write } from './core/command.ts';
@@ -107,41 +104,29 @@ const createProgram = (telemetry: Telemetry) => {
 
   excel
     .command('open')
-    .description('create a blank workbook and make it the one later commands act on')
-    .action(() =>
-      runCommand(invocation('excel open'), openWorkbook, renderDone('Opened a blank workbook.')),
-    );
-
-  excel
-    .command('enter')
-    .description('select a cell, type text into it (replacing what was there) and press Enter')
-    .argument('<cell>', 'the cell, in A1 notation, such as B7')
-    .argument('<text>', 'exactly what a person would type, such as =SUM(A1:A3)')
-    .action((cell, text) =>
+    .description('open a workbook that later commands act on: blank, or uploaded with --seed')
+    .option('--seed <file>', 'an .xlsx file to upload and start from')
+    .action(({ seed }) =>
       runCommand(
-        invocation('excel enter'),
-        () => enterCell(cell, text),
-        renderDone(`Entered ${JSON.stringify(text)} in ${cell}.`),
+        invocation('excel open'),
+        (trace) => openWorkbook(seed, trace),
+        () => (seed === undefined ? 'Opened a blank workbook.' : `Opened ${seed}.`),
       ),
     );
 
   excel
-    .command('observe')
-    .description('read what the formula bar and the cell show, for each cell')
-    .argument('<cells...>', 'one or more cells, in A1 notation')
-    .action((cells) =>
-      runCommand(invocation('excel observe'), () => observe(cells), renderObservations),
+    .command('do')
+    .description('do one step on the open workbook, exactly as a case would')
+    .argument('<step>', 'the step, such as enter or observe; see below')
+    .argument('[values...]', 'the step’s arguments')
+    .addHelpText('after', `\nSteps:\n${stepHelp()}`)
+    .action((step, values) =>
+      runCommand(
+        invocation(`excel do ${step}`),
+        (trace) => doStep(step, values, trace),
+        renderStepOutcome,
+      ),
     );
-
-  excel
-    .command('undo')
-    .description('press Ctrl+Z (Cmd+Z on a Mac)')
-    .action(() => runCommand(invocation('excel undo'), undoLast, renderDone('Undid.')));
-
-  excel
-    .command('redo')
-    .description('press Ctrl+Y (Cmd+Y on a Mac)')
-    .action(() => runCommand(invocation('excel redo'), redoLast, renderDone('Redid.')));
 
   const cases = program
     .command('case')
@@ -156,7 +141,9 @@ const createProgram = (telemetry: Telemetry) => {
     .command('record')
     .description('run a case on Excel twice and, if the runs agree, save it as the reference')
     .argument('<id>', 'the case id, which is its folder under the cases directory')
-    .action((id) => runCommand(invocation('case record'), () => recordCase(id), renderRecording));
+    .action((id) =>
+      runCommand(invocation('case record'), (trace) => recordCase(id, trace), renderRecording),
+    );
 
   return program;
 };

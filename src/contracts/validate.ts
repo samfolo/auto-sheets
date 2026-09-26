@@ -71,6 +71,10 @@ const describePath = (
   return next === undefined ? undefined : describePath(next, rest, childOf(value, key));
 };
 
+/** A schema's own description, as given with `.meta({ description })`. */
+export const describe = (schema: Schema): string | undefined =>
+  z.globalRegistry.get(schema)?.description;
+
 /** Formats a path the way it would be written in JavaScript, such as steps[3].cell. */
 export const formatPath = (path: readonly PropertyKey[]): string =>
   path.reduce<string>(

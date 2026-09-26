@@ -1,26 +1,29 @@
 /**
- * Commands that act on Excel for the web through the browser session, one step at a time.
- * They are the same actions a case is made of, so a person or the agent can try steps by
- * hand, look at the result, and then write them down as a case.
+ * Commands that act on Excel for the web through the browser session, one step at a time. They
+ * run the same steps a case is made of, so a person or the agent can try steps by hand, look at
+ * the result, and then write them down as a case.
  */
-import { createExcelDriver } from '../../targets/excel/driver/driver.ts';
 import { signInToExcel, type SignInState } from '../../targets/excel/driver/sign-in.ts';
+import { excelTarget } from '../../targets/excel/driver/target.ts';
 import { withBrowser } from '../browser/session.ts';
 import type { Driver } from '../cases/driver.ts';
-import { observeCells } from '../cases/run.ts';
-import { cellAddressListSchema, cellAddressSchema, type CellAddress } from '../contracts/case.ts';
+import { performStep } from '../cases/run.ts';
+import { formatStep } from '../cases/steps.ts';
 import { readCredentials } from '../contracts/environment.ts';
-import type { CellObservation } from '../contracts/reference.ts';
+import type { Checkpoint } from '../contracts/reference.ts';
 import { signInCodeSchema } from '../contracts/sign-in.ts';
 import { validate } from '../contracts/validate.ts';
 import { PROJECT } from '../core/project.ts';
-import type { Result } from '../core/result.ts';
+import { ok, type Result } from '../core/result.ts';
+import type { Trace } from '../core/telemetry.ts';
+import { createSheetDriver } from '../sheet/driver.ts';
+import { parseStep } from './steps.ts';
 
-const withExcel = <T>(action: (driver: Driver) => Promise<Result<T>>): Promise<Result<T>> =>
-  withBrowser(({ context }) => action(createExcelDriver(context)));
-
-const cellArgument = (cell: string): Result<CellAddress> =>
-  validate(cellAddressSchema, cell, `the cell argument ${JSON.stringify(cell)}`);
+const withExcel = <T>(
+  trace: Trace,
+  action: (driver: Driver) => Promise<Result<T>>,
+): Promise<Result<T>> =>
+  withBrowser(({ context }) => action(createSheetDriver(excelTarget(context), trace)));
 
 export const excelSignIn = async ({ code }: { code?: string }): Promise<Result<SignInState>> => {
   const checkedCode =
@@ -37,28 +40,30 @@ export const renderSignIn = (state: SignInState): string =>
     ? 'Signed in to Excel for the web.'
     : `Microsoft has emailed a sign-in code to the test account.\nRun \`${PROJECT.cli} excel sign-in --code <code>\` with it.`;
 
-export const openWorkbook = (): Promise<Result<void>> => withExcel((driver) => driver.openBlank());
+/** Opens a blank workbook, or uploads a seed workbook from disk. */
+export const openWorkbook = (seed: string | undefined, trace: Trace): Promise<Result<void>> =>
+  withExcel(trace, (driver) => driver.open(seed ?? null));
 
-export const enterCell = async (cell: string, text: string): Promise<Result<void>> => {
-  const address = cellArgument(cell);
-  if (!address.success) return address;
-  return withExcel((driver) => driver.enter(address.data, text));
+/** What one step did: the step, and the cells it read if it was an observe step. */
+export interface StepOutcome {
+  readonly step: string;
+  readonly observed: Checkpoint['cells'] | null;
+}
+
+export const doStep = async (
+  name: string,
+  values: readonly string[],
+  trace: Trace,
+): Promise<Result<StepOutcome>> => {
+  const step = parseStep(name, values);
+  if (!step.success) return step;
+  return withExcel(trace, async (driver) => {
+    const done = await performStep(driver, step.data);
+    return done.success ? ok({ step: formatStep(step.data), observed: done.data }) : done;
+  });
 };
 
-export const observe = async (
-  cells: readonly string[],
-): Promise<Result<Record<CellAddress, CellObservation>>> => {
-  const addresses = validate(cellAddressListSchema, cells, 'the cell arguments');
-  if (!addresses.success) return addresses;
-  return withExcel((driver) => observeCells(driver, addresses.data));
-};
-
-export const undoLast = (): Promise<Result<void>> => withExcel((driver) => driver.undo());
-export const redoLast = (): Promise<Result<void>> => withExcel((driver) => driver.redo());
-
-export const renderDone = (message: string) => (): string => message;
-
-export const renderObservations = (observed: Record<CellAddress, CellObservation>): string =>
+const renderObservations = (observed: Checkpoint['cells']): string =>
   Object.entries(observed)
     .map(([cell, { raw, display, annotations }]) =>
       [
@@ -69,3 +74,6 @@ export const renderObservations = (observed: Record<CellAddress, CellObservation
       ].join(''),
     )
     .join('\n');
+
+export const renderStepOutcome = ({ step, observed }: StepOutcome): string =>
+  observed === null ? `Done: ${step}.` : renderObservations(observed);

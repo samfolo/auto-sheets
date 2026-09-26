@@ -17,6 +17,8 @@ export const CASE_FILES = {
   definition: 'case.json',
   /** What Excel did, written only by `factory case record`. */
   reference: 'reference.json',
+  /** An optional workbook the case starts from instead of a blank sheet. */
+  seed: 'seed.xlsx',
 } as const;
 
 /** Lower-case words joined by hyphens, in folders joined by slashes. */
@@ -29,6 +31,8 @@ export interface LoadedCase {
   readonly definitionFile: string;
   readonly referenceFile: string;
   readonly recorded: boolean;
+  /** The workbook the case starts from, or null for a blank sheet. */
+  readonly seedFile: string | null;
 }
 
 /** Every case id, sorted, so related cases sit together. */
@@ -58,12 +62,14 @@ export const loadCase = async (id: string): Promise<Result<LoadedCase>> => {
   const definition = await readJsonFile(definitionFile, caseSchema);
   if (!definition.success) return definition;
   const referenceFile = join(folder, CASE_FILES.reference);
+  const seedFile = join(folder, CASE_FILES.seed);
   return ok({
     id,
     definition: definition.data,
     definitionFile,
     referenceFile,
     recorded: existsSync(referenceFile),
+    seedFile: existsSync(seedFile) ? seedFile : null,
   });
 };
 

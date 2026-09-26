@@ -11,12 +11,12 @@ import { EXCEL } from './excel.ts';
 
 export type SignInState = 'signed-in' | 'code-sent';
 
-const { signIn, timeouts } = EXCEL;
+const { signIn, timing } = EXCEL;
 
 const isSignedIn = (page: Page): Promise<boolean> =>
   page
     .getByRole('heading', { name: signIn.welcomeHeading })
-    .waitFor({ timeout: timeouts.actionMs })
+    .waitFor({ timeout: timing.actionMs })
     .then(() => true)
     .catch(() => false);
 
@@ -30,10 +30,10 @@ const requestCode = async (page: Page, email: string): Promise<SignInState> => {
     .click();
   await page.getByRole('textbox', { name: signIn.emailBox }).fill(email);
   await page.getByRole('button', { name: 'Next' }).click();
-  await page.getByRole('button', { name: 'Send code' }).click({ timeout: timeouts.actionMs });
+  await page.getByRole('button', { name: 'Send code' }).click({ timeout: timing.actionMs });
   await page
     .getByRole('textbox', { name: signIn.codeDigit(1) })
-    .waitFor({ timeout: timeouts.actionMs });
+    .waitFor({ timeout: timing.actionMs });
   return 'code-sent';
 };
 
@@ -45,7 +45,7 @@ const enterCode = async (page: Page, code: string): Promise<SignInState> => {
   }
   // Microsoft may ask whether to stay signed in; staying signed in keeps the session.
   const staySignedIn = page.getByRole('button', { name: 'Yes' });
-  await staySignedIn.click({ timeout: timeouts.actionMs }).catch(() => undefined);
+  await staySignedIn.click({ timeout: timing.actionMs }).catch(() => undefined);
   if (!(await isSignedIn(page))) throw new Error('Excel did not show the signed-in home page.');
   return 'signed-in';
 };

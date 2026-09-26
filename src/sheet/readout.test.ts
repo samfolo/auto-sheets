@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseReadout } from './readout.ts';
+import { describesSelection, parseReadout } from './readout.ts';
 
 /** Labels copied from Excel for the web on 26 September 2026. */
 describe('parseReadout', () => {
@@ -32,5 +32,17 @@ describe('parseReadout', () => {
 
   it('returns null when the label describes a different cell', () => {
     expect(parseReadout('5 . A3 . ', 'B7')).toBeNull();
+  });
+});
+
+describe('describesSelection', () => {
+  it.each([
+    { label: '1 . Selected range . B1:B3 . ', range: 'B1:B3', describes: true },
+    { label: '2 . Selected range . A1:B3 . Contains Formula . ', range: 'A1:B3', describes: true },
+    { label: '1 . Selected range . B1:B3 . ', range: 'B1:B4', describes: false },
+    { label: '5 . A3 . Contains Formula . ', range: 'A3', describes: true },
+    { label: '5 . A3 . ', range: 'A4', describes: false },
+  ])('$describes for $range in $label', ({ label, range, describes }) => {
+    expect(describesSelection(label, range)).toBe(describes);
   });
 });

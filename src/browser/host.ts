@@ -12,6 +12,7 @@ const context = await chromium.launchPersistentContext(PATHS.browser.profile, {
   viewport: BROWSER.viewport,
   locale: BROWSER.locale,
   timezoneId: BROWSER.timezoneId,
+  permissions: [...BROWSER.permissions],
   args: [`--remote-debugging-port=${BROWSER.debugPort}`],
 });
 

@@ -1,4 +1,4 @@
-import { createExcelDriver } from '../../targets/excel/driver/driver.ts';
+import { excelTarget } from '../../targets/excel/driver/target.ts';
 import { withBrowser } from '../browser/session.ts';
 import { compareTrajectories, formatDifference } from '../cases/compare.ts';
 import { listCaseIds, loadCase, writeReference, type LoadedCase } from '../cases/repository.ts';
@@ -6,6 +6,8 @@ import { runSteps } from '../cases/run.ts';
 import { displayPath } from '../contracts/files.ts';
 import type { Reference } from '../contracts/reference.ts';
 import { fail, ok, type Result } from '../core/result.ts';
+import type { Trace } from '../core/telemetry.ts';
+import { createSheetDriver } from '../sheet/driver.ts';
 
 /** One line of `case list`. */
 export interface CaseSummary {
@@ -65,19 +67,19 @@ export interface Recording {
 }
 
 /**
- * Runs a case on Excel twice, each time on a new blank workbook. If both runs agree, the
- * trajectory becomes the case's reference; if not, nothing is written, because a result
- * that changes between identical runs can't be ground truth.
+ * Runs a case on Excel twice, each time on a new workbook: blank, or uploaded from seed.xlsx.
+ * If both runs agree, the trajectory becomes the case's reference; if not, nothing is
+ * written, because a result that changes between identical runs can't be ground truth.
  */
-export const recordCase = async (id: string): Promise<Result<Recording>> => {
+export const recordCase = async (id: string, trace: Trace): Promise<Result<Recording>> => {
   const loaded = await loadCase(id);
   if (!loaded.success) return loaded;
-  const { definition, definitionFile } = loaded.data;
+  const { definition, definitionFile, seedFile } = loaded.data;
   return withBrowser(async ({ context }) => {
-    const driver = createExcelDriver(context);
-    const first = await runSteps(driver, definition.steps);
+    const driver = createSheetDriver(excelTarget(context), trace);
+    const first = await runSteps(driver, definition.steps, seedFile);
     if (!first.success) return first;
-    const second = await runSteps(driver, definition.steps);
+    const second = await runSteps(driver, definition.steps, seedFile);
     if (!second.success) return second;
 
     const differences = compareTrajectories(first.data, second.data);

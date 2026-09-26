@@ -36,6 +36,8 @@ export const BROWSER = {
   /** Recorded observations were made with these, so keep them fixed. */
   locale: 'en-GB',
   timezoneId: 'Europe/London',
+  /** Copy and paste steps need the clipboard. */
+  permissions: ['clipboard-read', 'clipboard-write'],
   /** How long `start` waits for the browser to accept connections, and how often it checks. */
   startTimeoutMs: 30_000,
   pollIntervalMs: 250,
