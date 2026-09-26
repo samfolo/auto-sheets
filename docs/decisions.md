@@ -74,6 +74,9 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 64. **Every clone check runs the clone on a port the operating system chooses.** Checks never collide with each other, with a running build, or with a copy of the app the agent runs itself.
 65. **The final check saves a picture of the clone at the end of each case.** Judging stays exact and textual; the pictures are for a person comparing the clone's look with Excel's, which the cases don't cover. The first one showed a clone that passes every case while aligning numbers left.
 66. **Git runs on workspaces without the factory's environment and without hooks.** A workspace's hooks are written by its agent, and would otherwise run with the factory's secrets.
+67. **A reply that is still streaming reports that it is alive.** The runtime traces a heartbeat every 30 seconds while a reply streams (characters of thinking, text and tool calls so far), and traces Pi's retries and compactions. In the first SDK run, one reply streamed for over eight minutes at a few tokens a second; without a heartbeat that looks exactly like a hang, and a supervisor would kill a working agent.
+68. **Deterministic, imperative tools exist so nobody improvises them.** A person debugging uses `excel do <step>`, `browser inspect` and `clone check --headed`; the agent gets the same kind of capability on its own app as harness tools. Reports about runs, such as `runs show`, are for people and are never given to the agent.
+69. **There is one way to check a clone: `clone check <workspace>`.** It starts the clone itself, exactly as a build's final check does. The earlier `case verify --url`, and the `FACTORY_RUN_ID` setting that only the subprocess agent used, were removed.
 
 ## Open questions
 
