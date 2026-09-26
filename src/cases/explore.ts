@@ -1,8 +1,8 @@
 /**
  * Exploring an interface nobody has listed. A person thinks of a fraction of the interactions a
- * product supports, so the factory also generates them: seeded random sequences of pointer
- * gestures (clicks, drags, header and corner clicks, with Shift or Command held or not), each
- * followed by a look at the selection. Each sequence is written as a case and recorded on Excel
+ * product supports, so the factory also generates them: seeded random sequences of gestures
+ * (clicks, drags, header and corner clicks, with Shift or Command held or not; arrow keys, Tab
+ * and Enter, with Shift or not; select-all and undo), each followed by a look at the selection. Each sequence is written as a case and recorded on Excel
  * twice; one whose recordings disagree is discarded. The same seed always gives the same cases,
  * so an exploration can be repeated and reviewed, and a case already recorded is never touched.
  */
@@ -31,6 +31,12 @@ export const EXPLORE = {
   rows: 12,
   /** How often a gesture holds a key. */
   holdChance: 0.35,
+  /**
+   * The keys explored: they move within the sheet's top-left without scrolling it, which would
+   * move the grid the driver measured. Command with an arrow jumps to the sheet's edge, so only
+   * Shift is held with them.
+   */
+  keys: ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'],
 } as const;
 
 /** The look at the selection that follows every gesture. */
@@ -52,7 +58,10 @@ const header = (random: Random): PointerTarget => pick(random, [column, row])(ra
 const hold = (random: Random) =>
   random() < EXPLORE.holdChance ? { hold: [pick(random, HELD_KEYS)] } : {};
 
-/** The gestures a person might make next with the mouse, each drawing what it aims at. */
+const shift = (random: Random) =>
+  random() < EXPLORE.holdChance ? { hold: ['Shift' as const] } : {};
+
+/** What a person might do next, with the mouse or the keyboard, each drawing what it aims at. */
 const GESTURES: readonly ((random: Random) => ActionStep)[] = [
   (random) => ({ do: 'click', cell: cell(random), ...hold(random) }),
   (random) => ({ do: 'drag', from: cell(random), to: cell(random), ...hold(random) }),
@@ -60,6 +69,9 @@ const GESTURES: readonly ((random: Random) => ActionStep)[] = [
   (random) => ({ do: 'click-column', column: column(random), ...hold(random) }),
   (random) => ({ do: 'click-row', row: row(random), ...hold(random) }),
   () => ({ do: 'click-corner' }),
+  (random) => ({ do: 'press', key: pick(random, EXPLORE.keys), ...shift(random) }),
+  () => ({ do: 'select-all' }),
+  () => ({ do: 'undo' }),
 ];
 
 /** The case for one sequence: gestures, each followed by a look at the selection. */

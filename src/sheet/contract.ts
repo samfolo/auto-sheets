@@ -57,6 +57,21 @@ const heldKeys = z.array(z.enum(HELD_KEYS)).min(1).optional().meta({
     'Keys held down during the gesture: Shift, or Command (Control outside a Mac), which Excel uses to extend and add to selections.',
 });
 
+/** Keys that move around a sheet, which a `press` step can press. */
+export const NAVIGATION_KEYS = [
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'Tab',
+  'Enter',
+  'Escape',
+  'Home',
+  'End',
+  'PageUp',
+  'PageDown',
+] as const;
+
 const typedText = z.string().min(1).meta({
   description:
     'Exactly what a person types, before the sheet interprets it. It may be stored as a number, date, formula or text.',
@@ -128,6 +143,19 @@ export const STEP_SCHEMAS = {
     description:
       'Click the corner above the row headers and left of the column headers, which selects everything.',
   }),
+  press: z
+    .strictObject({
+      do: z.literal('press'),
+      key: z.enum(NAVIGATION_KEYS).meta({ description: 'The key, by its name.' }),
+      hold: heldKeys,
+    })
+    .meta({
+      description:
+        'Press a key that moves around the sheet, such as ArrowDown or Tab, with Shift or Command held or not.',
+    }),
+  'select-all': z
+    .strictObject({ do: z.literal('select-all') })
+    .meta({ description: 'Press Command+A (Control+A outside a Mac).' }),
   type: z.strictObject({ do: z.literal('type'), text: typedText }).meta({
     description:
       'Type the text where the sheet has the focus, without selecting anything first, then press Enter.',
@@ -168,6 +196,8 @@ export const stepSchema = z
     STEP_SCHEMAS['drag-columns'],
     STEP_SCHEMAS['drag-rows'],
     STEP_SCHEMAS['click-corner'],
+    STEP_SCHEMAS.press,
+    STEP_SCHEMAS['select-all'],
     STEP_SCHEMAS.type,
     STEP_SCHEMAS['observe-selection'],
     STEP_SCHEMAS.observe,

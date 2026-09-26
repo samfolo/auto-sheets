@@ -14,4 +14,8 @@ export const KEYS = {
   paste: 'ControlOrMeta+V',
   undo: 'ControlOrMeta+Z',
   redo: 'ControlOrMeta+Y',
+  selectAll: 'ControlOrMeta+A',
 } as const;
+
+/** The key each held key presses: Command on a Mac is Control elsewhere, as Playwright maps it. */
+export const HELD_KEY_CODES = { Shift: 'Shift', Command: 'ControlOrMeta' } as const;

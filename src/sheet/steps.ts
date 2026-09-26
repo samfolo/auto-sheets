@@ -44,6 +44,8 @@ const STEP_USAGE: Readonly<Record<StepName, StepUsage>> = {
     build: ([from, to]) => ({ from: Number(from), to: Number(to) }),
   },
   'click-corner': NO_ARGUMENTS,
+  press: { arguments: ['key'], build: ([key]) => ({ key }) },
+  'select-all': NO_ARGUMENTS,
   type: { arguments: ['text'], build: ([text]) => ({ text }) },
   'observe-selection': NO_ARGUMENTS,
   observe: { arguments: ['cells...'], build: (cells) => ({ cells }) },
@@ -82,6 +84,8 @@ export const formatStep = (step: Step): string => {
       return `enter ${JSON.stringify(step.text)} in the selection`;
     case 'observe':
       return `observe ${step.cells.join(', ')}`;
+    case 'press':
+      return `press ${[...(step.hold ?? []), step.key].join('+')}`;
     default:
       return step.do;
   }

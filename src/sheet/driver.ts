@@ -34,7 +34,7 @@ import {
   select,
   typeAndCommit,
 } from './actions.ts';
-import { KEYS } from './keys.ts';
+import { HELD_KEY_CODES, KEYS } from './keys.ts';
 import type { Surface } from './surface.ts';
 
 /**
@@ -107,6 +107,13 @@ const performStep = (surface: Surface, step: ActionStep, trace: Trace): Promise<
       return press(surface, KEYS.redo);
     case 'type':
       return typeAndCommit(surface, step.text);
+    case 'press':
+      return press(
+        surface,
+        [...(step.hold ?? []).map((key) => HELD_KEY_CODES[key]), step.key].join('+'),
+      );
+    case 'select-all':
+      return press(surface, KEYS.selectAll);
     case 'click':
     case 'double-click':
     case 'drag':

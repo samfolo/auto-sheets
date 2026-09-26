@@ -15,6 +15,7 @@ import type { CellAddress, HELD_KEYS, PointerStep, PointerTarget } from './contr
 
 type HeldKey = (typeof HELD_KEYS)[number];
 import { poll, type Trace } from '../kernel/index.ts';
+import { HELD_KEY_CODES } from './keys.ts';
 import type { Surface } from './surface.ts';
 
 /** Where the grid's cells are, in the page's coordinates. */
@@ -242,9 +243,6 @@ const targetPoint = (grid: GridGeometry, target: PointerTarget): Point => {
   return /\d/.test(target) ? cellCentre(grid, target) : columnHeader(grid, target);
 };
 
-/** The key each held key presses: Command on a Mac is Control elsewhere, as Playwright maps it. */
-const KEY_FOR: Readonly<Record<HeldKey, string>> = { Shift: 'Shift', Command: 'ControlOrMeta' };
-
 /** Does a gesture with keys held down, releasing them afterwards whatever happens. */
 const holding = async (
   surface: Surface,
@@ -255,14 +253,14 @@ const holding = async (
   for (const key of keys ?? []) {
     // Keys go down in order, as a hand presses them.
     // oxlint-disable-next-line no-await-in-loop
-    await keyboard.down(KEY_FOR[key]);
+    await keyboard.down(HELD_KEY_CODES[key]);
   }
   try {
     await gesture();
   } finally {
     for (const key of [...(keys ?? [])].toReversed()) {
       // oxlint-disable-next-line no-await-in-loop
-      await keyboard.up(KEY_FOR[key]);
+      await keyboard.up(HELD_KEY_CODES[key]);
     }
   }
 };
