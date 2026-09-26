@@ -248,7 +248,9 @@ const traceSession = (session: AgentSession, trace: Trace, state: { error: strin
     if (event.type === 'message_end' && event.message.role === 'assistant') {
       const { stopReason, errorMessage, usage } = event.message;
       trace('agent.reply', { stopReason, tokens: usage.totalTokens, costUsd: usage.cost.total });
-      if (stopReason === 'error') state.error = errorMessage ?? 'The model call failed.';
+      // Only the latest reply counts: a failed reply that Pi then retries successfully is
+      // not the run's error.
+      state.error = stopReason === 'error' ? (errorMessage ?? 'The model call failed.') : null;
     }
   });
 };
