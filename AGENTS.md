@@ -9,7 +9,9 @@ This repository is the factory. Clones are built elsewhere. Landed decisions are
 - `npm run format` formats everything with Prettier.
 - `./factory.sh browser start` launches the long-lived browser session that the Excel and case commands attach to. `./factory.sh browser inspect` lists the controls on the current page and saves a screenshot.
 - `./factory.sh excel open [--seed <file>]` opens a workbook, and `./factory.sh excel do <step> …` runs one case step on it (`--help` lists the steps). `./factory.sh excel sign-in` signs the session in: the account is passwordless, so a person supplies the emailed code with `--code`.
-- `./factory.sh case list` lists cases; `./factory.sh case record <id>` records one against Excel. Cases and their layout are explained in `targets/README.md`.
+- `./factory.sh case list` lists cases; `./factory.sh case record <id>` records one against Excel; `./factory.sh case verify --url <url>` runs them on a running clone. Cases and their layout are explained in `targets/README.md`.
+- `./factory.sh agent show [name]` prints exactly what an agent would be given (model, tools, task and the whole system prompt) without calling the model. Review it before any build.
+- `./factory.sh build` has an agent build a clone in a new workspace beside the factory, then checks it on every case, held-out ones included. `./factory.sh clone check <workspace>` re-checks a build's clone.
 
 ## Layout
 
@@ -20,10 +22,16 @@ The factory is a set of vertical slices under `src/`, each owning its contract (
 - `browser/`: the long-lived browser session, fresh browsers, and inspecting pages.
 - `sheet/`: driving any spreadsheet through Excel's accessible controls: steps, selection, typing, reading.
 - `cases/`: case and reference files, recording against Excel, running and comparing, judging a clone.
-- `agent/` and `build/`: the Pi agent and building a clone with it.
+- `clone/`: starting a clone from its workspace and scoring it.
+- `agent/`: running an agent through Pi's SDK, its harness tools and its scoreboard.
+- `build/`: a build's workspace, its run and its summary.
 - `doctor/`: prerequisite checks.
 
-`targets/excel/` holds what is specific to Excel: its driver, knowledge, cases and the clone's spec.
+Outside `src/`:
+
+- `agents/<name>/` defines an agent: `agent.json` (model, tools, context, budget), `system.md` (who it is and how it works) and `task.md`.
+- `standards/` says what good work looks like for any agent and target: `code.md` is the judgement tooling can't enforce, given to agents as context; `scaffold/` is what tooling can enforce, copied into every workspace.
+- `targets/excel/` holds what is specific to Excel: its driver, knowledge, cases and the clone's spec.
 
 ## Conventions
 
@@ -35,7 +43,7 @@ The factory is a set of vertical slices under `src/`, each owning its contract (
 - Each third-party library enters through one place: commander in `src/cli/`, pino in `src/kernel/telemetry.ts`, Zod in each slice's `contract.ts`, Playwright in `src/browser/`, `src/sheet/` and the target drivers, and Pi in `src/agent/`. Code that throws (Node, Playwright) is wrapped with `attempt()` from `src/kernel/attempt.ts` so failures come back as Results.
 - Failures are values. Return a `Result` from `src/kernel/result.ts` using `ok()` and `fail()`. Throw only for bugs; the CLI turns a throw into `INTERNAL`.
 - Every error code is declared in `src/kernel/errors.ts`, with a comment saying what it means. A message is one specific sentence; add a location, details and a hint when they help someone act.
-- Every external input (files, settings, agent output, the CLI's own JSON output and telemetry) has a Zod schema in its slice's `contract.ts`, and types are derived from the schemas. Every field carries a `.meta({ description })` saying what it's for; `validate()` in `src/kernel/validate.ts` prints that description next to each error.
+- Every external input and output (files, settings, agent output, run summaries, the CLI's own JSON output and telemetry) has a Zod schema in its slice's `contract.ts`, and its type is inferred from the schema with `z.output`, never declared a second time as an interface. Every field carries a `.meta({ description })` saying what it's for; `validate()` in `src/kernel/validate.ts` prints that description next to each error.
 - A command is a function returning `Promise<Result<T>>` plus a renderer, registered by its slice's `commands.ts`.
 - Data files are JSON; prose is Markdown.
 - Tests use Vitest and sit next to the code as `*.test.ts`. Use `it.each` tables when cases differ only by data. Shared helpers live in `src/testing/`: `runFactory` runs the real CLI, and the `toSucceed` and `toFailWith` matchers work on both a `Result` and a CLI run. Improve a helper rather than repeating setup or assertions inline.
