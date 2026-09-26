@@ -7,7 +7,7 @@ The replica is judged by what a person sees and does, not by its code. But someo
 ## What the workspace holds
 
 - `SPEC.md`: what the app must provide.
-- `cases/`: behaviour recorded from the original product. Each case has `case.json` (what a person did) and `reference.json` (what the original showed at each checkpoint). The references are the ground truth.
+- `cases/`: behaviour recorded from the original product. Each case has `case.json` (what a person did) and `reference.json` (what the original showed at each checkpoint). The references are the ground truth. `cases/case.schema.json` and `cases/reference.schema.json` say what every field and step means.
 - `knowledge/`: what was learned about the original while recording, including its awkward behaviour, and screenshots of how it looks.
 - A scaffold: `package.json` scripts (`npm run check` type-checks, lints, checks formatting and runs your tests), strict TypeScript, Oxlint and Prettier. Don't weaken them.
 

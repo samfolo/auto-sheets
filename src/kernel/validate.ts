@@ -104,3 +104,9 @@ export const validate = <S extends z.ZodType>(
     details: parsed.error.issues.flatMap((issue) => formatIssue(issue, schema, input)),
   });
 };
+
+/**
+ * A contract as JSON Schema, with every field's description, for a reader that can't import the
+ * Zod schema, such as an agent. It describes what may be written, so defaults are optional.
+ */
+export const jsonSchemaOf = (schema: z.ZodType): unknown => z.toJSONSchema(schema, { io: 'input' });

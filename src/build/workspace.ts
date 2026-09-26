@@ -6,10 +6,19 @@
  * version that made it, and its Git history records the agent's progress from there.
  */
 import { existsSync, readdirSync } from 'node:fs';
-import { cp, mkdir } from 'node:fs/promises';
+import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { CASE_TAGS, loadAllCases } from '../cases/index.ts';
-import { attempt, fail, git, ok, PATHS, readStamp, type Result } from '../kernel/index.ts';
+import { CASE_TAGS, caseSchema, loadAllCases, referenceSchema } from '../cases/index.ts';
+import {
+  attempt,
+  fail,
+  git,
+  jsonSchemaOf,
+  ok,
+  PATHS,
+  readStamp,
+  type Result,
+} from '../kernel/index.ts';
 
 /** Where each input goes inside a workspace. */
 export const WORKSPACE = {
@@ -17,6 +26,15 @@ export const WORKSPACE = {
   cases: 'cases',
   knowledge: 'knowledge',
 } as const;
+
+/**
+ * The case files' formats, generated from their contracts, so the agent reads what each field and
+ * step means instead of inferring it from examples.
+ */
+const CASE_FORMATS = [
+  { file: 'case.schema.json', schema: caseSchema },
+  { file: 'reference.schema.json', schema: referenceSchema },
+] as const;
 
 const isInside = (child: string, parent: string): boolean => {
   const path = relative(parent, child);
@@ -80,6 +98,13 @@ export const prepareWorkspace = async (dir: string): Promise<Result<string>> => 
         recursive: true,
         filter: (source) => !hidden.data.some((folder) => isInside(source, folder)),
       });
+      for (const { file, schema } of CASE_FORMATS) {
+        // oxlint-disable-next-line no-await-in-loop
+        await writeFile(
+          join(workspace, WORKSPACE.cases, file),
+          `${JSON.stringify(jsonSchemaOf(schema), null, 2)}\n`,
+        );
+      }
       await cp(PATHS.excelKnowledge, join(workspace, WORKSPACE.knowledge), { recursive: true });
       mustGit(workspace, 'init', '--quiet');
       mustGit(workspace, 'add', '--all');
