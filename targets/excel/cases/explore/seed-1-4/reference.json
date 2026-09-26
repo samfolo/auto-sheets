@@ -1,0 +1,66 @@
+{
+  "recordedAt": "2026-09-26T20:49:20.037Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 1,
+      "cells": {},
+      "selection": {
+        "active": "B1",
+        "range": "B:B",
+        "editing": false
+      }
+    },
+    {
+      "step": 3,
+      "cells": {},
+      "selection": {
+        "active": "B9",
+        "range": null,
+        "editing": false
+      }
+    },
+    {
+      "step": 5,
+      "cells": {},
+      "selection": {
+        "active": "C1",
+        "range": "C:G",
+        "editing": false
+      }
+    },
+    {
+      "step": 7,
+      "cells": {},
+      "selection": {
+        "active": "C1",
+        "range": "A:XFD",
+        "editing": false
+      }
+    },
+    {
+      "step": 9,
+      "cells": {},
+      "selection": {
+        "active": "B1",
+        "range": "A:XFD",
+        "editing": false
+      }
+    },
+    {
+      "step": 11,
+      "cells": {},
+      "selection": {
+        "active": "A1",
+        "range": null,
+        "areas": [
+          "8:1048576",
+          "E4:XFD7",
+          "A4:A7",
+          "1:3"
+        ],
+        "editing": false
+      }
+    }
+  ]
+}
