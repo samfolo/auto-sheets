@@ -1,0 +1,38 @@
+{
+  "description": "Undo restores an input's previous value and its dependant's result; redo reapplies the change.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "1"
+    },
+    {
+      "do": "enter",
+      "cell": "B1",
+      "text": "=A1*10"
+    },
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "2"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1"]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1"]
+    },
+    {
+      "do": "redo"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1"]
+    }
+  ]
+}

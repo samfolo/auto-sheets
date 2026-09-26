@@ -1,0 +1,39 @@
+{
+  "recordedAt": "2026-09-26T13:24:30.615Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 4,
+      "cells": {
+        "A1": {
+          "raw": "=-2^2",
+          "display": "4",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "A2": {
+          "raw": "=0-2^2",
+          "display": "-4",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "A3": {
+          "raw": "=2^3^2",
+          "display": "64",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "A4": {
+          "raw": "=0.1+0.2",
+          "display": "0.3",
+          "annotations": [
+            "Contains Formula"
+          ]
+        }
+      }
+    }
+  ]
+}

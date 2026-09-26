@@ -1,0 +1,57 @@
+{
+  "recordedAt": "2026-09-26T13:26:19.294Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 3,
+      "cells": {
+        "A1": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        },
+        "B1": {
+          "raw": "=A1*10",
+          "display": "20",
+          "annotations": [
+            "Contains Formula"
+          ]
+        }
+      }
+    },
+    {
+      "step": 5,
+      "cells": {
+        "A1": {
+          "raw": "1",
+          "display": "1",
+          "annotations": []
+        },
+        "B1": {
+          "raw": "=A1*10",
+          "display": "10",
+          "annotations": [
+            "Contains Formula"
+          ]
+        }
+      }
+    },
+    {
+      "step": 7,
+      "cells": {
+        "A1": {
+          "raw": "2",
+          "display": "2",
+          "annotations": []
+        },
+        "B1": {
+          "raw": "=A1*10",
+          "display": "20",
+          "annotations": [
+            "Contains Formula"
+          ]
+        }
+      }
+    }
+  ]
+}

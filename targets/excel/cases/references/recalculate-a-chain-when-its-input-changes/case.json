@@ -1,0 +1,33 @@
+{
+  "description": "Formulas that refer forward to later cells are calculated in dependency order, and the whole chain updates when its input changes.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "=B1+1"
+    },
+    {
+      "do": "enter",
+      "cell": "B1",
+      "text": "=C1*2"
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "3"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1", "C1"]
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "4"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1"]
+    }
+  ]
+}

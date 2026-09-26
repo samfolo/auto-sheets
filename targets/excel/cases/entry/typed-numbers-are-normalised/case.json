@@ -1,0 +1,44 @@
+{
+  "description": "Typed numbers are stored in a normal form: leading zeros and trailing decimals go, brackets mean negative, and an apostrophe keeps text as typed.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "001"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "1.0"
+    },
+    {
+      "do": "enter",
+      "cell": "A3",
+      "text": "(5)"
+    },
+    {
+      "do": "enter",
+      "cell": "A4",
+      "text": "1e3"
+    },
+    {
+      "do": "enter",
+      "cell": "A5",
+      "text": "50%"
+    },
+    {
+      "do": "enter",
+      "cell": "A6",
+      "text": "'007"
+    },
+    {
+      "do": "enter",
+      "cell": "A7",
+      "text": "TRUE"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "A2", "A3", "A4", "A5", "A6", "A7"]
+    }
+  ]
+}

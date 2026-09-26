@@ -1,0 +1,19 @@
+{
+  "description": "A formula with a dangling operator is kept as typed and flagged, while one missing its closing bracket is completed.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "=1+"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "=SUM(1,2"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "A2"]
+    }
+  ]
+}

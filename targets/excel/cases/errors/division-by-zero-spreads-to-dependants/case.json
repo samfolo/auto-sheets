@@ -1,0 +1,24 @@
+{
+  "description": "A #DIV/0! error passes through arithmetic and SUM to every cell that depends on it.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "=1/0"
+    },
+    {
+      "do": "enter",
+      "cell": "B1",
+      "text": "=A1+1"
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "=SUM(A1:B1)"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "B1", "C1"]
+    }
+  ]
+}

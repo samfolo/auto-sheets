@@ -1,0 +1,66 @@
+{
+  "description": "A sum follows edits to its inputs, shows an error while one input is broken, recovers when it's fixed, and undo and redo move through those states.",
+  "tags": ["golden"],
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "2"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "3"
+    },
+    {
+      "do": "enter",
+      "cell": "A3",
+      "text": "=SUM(A1:A2)"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "A2", "A3"]
+    },
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "10"
+    },
+    {
+      "do": "observe",
+      "cells": ["A3"]
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "=1/0"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "A3"]
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "4"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "A3"]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "A3"]
+    },
+    {
+      "do": "redo"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "A3"]
+    }
+  ]
+}
