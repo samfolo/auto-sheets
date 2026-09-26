@@ -7,5 +7,5 @@
   },
   "tools": ["read", "bash", "edit", "write", "grep", "ls", "check_cases", "try_steps"],
   "context": ["standards/code.md"],
-  "budgetMinutes": 30
+  "budgetMinutes": 90
 }
