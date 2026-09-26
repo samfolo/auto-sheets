@@ -7,7 +7,7 @@
  */
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { PATHS } from './project.ts';
 
 /** macOS's sandbox runner. */
@@ -28,6 +28,15 @@ const SCRATCH = [
   join(homedir(), 'Library', 'Caches'),
 ];
 
+/** Every folder above a path, up to the root. */
+const ancestors = (path: string): string[] => {
+  const parent = dirname(path);
+  return parent === path ? [] : [parent, ...ancestors(parent)];
+};
+
+const literals = (paths: readonly string[]): string =>
+  paths.map((path) => `(literal ${JSON.stringify(path)})`).join(' ');
+
 const subpaths = (paths: readonly string[]): string =>
   paths.map((path) => `(subpath ${JSON.stringify(path)})`).join(' ');
 
@@ -43,8 +52,9 @@ export const sandboxProfile = (workspace: string): string =>
     '(deny signal)',
     '(allow signal (target same-sandbox))',
     `(deny file-read* ${subpaths([PATHS.root, PATHS.builds])})`,
-    // Resolving a path inspects each folder above it, including the folder of builds itself.
-    `(allow file-read-metadata (literal ${JSON.stringify(PATHS.builds)}))`,
+    // Resolving a path inspects each folder above it, so their details (not their contents) stay
+    // readable, wherever the workspace is: beside the factory, or inside it.
+    `(allow file-read-metadata ${literals(ancestors(resolve(workspace)))})`,
     `(allow file-read* ${subpaths([resolve(workspace)])})`,
     '(deny file-write*)',
     `(allow file-write* ${subpaths([resolve(workspace), ...SCRATCH])})`,
