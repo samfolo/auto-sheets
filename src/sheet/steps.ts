@@ -16,6 +16,10 @@ interface StepUsage {
 
 const NO_ARGUMENTS: StepUsage = { arguments: [], build: () => ({}) };
 
+/** A pointer target typed on the command line: a row header is a number, the rest are text. */
+const targetOf = (value: string | undefined): string | number | undefined =>
+  value !== undefined && /^\d+$/.test(value) ? Number(value) : value;
+
 const STEP_USAGE: Readonly<Record<StepName, StepUsage>> = {
   select: { arguments: ['range'], build: ([range]) => ({ range }) },
   enter: { arguments: ['cell', 'text'], build: ([cell, text]) => ({ cell, text }) },
@@ -28,7 +32,10 @@ const STEP_USAGE: Readonly<Record<StepName, StepUsage>> = {
   redo: NO_ARGUMENTS,
   click: { arguments: ['cell'], build: ([cell]) => ({ cell }) },
   'double-click': { arguments: ['cell'], build: ([cell]) => ({ cell }) },
-  drag: { arguments: ['from', 'to'], build: ([from, to]) => ({ from, to }) },
+  drag: {
+    arguments: ['from', 'to'],
+    build: ([from, to]) => ({ from: targetOf(from), to: targetOf(to) }),
+  },
   'click-column': { arguments: ['column'], build: ([column]) => ({ column }) },
   'click-row': { arguments: ['row'], build: ([row]) => ({ row: Number(row) }) },
   'drag-columns': { arguments: ['from', 'to'], build: ([from, to]) => ({ from, to }) },

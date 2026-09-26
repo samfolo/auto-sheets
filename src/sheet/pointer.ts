@@ -11,7 +11,9 @@
  * safe to repeat; it is done once per driver, before its first pointer step.
  */
 import { columnNumber, positionOf, type Position } from './address.ts';
-import type { CellAddress, PointerStep } from './contract.ts';
+import type { CellAddress, HELD_KEYS, PointerStep, PointerTarget } from './contract.ts';
+
+type HeldKey = (typeof HELD_KEYS)[number];
 import { poll } from '../kernel/index.ts';
 import type { Surface } from './surface.ts';
 
@@ -178,6 +180,37 @@ const rowHeader = (grid: GridGeometry, row: number): Point => ({
   y: centre(grid.originY, grid.cellHeight, row),
 });
 
+/** Where a pointer target is: a cell's middle, or the middle of a column's or a row's header. */
+const targetPoint = (grid: GridGeometry, target: PointerTarget): Point => {
+  if (typeof target === 'number') return rowHeader(grid, target);
+  return /\d/.test(target) ? cellCentre(grid, target) : columnHeader(grid, target);
+};
+
+/** The key each held key presses: Command on a Mac is Control elsewhere, as Playwright maps it. */
+const KEY_FOR: Readonly<Record<HeldKey, string>> = { Shift: 'Shift', Command: 'ControlOrMeta' };
+
+/** Does a gesture with keys held down, releasing them afterwards whatever happens. */
+const holding = async (
+  surface: Surface,
+  keys: readonly HeldKey[] | undefined,
+  gesture: () => Promise<void>,
+): Promise<void> => {
+  const { keyboard } = surface.page;
+  for (const key of keys ?? []) {
+    // Keys go down in order, as a hand presses them.
+    // oxlint-disable-next-line no-await-in-loop
+    await keyboard.down(KEY_FOR[key]);
+  }
+  try {
+    await gesture();
+  } finally {
+    for (const key of [...(keys ?? [])].toReversed()) {
+      // oxlint-disable-next-line no-await-in-loop
+      await keyboard.up(KEY_FOR[key]);
+    }
+  }
+};
+
 /** Presses at one point, moves to another in a few steps, and releases. */
 const drag = async (surface: Surface, from: Point, to: Point): Promise<void> => {
   const { mouse } = surface.page;
@@ -229,34 +262,31 @@ export const pointAndWait = async (
 /** Does one pointer step on a measured grid. */
 const point = async (surface: Surface, grid: GridGeometry, step: PointerStep): Promise<void> => {
   const { mouse } = surface.page;
+  const click = ({ x, y }: Point) => mouse.click(x, y);
   switch (step.do) {
-    case 'click': {
-      const { x, y } = cellCentre(grid, step.cell);
-      return mouse.click(x, y);
-    }
+    case 'click':
+      return holding(surface, step.hold, () => click(cellCentre(grid, step.cell)));
     case 'double-click': {
       const { x, y } = cellCentre(grid, step.cell);
       return mouse.dblclick(x, y);
     }
     case 'drag':
-      return drag(surface, cellCentre(grid, step.from), cellCentre(grid, step.to));
-    case 'click-column': {
-      const { x, y } = columnHeader(grid, step.column);
-      return mouse.click(x, y);
-    }
-    case 'click-row': {
-      const { x, y } = rowHeader(grid, step.row);
-      return mouse.click(x, y);
-    }
+      return holding(surface, step.hold, () =>
+        drag(surface, targetPoint(grid, step.from), targetPoint(grid, step.to)),
+      );
+    case 'click-column':
+      return holding(surface, step.hold, () => click(columnHeader(grid, step.column)));
+    case 'click-row':
+      return holding(surface, step.hold, () => click(rowHeader(grid, step.row)));
     case 'drag-columns':
       return drag(surface, columnHeader(grid, step.from), columnHeader(grid, step.to));
     case 'drag-rows':
       return drag(surface, rowHeader(grid, step.from), rowHeader(grid, step.to));
     case 'click-corner':
-      return mouse.click(
-        grid.originX - (grid.originX - grid.left) * CORNER_DEPTH,
-        grid.originY - (grid.originY - grid.top) * CORNER_DEPTH,
-      );
+      return click({
+        x: grid.originX - (grid.originX - grid.left) * CORNER_DEPTH,
+        y: grid.originY - (grid.originY - grid.top) * CORNER_DEPTH,
+      });
     default:
       return step satisfies never;
   }

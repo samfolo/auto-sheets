@@ -41,6 +41,22 @@ export const rowSchema = z
   .max(1_048_576)
   .meta({ description: 'A row, by its number, such as 3.' });
 
+/** Somewhere a pointer can press: a cell, a column's header, or a row's header. */
+export const pointerTargetSchema = z.union([cellAddressSchema, columnSchema, rowSchema]).meta({
+  description:
+    'A cell such as B2, a column’s header by its letters such as B, or a row’s header by its number such as 2.',
+});
+
+export type PointerTarget = z.output<typeof pointerTargetSchema>;
+
+/** Keys a person holds down during a gesture. */
+export const HELD_KEYS = ['Shift', 'Command'] as const;
+
+const heldKeys = z.array(z.enum(HELD_KEYS)).min(1).optional().meta({
+  description:
+    'Keys held down during the gesture: Shift, or Command (Control outside a Mac), which Excel uses to extend and add to selections.',
+});
+
 const typedText = z.string().min(1).meta({
   description:
     'Exactly what a person types, before the sheet interprets it. It may be stored as a number, date, formula or text.',
@@ -80,21 +96,27 @@ export const STEP_SCHEMAS = {
     .strictObject({ do: z.literal('redo') })
     .meta({ description: 'Press Ctrl+Y (Cmd+Y on a Mac) to redo the last undone change.' }),
   click: z
-    .strictObject({ do: z.literal('click'), cell: cellAddressSchema })
+    .strictObject({ do: z.literal('click'), cell: cellAddressSchema, hold: heldKeys })
     .meta({ description: 'Click the cell with the mouse, which selects it.' }),
   'double-click': z
     .strictObject({ do: z.literal('double-click'), cell: cellAddressSchema })
     .meta({ description: 'Double-click the cell, which starts editing it in place.' }),
   drag: z
-    .strictObject({ do: z.literal('drag'), from: cellAddressSchema, to: cellAddressSchema })
+    .strictObject({
+      do: z.literal('drag'),
+      from: pointerTargetSchema,
+      to: pointerTargetSchema,
+      hold: heldKeys,
+    })
     .meta({
-      description: 'Press the mouse on one cell, move it to another and release: a range.',
+      description:
+        'Press the mouse on one place, move it to another and release. Each end is a cell or a header, so a drag can start on a header and end on a cell.',
     }),
   'click-column': z
-    .strictObject({ do: z.literal('click-column'), column: columnSchema })
+    .strictObject({ do: z.literal('click-column'), column: columnSchema, hold: heldKeys })
     .meta({ description: 'Click the column’s header, above its first row.' }),
   'click-row': z
-    .strictObject({ do: z.literal('click-row'), row: rowSchema })
+    .strictObject({ do: z.literal('click-row'), row: rowSchema, hold: heldKeys })
     .meta({ description: 'Click the row’s header, left of its first column.' }),
   'drag-columns': z
     .strictObject({ do: z.literal('drag-columns'), from: columnSchema, to: columnSchema })
@@ -185,6 +207,10 @@ export const selectionObservationSchema = z
     range: z.string().nullable().meta({
       description:
         'The selected range as the readout names it, such as C3:E6, K:K, 5:5 or A:XFD; null when only one cell is selected.',
+    }),
+    areas: z.array(z.string()).optional().meta({
+      description:
+        'Each separate area, in the order the readout lists them, when several are selected, as with Command-click; absent otherwise.',
     }),
     editing: z.boolean().meta({
       description:

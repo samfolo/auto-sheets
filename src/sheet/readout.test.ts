@@ -59,4 +59,13 @@ describe('describeSelection', () => {
   ])('reads $label', ({ label, nameBox, range, editing }) => {
     expect(describeSelection(nameBox, label)).toEqual({ active: nameBox, range, editing });
   });
+
+  it('lists each area when several separate ones are selected', () => {
+    expect(describeSelection('G2', '3 ranges selected . B2:C3 . E5 . G2:H4 . ')).toEqual({
+      active: 'G2',
+      range: null,
+      areas: ['B2:C3', 'E5', 'G2:H4'],
+      editing: false,
+    });
+  });
 });

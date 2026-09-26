@@ -50,14 +50,28 @@ export const describesSelection = (label: string, range: string): boolean =>
 /** What the readout says while a cell is being edited. */
 const EDITING = 'Editing';
 
+/** How the readout opens when several separate areas are selected, such as `3 ranges selected`. */
+const AREAS_MARKER = /^(\d+) ranges selected$/;
+
 /**
- * The selection as the Name Box and the readout describe it: the active cell, the range when more
- * than one cell is selected (such as C3:E6, K:K, 5:5 or A:XFD), and whether a cell is being edited.
+ * The selection as the Name Box and the readout describe it: the active cell, the range when one
+ * range is selected (such as C3:E6, K:K, 5:5 or A:XFD), each area when several separate ones are
+ * (`3 ranges selected . B2:C3 . E5 . G2:H4 . `), and whether a cell is being edited.
  */
 export const describeSelection = (
   nameBox: string,
   label: string,
-): { active: string; range: string | null; editing: boolean } => {
+): { active: string; range: string | null; areas?: string[]; editing: boolean } => {
+  const parts = label.split(SEPARATOR).map((part) => part.trim());
+  const count = AREAS_MARKER.exec(parts[0] ?? '');
+  if (count !== null) {
+    return {
+      active: nameBox,
+      range: null,
+      areas: parts.slice(1, 1 + Number(count[1])),
+      editing: false,
+    };
+  }
   const marker = `${RANGE_MARKER}${SEPARATOR}`;
   const start = label.indexOf(marker);
   const range =
