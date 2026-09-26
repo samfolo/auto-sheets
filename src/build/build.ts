@@ -70,6 +70,8 @@ export const build = async (
     thinking: settings.model.thinking,
   };
   const minutes = options.data.minutes ?? settings.budgetMinutes;
+  // Stamped at the start: the factory may change while the agent works.
+  const factory = readStamp();
   const startedAt = new Date().toISOString();
   trace('build.start', { runId, workspace: workspace.data, ...agent, minutes });
 
@@ -84,7 +86,7 @@ export const build = async (
 
   const summary: BuildSummary = {
     runId,
-    factory: readStamp(),
+    factory,
     agent,
     workspace: workspace.data,
     startedAt,

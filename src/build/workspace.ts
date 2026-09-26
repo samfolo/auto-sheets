@@ -5,12 +5,11 @@
  * standards themselves travel with the agent as context.) Its first commit names the factory
  * version that made it, and its Git history records the agent's progress from there.
  */
-import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { cp, mkdir } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { CASE_TAGS, loadAllCases } from '../cases/index.ts';
-import { attempt, fail, ok, PATHS, readStamp, type Result } from '../kernel/index.ts';
+import { attempt, fail, git, ok, PATHS, readStamp, type Result } from '../kernel/index.ts';
 
 /** Where each input goes inside a workspace. */
 export const WORKSPACE = {
@@ -52,8 +51,9 @@ const heldOutFolders = async (): Promise<Result<string[]>> => {
   );
 };
 
-const git = (dir: string, ...args: string[]): void => {
-  execFileSync('git', args, { cwd: dir, stdio: 'ignore' });
+/** Runs Git as part of preparing the workspace, where any failure stops the preparation. */
+const mustGit = (dir: string, ...args: string[]): void => {
+  if (git(dir, ...args) === null) throw new Error(`git ${args[0]} failed.`);
 };
 
 /** The first commit's message, naming the factory version that made the workspace. */
@@ -81,9 +81,9 @@ export const prepareWorkspace = async (dir: string): Promise<Result<string>> => 
         filter: (source) => !hidden.data.some((folder) => isInside(source, folder)),
       });
       await cp(PATHS.excelKnowledge, join(workspace, WORKSPACE.knowledge), { recursive: true });
-      git(workspace, 'init', '--quiet');
-      git(workspace, 'add', '--all');
-      git(workspace, 'commit', '--quiet', '--message', startingPoint());
+      mustGit(workspace, 'init', '--quiet');
+      mustGit(workspace, 'add', '--all');
+      mustGit(workspace, 'commit', '--quiet', '--message', startingPoint());
       return workspace;
     },
     (reason) =>

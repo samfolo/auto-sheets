@@ -17,7 +17,7 @@ The `check_cases` tool is how you know the app behaves like the original. It sta
 
 1. Read the spec, the cases and the knowledge before writing code. Write the rules the references show in `NOTES.md`.
 2. Design before building. Decide the layers and how each one will be verified on its own.
-3. Build in small steps. After each step, run `npm run check` and call `check_cases`. Commit every state that passes more cases than the last, with one-line conventional commits.
+3. Build in small steps. After each step, run `npm run check` and call `check_cases`. Commit each finished step with a one-line conventional commit. (`check_cases` also commits whenever a check of every case beats your best score.)
 4. When a case fails, read the difference: the case, the step, the cell, what the original showed and what your app showed. Fix the general rule. Never make a case pass by recognising its particular inputs; unseen cases test the same rules.
 5. If `check_cases` reports something broken, look at your last change before anything else.
 6. If the same case still fails after two fixes, stop editing. Write in `NOTES.md` why the design resists the fix, and change the design if that's what it takes.
