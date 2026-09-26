@@ -8,7 +8,12 @@
  * version and the agent's model, so runs can be compared as either changes.
  */
 import { join } from 'node:path';
-import { loadAgentDefinition, runAgent, type AgentRun } from '../agent/index.ts';
+import {
+  type AgentDefinition,
+  loadAgentDefinition,
+  runAgent,
+  type AgentRun,
+} from '../agent/index.ts';
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
   displayPath,
@@ -36,6 +41,17 @@ export const RUN_FILES = {
   summary: 'summary.json',
 } as const;
 
+/** The definition with its model replaced for one build, given as provider/id. */
+const withModel = (definition: AgentDefinition, model: string | undefined): AgentDefinition => {
+  if (model === undefined) return definition;
+  const [provider = '', ...id] = model.split('/');
+  const { settings } = definition;
+  return {
+    ...definition,
+    settings: { ...settings, model: { ...settings.model, provider, id: id.join('/') } },
+  };
+};
+
 /** A run's id: when it started, in a form that sorts and is safe in a path. */
 const newRunId = (): string => new Date().toISOString().replaceAll(/[:.]/g, '-');
 
@@ -59,8 +75,9 @@ export const build = async (
 ): Promise<Result<BuildSummary>> => {
   const options = validate(buildOptionsSchema, request, 'the build options');
   if (!options.success) return options;
-  const definition = await loadAgentDefinition(options.data.agent);
-  if (!definition.success) return definition;
+  const loaded = await loadAgentDefinition(options.data.agent);
+  if (!loaded.success) return loaded;
+  const definition = withModel(loaded.data, options.data.model);
   const credentials = readCredentials();
   if (!credentials.success) return credentials;
 
@@ -69,7 +86,7 @@ export const build = async (
   if (!workspace.success) return workspace;
   const runDir = join(PATHS.runs, runId);
   const runTrace = openTelemetry({ logFile: join(runDir, RUN_FILES.log), runId }).trace;
-  const { name, settings } = definition.data;
+  const { name, settings } = definition;
   const agent = {
     name,
     model: `${settings.model.provider}/${settings.model.id}`,
@@ -82,7 +99,7 @@ export const build = async (
   trace('build.start', { runId, workspace: workspace.data, ...agent, minutes });
 
   const run = await runAgent(
-    definition.data,
+    definition,
     { workspace: workspace.data, runDir, apiKey: credentials.data.openRouterApiKey, minutes },
     runTrace,
   );

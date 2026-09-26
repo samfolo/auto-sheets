@@ -13,6 +13,16 @@ export const buildOptionsSchema = z
       description:
         'A new directory, outside the factory, for the workspace. By default it is named after the run, beside the factory.',
     }),
+    model: z
+      .string()
+      .regex(/^[\w.-]+\/.+$/, {
+        error: 'must be provider/id, such as openrouter/qwen/qwen3.8-27b:free',
+      })
+      .optional()
+      .meta({
+        description:
+          'Another model for this build only, as provider/id, to compare models on the same agent.',
+      }),
     minutes: z.coerce.number().int().min(1).max(240).optional().meta({
       description: 'How long the agent may work, in whole minutes. By default, its own budget.',
     }),

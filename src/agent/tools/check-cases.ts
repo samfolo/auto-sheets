@@ -50,23 +50,32 @@ const parameters = Type.Object({
   ),
 });
 
-export const createCheckCasesTool = (workspace: string, runDir: string, trace: Trace) => {
+/** What a check tells the agent, and whether the app is done. */
+export interface CheckOutcome {
+  readonly text: string;
+  /** Every visible case passed in a check of all of them. */
+  readonly complete: boolean;
+}
+
+/** The agent's checks of its app. `check_cases` and the harness share one, and one scoreboard. */
+export interface CaseChecker {
+  /** Checks these visible cases, or all of them when empty, and reports as the agent reads it. */
+  readonly check: (cases: readonly string[]) => Promise<CheckOutcome>;
+}
+
+const incomplete = (text: string): CheckOutcome => ({ text, complete: false });
+
+export const createCaseChecker = (workspace: string, runDir: string, trace: Trace): CaseChecker => {
   const scoreboard = createScoreboard();
   const best = { passed: 0 };
-  return defineTool({
-    name: CHECK_CASES.name,
-    label: CHECK_CASES.label,
-    description: CHECK_CASES.description,
-    parameters,
-    // It may commit the workspace, so it never runs alongside the agent's other tools.
-    executionMode: 'sequential',
-    execute: async (_toolCallId, { cases = [] }) => {
+  return {
+    check: async (cases) => {
       const visible = await selectCases({ ids: [], withoutTags: CHECK_CASES.withoutTags });
-      if (!visible.success) return toolText(visible.error.message);
+      if (!visible.success) return incomplete(visible.error.message);
       const known = new Set(visible.data.map(({ id }) => id));
       const unknown = cases.filter((id) => !known.has(id));
       if (unknown.length > 0) {
-        return toolText(
+        return incomplete(
           `There are no cases ${unknown.join(', ')}. The cases are the folders under cases/.`,
         );
       }
@@ -82,7 +91,7 @@ export const createCheckCasesTool = (workspace: string, runDir: string, trace: T
       if (!verdicts.success) {
         const { message, details = [] } = verdicts.error;
         trace('agent.check', { problem: message });
-        return toolText([message, ...details].join('\n'));
+        return incomplete([message, ...details].join('\n'));
       }
       const report = scoreboard.record(verdicts.data);
       trace('agent.score', {
@@ -92,11 +101,26 @@ export const createCheckCasesTool = (workspace: string, runDir: string, trace: T
         fixed: report.fixed,
         broken: report.broken,
       });
-      if (cases.length === 0 && report.passed > best.passed) {
+      const everyCase = cases.length === 0;
+      if (everyCase && report.passed > best.passed) {
         best.passed = report.passed;
         checkpoint(workspace, report.passed, report.total);
       }
-      return toolText(formatScoreReport(report));
+      return {
+        text: formatScoreReport(report),
+        complete: everyCase && report.total > 0 && report.passed === report.total,
+      };
     },
-  });
+  };
 };
+
+export const createCheckCasesTool = (checker: CaseChecker) =>
+  defineTool({
+    name: CHECK_CASES.name,
+    label: CHECK_CASES.label,
+    description: CHECK_CASES.description,
+    parameters,
+    // It may commit the workspace, so it never runs alongside the agent's other tools.
+    executionMode: 'sequential',
+    execute: async (_toolCallId, { cases = [] }) => toolText((await checker.check(cases)).text),
+  });

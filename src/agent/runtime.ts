@@ -13,6 +13,7 @@
  * The factory traces each tool call and reply, and stops the agent when its time is up.
  */
 import {
+  type AgentSession,
   createAgentSession,
   createExtensionRuntime,
   ModelRuntime,
@@ -26,7 +27,13 @@ import { join } from 'node:path';
 import { attempt, fail, NO_TRACE, ok, type Result, type Trace } from '../kernel/index.ts';
 import type { AgentRun, AgentSettings, AgentToolName } from './contract.ts';
 import type { AgentDefinition } from './definition.ts';
-import { createBashTool, createCheckCasesTool, createTryStepsTool } from './tools/index.ts';
+import {
+  type CaseChecker,
+  createBashTool,
+  createCaseChecker,
+  createCheckCasesTool,
+  createTryStepsTool,
+} from './tools/index.ts';
 
 /** Where Pi keeps the agent's session, inside the run's folder. */
 const SESSIONS_FOLDER = 'sessions';
@@ -109,10 +116,11 @@ const resourcesFor = (definition: AgentDefinition): ResourceLoader => ({
 /** The factory's tools, by the name the definition uses. Other names are Pi's built-in tools. */
 const harnessTools = (
   { workspace, runDir }: AgentPlace,
+  checker: CaseChecker,
   trace: Trace,
 ): Partial<Record<AgentToolName, ToolDefinition>> => ({
   bash: createBashTool(workspace),
-  check_cases: createCheckCasesTool(workspace, runDir, trace),
+  check_cases: createCheckCasesTool(checker),
   try_steps: createTryStepsTool(workspace, runDir, trace),
 });
 
@@ -141,11 +149,12 @@ const openSession = async (
   place: AgentPlace,
   apiKey: string,
   sessionManager: SessionManager,
+  checker: CaseChecker,
   trace: Trace,
 ) => {
   const opened = await openModel(definition.settings.model, apiKey);
   if (!opened.success) return opened;
-  const tools = harnessTools(place, trace);
+  const tools = harnessTools(place, checker, trace);
   const { session } = await createAgentSession({
     cwd: place.workspace,
     model: opened.data.model,
@@ -174,6 +183,7 @@ export const briefAgent = async (
     place,
     apiKey,
     SessionManager.inMemory(place.workspace),
+    createCaseChecker(place.workspace, place.runDir, NO_TRACE),
     NO_TRACE,
   );
   if (!session.success) return session;
@@ -188,22 +198,22 @@ export const briefAgent = async (
   return ok(briefing);
 };
 
-export const runAgent = async (
-  definition: AgentDefinition,
-  options: AgentOptions,
-  trace: Trace,
-): Promise<Result<AgentRun>> => {
-  const opened = await openSession(
-    definition,
-    options,
-    options.apiKey,
-    SessionManager.create(options.workspace, join(options.runDir, SESSIONS_FOLDER)),
-    trace,
-  );
-  if (!opened.success) return opened;
-  const session = opened.data;
+/** What the agent is told about its time, a definite fact the harness knows and it doesn't. */
+const timeLeft = (minutes: number): string =>
+  `You have about ${Math.max(0, Math.round(minutes))} minutes left. You will be stopped when they are up, so keep the app working and committed as you go.`;
 
-  const state = { timedOut: false, error: null as string | null };
+/** What the agent is told when it stops before its app is done. */
+const NOT_DONE =
+  'You stopped, but you are not done: you are done when every case passes and `npm run check` is clean. Here is where your app stands.';
+
+/**
+ * How many times the harness sends the agent back to work after it stops early. It bounds a
+ * model that keeps stopping without progress.
+ */
+const MAX_FOLLOW_UPS = 5;
+
+/** Traces what the session does: tools, replies, retries, compactions and a streaming heartbeat. */
+const traceSession = (session: AgentSession, trace: Trace, state: { error: string | null }) => {
   const heartbeat = createHeartbeat(trace);
   session.subscribe((event) => {
     if (event.type === 'message_start' && event.message.role === 'assistant') heartbeat.start();
@@ -232,18 +242,56 @@ export const runAgent = async (
       if (stopReason === 'error') state.error = errorMessage ?? 'The model call failed.';
     }
   });
+};
+
+/**
+ * Runs the agent until it is done or out of time. The model decides when it has stopped, but
+ * not whether it is done: that is definite, so the harness checks it. If the agent stops early,
+ * it is sent back with the scoreboard and the time it has left.
+ */
+export const runAgent = async (
+  definition: AgentDefinition,
+  options: AgentOptions,
+  trace: Trace,
+): Promise<Result<AgentRun>> => {
+  const checker = createCaseChecker(options.workspace, options.runDir, trace);
+  const opened = await openSession(
+    definition,
+    options,
+    options.apiKey,
+    SessionManager.create(options.workspace, join(options.runDir, SESSIONS_FOLDER)),
+    checker,
+    trace,
+  );
+  if (!opened.success) return opened;
+  const session = opened.data;
+  const state = { timedOut: false, error: null as string | null };
+  traceSession(session, trace, state);
+  const deadline = performance.now() + options.minutes * MINUTE_MS;
+  const minutesLeft = () => (deadline - performance.now()) / MINUTE_MS;
   const timer = setTimeout(() => {
     state.timedOut = true;
     void session.abort();
   }, options.minutes * MINUTE_MS);
-  const prompted = await attempt(
-    () => session.prompt(definition.task, { expandPromptTemplates: false }),
-    (reason) => fail('INTERNAL', `The agent stopped unexpectedly: ${reason}`),
-  );
+
+  const work = async (prompt: string, followUps: number): Promise<Result<void>> => {
+    const prompted = await attempt(
+      () =>
+        session.prompt(`${prompt}\n\n${timeLeft(minutesLeft())}`, { expandPromptTemplates: false }),
+      (reason) => fail('INTERNAL', `The agent stopped unexpectedly: ${reason}`),
+    );
+    if (!prompted.success || state.timedOut || state.error !== null) return prompted;
+    if (followUps >= MAX_FOLLOW_UPS) return prompted;
+    const outcome = await checker.check([]);
+    if (outcome.complete || state.timedOut) return prompted;
+    trace('agent.continue', { followUp: followUps + 1, minutesLeft: Math.round(minutesLeft()) });
+    return work(`${NOT_DONE}\n\n${outcome.text}`, followUps + 1);
+  };
+  const worked = await work(definition.task, 0);
   clearTimeout(timer);
   const stats = session.getSessionStats();
   session.dispose();
-  const error = prompted.success ? state.error : prompted.error.message;
+  const error = worked.success ? state.error : worked.error.message;
   return ok({
     outcome: state.timedOut ? 'timedOut' : error === null ? 'finished' : 'failed',
     error,
