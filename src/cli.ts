@@ -11,6 +11,7 @@ import {
 } from './commands/browser.ts';
 import { listCases, recordCase, renderCases, renderRecording } from './commands/case.ts';
 import { doctor, renderChecks } from './commands/doctor.ts';
+import { renderVerdicts, verifyClone } from './commands/verify.ts';
 import {
   doStep,
   excelSignIn,
@@ -143,6 +144,20 @@ const createProgram = (telemetry: Telemetry) => {
     .argument('<id>', 'the case id, which is its folder under the cases directory')
     .action((id) =>
       runCommand(invocation('case record'), (trace) => recordCase(id, trace), renderRecording),
+    );
+
+  cases
+    .command('verify')
+    .description('run recorded cases on a clone and compare what it shows with what Excel showed')
+    .argument('[ids...]', 'the cases to run; every recorded case if none are given')
+    .requiredOption('--url <url>', 'where the clone is running, such as http://localhost:4321')
+    .option('--headed', 'show the browser window while the cases run')
+    .action((ids, { url, headed }) =>
+      runCommand(
+        invocation('case verify'),
+        (trace) => verifyClone({ url, ids, headed: headed === true }, trace),
+        renderVerdicts,
+      ),
     );
 
   return program;

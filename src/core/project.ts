@@ -40,4 +40,13 @@ export const PATHS = {
   },
   /** Recorded cases for Excel: steps, what Excel did, and optional seed workbooks. */
   excelCases: join(root, 'targets', 'excel', 'cases'),
+  /** What was learned about Excel while recording. */
+  excelKnowledge: join(root, 'targets', 'excel', 'knowledge'),
+  /** What a clone must provide, and the manual its builder works from. */
+  clone: {
+    spec: join(root, 'targets', 'excel', 'clone', 'spec.md'),
+    agents: join(root, 'targets', 'excel', 'clone', 'AGENTS.md'),
+  },
+  /** One folder per build: the agent's events, its sessions and the summary. Gitignored. */
+  runs: join(artifacts, 'runs'),
 } as const;

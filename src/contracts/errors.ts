@@ -37,6 +37,10 @@ export const ERROR_CODES = {
   CASE_NOT_FOUND: 'invalidInput',
   /** Two recordings of the same case disagreed, so neither is trusted as a reference. */
   REFERENCE_UNSTABLE: 'failed',
+  /** A clone showed something different from what Excel showed in one or more cases. */
+  CASES_FAILED: 'failed',
+  /** Nothing answered at the clone's address. */
+  CLONE_NOT_RUNNING: 'environment',
   /** A prerequisite checked by `factory doctor` is missing or invalid. */
   ENVIRONMENT_NOT_READY: 'environment',
   /** A command needs the browser session, and none is running. */
