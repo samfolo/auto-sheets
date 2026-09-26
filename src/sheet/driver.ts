@@ -3,6 +3,8 @@
  * the clone) only says how to open a sheet and where its controls are; everything a step does
  * is defined once, in actions.ts, so both targets are driven the same way.
  */
+import { mkdir } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { screenshot } from '../browser/index.ts';
 import { formatStep } from './steps.ts';
 import type { ActionStep, CellAddress, CellObservation } from './contract.ts';
@@ -36,6 +38,8 @@ export interface Driver {
   readonly perform: (step: ActionStep) => Promise<Result<void>>;
   /** Selects the cell and reads what the formula bar and the cell show. */
   readonly observe: (cell: CellAddress) => Promise<Result<CellObservation>>;
+  /** Saves a picture of the sheet as a person sees it, for review. Returns the file. */
+  readonly capture: (file: string) => Promise<Result<string>>;
 }
 
 /** What a target provides so the sheet driver can run on it. */
@@ -134,5 +138,12 @@ export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => 
     perform: (step) => act(formatStep(step), (surface) => performStep(surface, step, trace)),
 
     observe: (cell) => act(`observe ${cell}`, (surface) => readCell(surface, cell)),
+
+    capture: (file) =>
+      act('capture', async ({ page }) => {
+        await mkdir(dirname(file), { recursive: true });
+        await page.screenshot({ path: file });
+        return file;
+      }),
   };
 };

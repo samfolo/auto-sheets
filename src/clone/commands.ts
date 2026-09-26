@@ -8,15 +8,22 @@ import type { CommandRegistry } from '../cli/index.ts';
 import { PATHS, PROJECT, type Result, type Trace } from '../kernel/index.ts';
 import { checkClone } from './check.ts';
 
-/** The clone's output while it is checked from the command line. */
-const CHECK_LOG = join(PATHS.artifacts, 'clone-check.log');
+/** Where a check from the command line keeps the clone's output and pictures. */
+const CHECK_OUTPUT = {
+  log: join(PATHS.artifacts, 'clone-check', 'app.log'),
+  screenshots: join(PATHS.artifacts, 'clone-check', 'screenshots'),
+} as const;
 
 export const checkWorkspace = async (
   workspace: string,
   ids: readonly string[],
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
-  const verdicts = await checkClone(workspace, { ids, logFile: CHECK_LOG }, trace);
+  const verdicts = await checkClone(
+    workspace,
+    { ids, logFile: CHECK_OUTPUT.log, screenshots: CHECK_OUTPUT.screenshots },
+    trace,
+  );
   if (!verdicts.success) return verdicts;
   return reportVerdicts(
     verdicts.data,

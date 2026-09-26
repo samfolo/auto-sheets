@@ -88,6 +88,7 @@ export const createFakeDriver = ({ failOn = [] }: { failOn?: readonly CellAddres
       const raw = state.sheet[cell] ?? '';
       return ok({ raw, display: raw, annotations: [] });
     },
+    capture: async (file) => ok(file),
   };
   return driver;
 };

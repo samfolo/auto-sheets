@@ -3,6 +3,7 @@
  * The references come from the factory's own cases, so a clone's workspace can't change what
  * it's judged against.
  */
+import { join } from 'node:path';
 import { cloneTarget, CLONE } from '../../targets/excel/index.ts';
 import { withFreshBrowser } from '../browser/index.ts';
 import { compareTrajectories, formatDifference } from './compare.ts';
@@ -12,6 +13,9 @@ import type { Checkpoint, Reference, Verdict } from './contract.ts';
 import { attempt, fail, ok, type Result, type Trace } from '../kernel/index.ts';
 import { createSheetDriver } from '../sheet/index.ts';
 
+/** Joins a case id's folders in a screenshot's file name. */
+const SCREENSHOT_SEPARATOR = '--';
+
 export interface VerifyOptions {
   /** Where the clone is running. */
   readonly url: string;
@@ -19,6 +23,8 @@ export interface VerifyOptions {
   readonly ids: readonly string[];
   /** Leaves out cases with any of these tags, such as held-out cases while an agent works. */
   readonly withoutTags?: readonly string[];
+  /** A folder for a picture of the clone at the end of each case, for a person to compare. */
+  readonly screenshots?: string;
   /** Show the browser window while the cases run. */
   readonly headed: boolean;
 }
@@ -68,7 +74,7 @@ export const selectCases = async ({
  * check itself are failures here; a case that differs from Excel is a verdict.
  */
 export const judgeClone = async (
-  { url, headed, ...selection }: VerifyOptions,
+  { url, headed, screenshots, ...selection }: VerifyOptions,
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
   const running = await checkRunning(url);
@@ -86,6 +92,12 @@ export const judgeClone = async (
         const reference = await readReference(loaded);
         // oxlint-disable-next-line no-await-in-loop
         const actual = await runSteps(driver, loaded.definition.steps, loaded.seedFile);
+        if (screenshots !== undefined) {
+          // oxlint-disable-next-line no-await-in-loop
+          await driver.capture(
+            join(screenshots, `${loaded.id.replaceAll('/', SCREENSHOT_SEPARATOR)}.png`),
+          );
+        }
         const problems = problemsWith(reference, actual);
         trace('case.verdict', { id: loaded.id, passed: problems.length === 0, problems });
         results.push({

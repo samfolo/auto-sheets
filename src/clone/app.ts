@@ -6,13 +6,13 @@
  */
 import { spawn } from 'node:child_process';
 import { createWriteStream, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdir } from 'node:fs/promises';
+import { createServer } from 'node:net';
+import { dirname, join } from 'node:path';
 import { CLONE } from '../../targets/excel/index.ts';
 import { childEnvironment, fail, poll, type Result } from '../kernel/index.ts';
 
 export const CLONE_APP = {
-  /** Where the factory runs a clone to check it, away from the port the agent uses itself. */
-  port: 4399,
   /** How long a clone has to answer its health check after `npm start`. */
   startup: { timeoutMs: 60_000, intervalMs: 500 },
   /** How many of the app's last output lines a failure to start includes. */
@@ -20,6 +20,24 @@ export const CLONE_APP = {
 } as const;
 
 type Health = 'ready' | 'starting' | 'exited';
+
+/**
+ * A port nothing is listening on, chosen by the operating system, so checks never collide with
+ * each other or with a copy of the app the agent is running itself.
+ */
+const freePort = (): Promise<number> =>
+  new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    server.listen(0, () => {
+      const address = server.address();
+      server.close(() =>
+        typeof address === 'object' && address !== null
+          ? resolve(address.port)
+          : reject(new Error('The operating system gave no port.')),
+      );
+    });
+  });
 
 /** Runs `npm start` in the workspace, calls `use` with the clone's address, then stops it. */
 export const withCloneApp = async <T>(
@@ -32,12 +50,14 @@ export const withCloneApp = async <T>(
       location: workspace,
     });
   }
-  const url = `http://localhost:${CLONE_APP.port}`;
+  const port = await freePort();
+  const url = `http://localhost:${port}`;
+  await mkdir(dirname(logFile), { recursive: true });
   const log = createWriteStream(logFile, { flags: 'a' });
   const output: string[] = [];
   const app = spawn('npm', ['start'], {
     cwd: workspace,
-    env: { ...childEnvironment(), PORT: String(CLONE_APP.port) },
+    env: { ...childEnvironment(), PORT: String(port) },
     stdio: ['ignore', 'pipe', 'pipe'],
     // Its own process group, so stopping it also stops whatever `npm start` launched.
     detached: true,

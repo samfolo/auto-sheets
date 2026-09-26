@@ -31,6 +31,8 @@ export const RUN_FILES = {
   log: 'events.jsonl',
   /** The clone's output during the final check. */
   appLog: 'app.log',
+  /** A picture of the clone at the end of each case, to compare with Excel by eye. */
+  screenshots: 'screenshots',
   summary: 'summary.json',
 } as const;
 
@@ -40,7 +42,11 @@ const newRunId = (): string => new Date().toISOString().replaceAll(/[:.]/g, '-')
 const finalCheck = async (workspace: string, runDir: string, trace: Trace): Promise<FinalCheck> => {
   const verdicts = await checkClone(
     workspace,
-    { ids: [], logFile: join(runDir, RUN_FILES.appLog) },
+    {
+      ids: [],
+      logFile: join(runDir, RUN_FILES.appLog),
+      screenshots: join(runDir, RUN_FILES.screenshots),
+    },
     trace,
   );
   if (!verdicts.success) return { score: null, verdicts: [], problem: verdicts.error.message };
