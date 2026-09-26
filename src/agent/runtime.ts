@@ -40,6 +40,15 @@ const SESSIONS_FOLDER = 'sessions';
 
 const MINUTE_MS = 60_000;
 
+/**
+ * Pi's settings for every session. Retries back off for about five minutes in all, because a
+ * free model's shared rate limit clears in minutes, while Pi's defaults give up in seconds.
+ */
+const PI_SETTINGS = {
+  enableInstallTelemetry: false,
+  retry: { enabled: true, maxRetries: 8, baseDelayMs: 5_000, maxAgentDelayMs: MINUTE_MS },
+} as const;
+
 /** How often a reply still being written reports its progress, so a long reply isn't mistaken for a hang. */
 const HEARTBEAT_MS = 30_000;
 
@@ -161,7 +170,7 @@ const openSession = async (
     thinkingLevel: definition.settings.model.thinking,
     modelRuntime: opened.data.modelRuntime,
     resourceLoader: resourcesFor(definition),
-    settingsManager: SettingsManager.inMemory({ enableInstallTelemetry: false }),
+    settingsManager: SettingsManager.inMemory(PI_SETTINGS),
     sessionManager,
     tools: [...definition.settings.tools],
     customTools: definition.settings.tools.flatMap((name) => tools[name] ?? []),

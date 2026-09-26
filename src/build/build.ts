@@ -7,6 +7,7 @@
  * case on it, including the held-out cases the agent never saw. The summary records the factory
  * version and the agent's model, so runs can be compared as either changes.
  */
+import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import {
   type AgentDefinition,
@@ -52,8 +53,15 @@ const withModel = (definition: AgentDefinition, model: string | undefined): Agen
   };
 };
 
-/** A run's id: when it started, in a form that sorts and is safe in a path. */
-const newRunId = (): string => new Date().toISOString().replaceAll(/[:.]/g, '-');
+/** Random hex characters that keep runs started in the same millisecond apart. */
+const RUN_ID_SUFFIX_BYTES = 2;
+
+/**
+ * A run's id: when it started, in a form that sorts and is safe in a path, then a short random
+ * suffix, because parallel builds can start in the same millisecond.
+ */
+const newRunId = (): string =>
+  `${new Date().toISOString().replaceAll(/[:.]/g, '-')}-${randomBytes(RUN_ID_SUFFIX_BYTES).toString('hex')}`;
 
 const finalCheck = async (workspace: string, runDir: string, trace: Trace): Promise<FinalCheck> => {
   const verdicts = await checkClone(
