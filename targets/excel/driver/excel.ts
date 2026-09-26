@@ -36,6 +36,7 @@ export const EXCEL = {
     actionMs: 10_000,
     pollMs: 100,
     settleMs: 600,
+    keystrokeMs: 30,
     selectTries: 2,
     typingTries: 2,
     commitTries: 2,

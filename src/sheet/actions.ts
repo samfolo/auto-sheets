@@ -26,9 +26,22 @@ const readLabel = async ({ frame, selectors }: Surface): Promise<string> =>
 const readNameBox = ({ frame, selectors }: Surface): Promise<string> =>
   frame.locator(selectors.nameBox).inputValue();
 
-/** The in-cell editor's text. It renders spaces as non-breaking spaces, so normalise them. */
-const readCellEditor = async ({ frame, selectors }: Surface): Promise<string> =>
-  ((await frame.locator(selectors.cellEditor).textContent()) ?? '').replaceAll(' ', ' ');
+/** An element's text, with the non-breaking spaces editors render turned back into spaces. */
+const readText = async ({ frame }: Surface, selector: string): Promise<string> =>
+  ((await frame.locator(selector).textContent()) ?? '').replaceAll('\u00a0', ' ');
+
+/**
+ * The text being edited, as the cell editor and the formula bar each show it. Neither is always
+ * current: Excel moves a formula into a separate editor, leaving the cell editor with a fragment,
+ * while for plain values the formula bar lags behind.
+ */
+const readEdit = async (surface: Surface): Promise<readonly string[]> => [
+  await readText(surface, surface.selectors.cellEditor),
+  await readText(surface, surface.selectors.formulaBar),
+];
+
+/** How many times Escape is pressed to leave an edit, closing any suggestion list first. */
+const CANCEL_PRESSES = 3;
 
 const until = <T>(surface: Surface, read: () => Promise<T>, accept: (value: T) => boolean) =>
   poll(read, accept, { timeoutMs: surface.timing.actionMs, intervalMs: surface.timing.pollMs });
@@ -92,9 +105,24 @@ export const readCell = async (surface: Surface, cell: CellAddress): Promise<Cel
 };
 
 /**
+ * Cancels an edit and waits until the cell editor is empty. While a suggestion list is open,
+ * such as Excel's formula autocomplete, the first Escape only closes the list.
+ */
+const cancelEdit = async (surface: Surface, pressesLeft = CANCEL_PRESSES): Promise<void> => {
+  await surface.page.keyboard.press(KEYS.cancel);
+  const cleared = await until(
+    surface,
+    () => readEdit(surface),
+    (shown) => shown.every((text) => text === ''),
+  );
+  if (!cleared.accepted && pressesLeft > 1) return cancelEdit(surface, pressesLeft - 1);
+};
+
+/**
  * Types into the selected cell, which replaces its content, and checks the text reached the
- * cell editor before anything is committed. Keystrokes sent while the editor is starting can
- * be dropped; on a mismatch, Escape cancels the edit and the text is typed again.
+ * cell editor before anything is committed. Keys go in at a person's pace, since suggestion
+ * lists react to each one; keystrokes sent while the editor is starting can still be dropped,
+ * so on a mismatch the edit is cancelled and the text typed again.
  */
 const type = async (
   surface: Surface,
@@ -103,26 +131,33 @@ const type = async (
   triesLeft = surface.timing.typingTries,
 ): Promise<void> => {
   await surface.frame.locator(surface.selectors.cellEditor).focus();
-  await surface.page.keyboard.type(text);
+  await surface.page.keyboard.type(text, { delay: surface.timing.keystrokeMs });
   const typed = await until(
     surface,
-    () => readCellEditor(surface),
-    (shown) => shown === text,
+    () => readEdit(surface),
+    (shown) => shown.includes(text),
   );
   if (typed.accepted) return;
-  await surface.page.keyboard.press(KEYS.cancel);
+  await cancelEdit(surface);
   if (triesLeft <= 1) {
     throw new Error(`The cell editor showed ${JSON.stringify(typed.last)} after typing.`);
   }
-  trace('sheet.retry', { action: 'type', reason: 'keystrokes were dropped', shown: typed.last });
+  trace('sheet.retry', {
+    action: 'type',
+    reason: 'the typed text did not arrive',
+    shown: typed.last,
+  });
   return type(surface, text, trace, triesLeft - 1);
 };
 
 /**
- * Enters text in a cell, as a person does: select it, type, press Enter. Enter moves the
- * selection to the cell below, and afterwards the selection is left there, as it would be for a
- * person. The entry changes the undo history, so it's repeated only when it provably didn't
- * commit: the cell was empty before and is still empty after non-blank text was entered.
+ * Enters text in a cell, as a person does: select it, type, press Enter. Afterwards the
+ * selection is left on the cell below, where Enter puts it for a person.
+ *
+ * Whether the entry took effect is judged by the cell's content, not by the selection moving:
+ * both have been seen to disagree with the truth. A change in content means it committed. An
+ * entry changes the undo history, so it's repeated only when it provably didn't commit: the
+ * cell was empty before and is still empty after non-blank text was entered.
  */
 export const enter = async (
   surface: Surface,
@@ -140,21 +175,19 @@ export const enter = async (
     () => readNameBox(surface),
     (address) => address === below,
   );
-  if (!moved.accepted) await surface.page.keyboard.press(KEYS.cancel);
+  if (!moved.accepted) await cancelEdit(surface);
   const after = await readCell(surface, cell);
 
-  if (before.raw === '' && after.raw === '' && text.trim() !== '') {
-    if (triesLeft <= 1) throw new Error(`${cell} stayed empty after every try.`);
-    trace('sheet.retry', { action: 'enter', cell, reason: 'the cell is still empty' });
-    return enter(surface, cell, text, trace, triesLeft - 1);
-  }
-  if (!moved.accepted) {
-    throw new Error(`The selection stayed at ${moved.last} instead of moving to ${below}.`);
-  }
-  if (before.raw !== '' && after.raw === before.raw) {
+  if (after.raw === before.raw) {
+    if (before.raw === '' && text.trim() !== '') {
+      if (triesLeft <= 1) throw new Error(`${cell} stayed empty after every try.`);
+      trace('sheet.retry', { action: 'enter', cell, reason: 'the cell is still empty' });
+      return enter(surface, cell, text, trace, triesLeft - 1);
+    }
     // Either the entry was lost or it normalised to the same content, as `1.0` over `1` does.
     trace('sheet.entry.unchanged', { cell, text, raw: after.raw });
   }
+  if (!moved.accepted) trace('sheet.selection.stayed', { cell, at: moved.last });
   await select(surface, below);
 };
 

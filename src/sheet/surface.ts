@@ -25,6 +25,8 @@ export interface SheetTiming {
   readonly settleMs: number;
   /** Tries at selecting through the Name Box; selecting changes nothing, so it's safe to repeat. */
   readonly selectTries: number;
+  /** A pause between keystrokes, since suggestion lists react to each key as a person types. */
+  readonly keystrokeMs: number;
   /** Tries at typing text before committing it; each try after the first follows Escape. */
   readonly typingTries: number;
   /** Tries at an entry that provably didn't commit. */
