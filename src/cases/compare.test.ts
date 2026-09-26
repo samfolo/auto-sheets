@@ -42,6 +42,27 @@ const selected = (range: string | null): Checkpoint => ({
 });
 
 describe('comparing selections', () => {
+  it.each([
+    { recorded: undefined, seen: '=SUM(A1:A2)', differs: false },
+    { recorded: '=SUM(A1:A2)', seen: '=SUM(A1:A2)', differs: false },
+    { recorded: '=SUM(A1:A2)', seen: 'C3:E6', differs: true },
+  ])(
+    'judges the formula bar only where the reference recorded it ($recorded, $seen)',
+    ({ recorded, seen, differs }) => {
+      const expected: Checkpoint = {
+        step: 2,
+        cells: {},
+        selection: { active: 'A3', range: null, editing: false, formulaBar: recorded },
+      };
+      const actual: Checkpoint = {
+        step: 2,
+        cells: {},
+        selection: { active: 'A3', range: null, editing: false, formulaBar: seen },
+      };
+      expect(compareTrajectories([expected], [actual]).length > 0).toBe(differs);
+    },
+  );
+
   it('finds nothing when the selections match', () => {
     expect(compareTrajectories([selected('K:K')], [selected('K:K')])).toEqual([]);
   });

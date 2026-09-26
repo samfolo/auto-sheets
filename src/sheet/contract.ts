@@ -246,6 +246,10 @@ export const selectionObservationSchema = z
       description:
         'Whether a cell is being edited, which Excel announces with a readout of exactly "Editing".',
     }),
+    formulaBar: z.string().optional().meta({
+      description:
+        'What the formula bar shows: the active cell’s raw content, however many cells are selected. Absent in recordings made before it was observed.',
+    }),
   })
   .meta({ description: 'What the selection was at a checkpoint.' });
 

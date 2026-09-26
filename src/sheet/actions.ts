@@ -29,6 +29,10 @@ const readLabel = async ({ frame, selectors }: Surface): Promise<string> =>
 const readNameBox = ({ frame, selectors }: Surface): Promise<string> =>
   frame.locator(selectors.nameBox).inputValue();
 
+/** The formula bar's text: the active cell's raw content, as observations record it. */
+const readFormulaBar = async ({ frame, selectors }: Surface): Promise<string> =>
+  (await frame.locator(selectors.formulaBar).textContent()) ?? '';
+
 /** An element's text, with the non-breaking spaces editors render turned back into spaces. */
 const readText = async ({ frame }: Surface, selector: string): Promise<string> =>
   ((await frame.locator(selector).textContent()) ?? '').replaceAll('\u00a0', ' ');
@@ -103,7 +107,7 @@ export const readCell = async (surface: Surface, cell: CellAddress): Promise<Cel
   const readout = parseReadout(label, cell);
   if (readout === null)
     throw new Error(`The readout did not describe ${cell}: ${JSON.stringify(label)}.`);
-  const raw = (await surface.frame.locator(surface.selectors.formulaBar).textContent()) ?? '';
+  const raw = await readFormulaBar(surface);
   return { raw, display: readout.display, annotations: [...readout.annotations] };
 };
 
@@ -218,9 +222,11 @@ export const typeAndCommit = async ({ page, timing }: Surface, text: string): Pr
   await page.waitForTimeout(timing.settleMs);
 };
 
-/** Reads the selection from the Name Box and the readout, without changing it. */
-export const readSelection = async ({ frame, selectors }: Surface): Promise<SelectionObservation> =>
-  describeSelection(
-    await frame.locator(selectors.nameBox).inputValue(),
-    (await frame.locator(selectors.readout).first().getAttribute('aria-label')) ?? '',
-  );
+/**
+ * Reads the selection from the Name Box and the readout, and what the formula bar shows with it,
+ * without changing anything.
+ */
+export const readSelection = async (surface: Surface): Promise<SelectionObservation> => ({
+  ...describeSelection(await readNameBox(surface), await readLabel(surface)),
+  formulaBar: await readFormulaBar(surface),
+});

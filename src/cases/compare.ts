@@ -1,4 +1,4 @@
-import type { CellObservation } from '../sheet/index.ts';
+import type { CellObservation, SelectionObservation } from '../sheet/index.ts';
 import type { Checkpoint } from './contract.ts';
 import { formatPath } from '../kernel/index.ts';
 
@@ -32,20 +32,27 @@ const compareCells = (step: number, expected: Checkpoint, actual: Checkpoint): D
     }));
   });
 
-/** The selection, when the checkpoint recorded one. */
-const compareSelection = (step: number, expected: Checkpoint, actual: Checkpoint): Difference[] =>
-  expected.selection === undefined || sameValue(expected.selection, actual.selection)
-    ? []
-    : [
-        {
-          step,
-          cell: null,
-          field: 'selection',
-          expected: expected.selection,
-          actual: actual.selection,
-        },
-      ];
+/**
+ * The selection as a reference recorded it. A reference made before the formula bar was
+ * observed says nothing about it, so the clone's formula bar isn't judged against it.
+ */
+const asRecorded = (
+  recorded: SelectionObservation,
+  seen: SelectionObservation | undefined,
+): SelectionObservation | undefined => {
+  if (seen === undefined || recorded.formulaBar !== undefined) return seen;
+  const { formulaBar: _unrecorded, ...rest } = seen;
+  return rest;
+};
 
+/** The selection, when the checkpoint recorded one. */
+const compareSelection = (step: number, expected: Checkpoint, actual: Checkpoint): Difference[] => {
+  if (expected.selection === undefined) return [];
+  const seen = asRecorded(expected.selection, actual.selection);
+  return sameValue(expected.selection, seen)
+    ? []
+    : [{ step, cell: null, field: 'selection', expected: expected.selection, actual: seen }];
+};
 /** Every difference between an expected trajectory and an actual one, in step order. */
 export const compareTrajectories = (
   expected: readonly Checkpoint[],
