@@ -45,18 +45,21 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 35. **One directory per case.** It holds `case.json` (steps and tags), `reference.json` (what Excel did, written only by the recorder) and an optional `seed.xlsx` (a blank workbook if absent). "Golden" is a tag. `targets/README.md` explains every file and field in at most 50 lines.
 36. **Data files carry no schema or factory version fields for now.** How contracts evolve once cases exist is an open problem.
 37. **Videos and traces are local artifacts and are never committed.** They would bloat history, and traces can contain session cookies.
-38. **The harness uses a dedicated test Microsoft account.** Its credentials live in the ignored `.env`. The harness signs in through a saved browser profile and uses the credentials only when it needs to sign in again.
+38. **The harness uses a dedicated test Microsoft account.** Its credentials live in the ignored `.env`. The harness signs in through a saved browser profile and uses the credentials only when it needs to sign in again. _Superseded by 43._
 39. **One command-line tool, `factory`, built on commander.** It prints readable text by default and JSON with `--json`. The agent always uses `--json` and discovers commands through `--help`.
 40. **Failures are values.** Functions return `{ success: true, data }` or `{ success: false, error }`, the same shape as Zod's `safeParse`. Only bugs throw; the command-line entry point turns them into an `INTERNAL` error and logs the stack trace.
 41. **Node runs the TypeScript directly, with no build step; TypeScript 7 only type-checks.** Dependencies are kept to Zod 4, commander and pino until a step needs more.
 42. **Every command logs the factory version, Git commit and whether there were uncommitted changes.** This is how runs are matched to factory states (28), with nothing to bump by hand.
+43. **A person signs in to the test account once per browser profile.** The account is passwordless: Microsoft emails a code for every new sign-in, so the credentials in `.env` can't sign in on their own. The session is saved in a profile under `artifacts/` and survives restarts. Reference access is autonomous after that one sign-in.
+44. **The Excel driver works through Excel's accessibility interface.** It navigates with the Name Box, enters content through the formula bar, and reads the formula bar and the active-cell readout. The grid is a canvas, and typing straight into it drops keystrokes; see `targets/excel/knowledge/observability.md`.
 
 ## Open questions
 
-- **What Excel exposes to Playwright.** Which controls and cell states can be read from the page (address box, formula bar, cell text, alignment, dialogs) decides the snapshot contents and whether one script can drive both targets unchanged.
 - **Excel setup and reset.** Proposed: upload a fresh copy of the seed workbook for each scenario and delete it afterwards.
 - **Where clones and run outputs live.** Proposed: each build runs in a new directory outside this repository, with its own Git history, and only the factory's declared inputs are copied in. Facts about Excel can flow back into the factory; clone code never does. The clone chosen for submission is copied into this repository at the end. Verification uses the factory's original `reference.json` files, so a build that edits its copies gains nothing.
 - **Schema changes.** How to change a contract once cases written against it exist.
 - **Stall detection.** Proposed: the verify script detects repeated failures and tells the agent to stop and reassess.
 - **Grid.** Glide Data Grid is the likely choice. It exposes an accessible table, but its peer dependencies cap React at 18.
-- **Reference capture of typed values.** Whether to read typed values from a downloaded `.xlsx` as well as from the page. A spike will settle this.
+- **Reference capture of typed values.** The readout gives displayed text and whether a cell holds a formula or an error, but not whether a value is a number or text. Options: a downloaded `.xlsx`, or asking Excel itself with `=TYPE()`.
+- **Clone UI contract.** Proposed: the clone exposes the same accessible controls as Excel (Name Box, formula bar, an active-cell readout in the same format), so one driver with a selector map per target drives both.
+- **Recorder reliability.** Proposed: record every case twice and keep it only if both runs agree. A disagreement is reported as a reference failure, not as behaviour.
