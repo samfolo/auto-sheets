@@ -114,7 +114,7 @@ const createProgram = (telemetry: Telemetry) => {
 
   excel
     .command('enter')
-    .description('select a cell, type text into the formula bar and press Enter')
+    .description('select a cell, type text into it (replacing what was there) and press Enter')
     .argument('<cell>', 'the cell, in A1 notation, such as B7')
     .argument('<text>', 'exactly what a person would type, such as =SUM(A1:A3)')
     .action((cell, text) =>

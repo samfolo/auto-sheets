@@ -78,35 +78,37 @@ const selectCell = async ({ page, editor }: Workbook, cell: CellAddress): Promis
   await waitForNameBox(editor, cell);
 };
 
-/** Whether the formula bar holds exactly `text`, waiting briefly for it to catch up. */
-const formulaBarShows = (editor: Frame, text: string): Promise<boolean> =>
+/** Whether the in-cell editor holds exactly `text`, waiting briefly for it to catch up. */
+const cellEditorShows = (editor: Frame, text: string): Promise<boolean> =>
   editor
     .waitForFunction(
-      ([selector, expected]) => document.querySelector(selector)?.textContent === expected,
-      [selectors.formulaBar, text] as const,
+      // The editor renders spaces as non-breaking spaces, so compare with those normalised.
+      ([selector, expected]) =>
+        document.querySelector(selector)?.textContent?.replaceAll('\u00a0', ' ') === expected,
+      [selectors.grid, text] as const,
       { timeout: timeouts.typingMs },
     )
     .then(() => true)
     .catch(() => false);
 
 /**
- * Types into the formula bar, replacing what's there, and checks the text arrived before it
- * is committed. Keystrokes sent while the editor is still waking up can be dropped, and
- * Enter would then commit nothing while still moving the selection, so a lost entry would
- * look like a successful one.
+ * Types into the selected cell, which replaces its content, the way a person overwrites a cell.
+ * Checks the text reached the in-cell editor before anything is committed: keystrokes sent
+ * while the editor is starting can be dropped. On a mismatch, Escape cancels the edit and the
+ * text is typed again.
  */
-const typeIntoFormulaBar = async (
+const typeIntoCell = async (
   { page, editor }: Workbook,
   text: string,
   triesLeft: number = timeouts.typingTries,
 ): Promise<void> => {
-  await editor.locator(selectors.formulaBar).click();
-  await page.keyboard.press('ControlOrMeta+A');
+  await editor.locator(selectors.grid).focus();
   await page.keyboard.type(text);
-  if (await formulaBarShows(editor, text)) return;
-  if (triesLeft > 1) return typeIntoFormulaBar({ page, editor }, text, triesLeft - 1);
-  const shown = await editor.locator(selectors.formulaBar).textContent();
-  throw new Error(`The formula bar shows ${JSON.stringify(shown)} after typing.`);
+  if (await cellEditorShows(editor, text)) return;
+  const shown = await editor.locator(selectors.grid).textContent();
+  await page.keyboard.press('Escape');
+  if (triesLeft > 1) return typeIntoCell({ page, editor }, text, triesLeft - 1);
+  throw new Error(`The cell editor showed ${JSON.stringify(shown)} after typing.`);
 };
 
 /** The cell's raw content, as the formula bar shows it once the cell is selected. */
@@ -117,10 +119,10 @@ const readRaw = async (open: Workbook, cell: CellAddress): Promise<string> => {
 };
 
 /**
- * Enters text in a cell and confirms it stuck. Two checks: Enter in the formula bar moves the
- * selection to the cell below, and the cell then holds something. Under automation Excel can
- * drop an entry, most often the first in a new workbook, while the selection still moves;
- * the cell is then empty although non-blank text was typed. A dropped entry is tried again.
+ * Enters text in a cell and confirms it stuck. Two checks: Enter moves the selection to the
+ * cell below, and the cell then holds something. Under automation Excel can drop an entry,
+ * most often the first in a new workbook, while the selection still moves; the cell is then
+ * empty although non-blank text was typed. A dropped entry is tried again.
  */
 const enterAndConfirm = async (
   open: Workbook,
@@ -129,7 +131,7 @@ const enterAndConfirm = async (
   triesLeft: number = timeouts.commitTries,
 ): Promise<void> => {
   await selectCell(open, cell);
-  await typeIntoFormulaBar(open, text);
+  await typeIntoCell(open, text);
   await open.page.keyboard.press('Enter');
   const moved = await nameBoxReaches(open.editor, cellBelow(cell), timeouts.actionMs);
   if (!moved) await open.page.keyboard.press('Escape');

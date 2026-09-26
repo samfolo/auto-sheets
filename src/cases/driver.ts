@@ -13,7 +13,7 @@ export interface Driver {
   readonly environment: string;
   /** Opens a new blank sheet. Every case starts here. */
   readonly openBlank: () => Promise<Result<void>>;
-  /** Selects the cell, types the text into the formula bar and presses Enter. */
+  /** Selects the cell, types the text (replacing what was there) and presses Enter. */
   readonly enter: (cell: CellAddress, text: string) => Promise<Result<void>>;
   readonly undo: () => Promise<Result<void>>;
   readonly redo: () => Promise<Result<void>>;

@@ -30,7 +30,9 @@ const enterStepSchema = z
         'Exactly what a person types, before Excel interprets it. Excel may store it as a number, date, formula or text.',
     }),
   })
-  .meta({ description: 'Select the cell, type the text into the formula bar, and press Enter.' });
+  .meta({
+    description: 'Select the cell, type the text, and press Enter. Typing replaces what was there.',
+  });
 
 const observeStepSchema = z
   .strictObject({

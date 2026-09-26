@@ -18,7 +18,7 @@ export const EXCEL = {
     nameBox: '#FormulaBar-NameBox-input',
     /** Shows and edits the active cell's raw content. */
     formulaBar: '#formulaBarTextDivId_textElement',
-    /** Receives keystrokes aimed at the grid, such as undo. */
+    /** Receives keystrokes aimed at the grid, and holds the text while a cell is edited. */
     grid: '#gridKeyboardContentEditable_textElement',
     /** Its aria-label is the screen-reader description of the active cell. */
     readout: '#m_excelWebRenderer_ewaCtl_readoutElement1',
@@ -37,7 +37,7 @@ export const EXCEL = {
     actionMs: 10_000,
     /** A pause after undo and redo, which give no signal when they finish. */
     settleMs: 600,
-    /** How long typed text has to appear in the formula bar, and how many times to retype it. */
+    /** How long typed text has to appear in the cell editor, and how many times to retype it. */
     typingMs: 2_000,
     typingTries: 2,
     /** How many times to try an entry that Excel didn't commit. */
