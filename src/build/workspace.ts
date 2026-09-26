@@ -1,7 +1,8 @@
 /**
  * A build's workspace: a new directory outside the factory, where the agent builds a clone from
  * scratch. It holds the job's material: the standards' scaffold, the target's spec, the cases the
- * agent may see and the knowledge, and nothing else from the factory or from earlier builds. (The
+ * agent may see, the knowledge and the documentation notes, and nothing else from the factory or
+ * from earlier builds. (The
  * standards themselves travel with the agent as context.) Its first commit names the factory
  * version that made it, and its Git history records the agent's progress from there.
  */
@@ -25,6 +26,7 @@ export const WORKSPACE = {
   spec: 'SPEC.md',
   cases: 'cases',
   knowledge: 'knowledge',
+  docs: 'docs',
 } as const;
 
 /**
@@ -106,6 +108,7 @@ export const prepareWorkspace = async (dir: string): Promise<Result<string>> => 
         );
       }
       await cp(PATHS.excelKnowledge, join(workspace, WORKSPACE.knowledge), { recursive: true });
+      await cp(PATHS.excelDocs, join(workspace, WORKSPACE.docs), { recursive: true });
       mustGit(workspace, 'init', '--quiet');
       mustGit(workspace, 'add', '--all');
       mustGit(workspace, 'commit', '--quiet', '--message', startingPoint());

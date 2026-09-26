@@ -42,6 +42,8 @@ export const PATHS = {
   excelCases: join(root, 'targets', 'excel', 'cases'),
   /** What was learned about Excel while recording. */
   excelKnowledge: join(root, 'targets', 'excel', 'knowledge'),
+  /** Notes from Microsoft's documentation of Excel, with their sources. */
+  excelDocs: join(root, 'targets', 'excel', 'docs'),
   /** What a clone of Excel must provide: the brief a build's workspace starts with. */
   cloneSpec: join(root, 'targets', 'excel', 'clone', 'spec.md'),
   /** Agent definitions: each folder holds one agent's settings and prompts. */
