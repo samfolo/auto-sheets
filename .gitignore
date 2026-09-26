@@ -1,1 +1,4 @@
 .scratchpad/
+.env
+.env.*
+!.env.example
