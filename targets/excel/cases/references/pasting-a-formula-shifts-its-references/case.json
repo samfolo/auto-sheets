@@ -1,0 +1,40 @@
+{
+  "description": "A pasted formula keeps its shape relative to its new position, so its references move with it.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "5"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "=A1*2"
+    },
+    {
+      "do": "select",
+      "range": "A2"
+    },
+    {
+      "do": "copy"
+    },
+    {
+      "do": "select",
+      "range": "C2"
+    },
+    {
+      "do": "paste"
+    },
+    {
+      "do": "select",
+      "range": "B5"
+    },
+    {
+      "do": "paste"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "C2", "B5"]
+    }
+  ]
+}

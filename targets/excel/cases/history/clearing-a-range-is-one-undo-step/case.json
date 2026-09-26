@@ -1,0 +1,38 @@
+{
+  "description": "Delete clears every selected cell at once, dependants recalculate, and one undo restores them all.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "1"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "2"
+    },
+    {
+      "do": "enter",
+      "cell": "A3",
+      "text": "=SUM(A1:A2)"
+    },
+    {
+      "do": "select",
+      "range": "A1:A2"
+    },
+    {
+      "do": "clear"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "A2", "A3"]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": ["A1", "A2", "A3"]
+    }
+  ]
+}

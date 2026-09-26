@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-09-26T14:06:27.411Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 8,
+      "cells": {
+        "A2": {
+          "raw": "=A1*2",
+          "display": "10",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "C2": {
+          "raw": "=C1*2",
+          "display": "0",
+          "annotations": [
+            "Contains Formula"
+          ]
+        },
+        "B5": {
+          "raw": "=B4*2",
+          "display": "0",
+          "annotations": [
+            "Contains Formula"
+          ]
+        }
+      }
+    }
+  ]
+}

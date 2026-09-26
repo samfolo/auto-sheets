@@ -1,0 +1,31 @@
+{
+  "description": "Ctrl+Enter puts the typed text in every selected cell, and one undo removes it from all of them.",
+  "steps": [
+    {
+      "do": "select",
+      "range": "C1:C3"
+    },
+    {
+      "do": "enter-in-selection",
+      "text": "7"
+    },
+    {
+      "do": "observe",
+      "cells": ["C1", "C2", "C3"]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": ["C1", "C2", "C3"]
+    },
+    {
+      "do": "redo"
+    },
+    {
+      "do": "observe",
+      "cells": ["C1", "C2", "C3"]
+    }
+  ]
+}

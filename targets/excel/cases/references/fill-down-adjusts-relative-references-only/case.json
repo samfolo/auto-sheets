@@ -1,0 +1,48 @@
+{
+  "description": "Filling a formula down shifts its relative references by row and leaves absolute references fixed.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "B1",
+      "text": "1"
+    },
+    {
+      "do": "enter",
+      "cell": "B2",
+      "text": "2"
+    },
+    {
+      "do": "enter",
+      "cell": "B3",
+      "text": "3"
+    },
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "=B1*2"
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "=$B$1+B1"
+    },
+    {
+      "do": "select",
+      "range": "A1:A3"
+    },
+    {
+      "do": "fill-down"
+    },
+    {
+      "do": "select",
+      "range": "C1:C3"
+    },
+    {
+      "do": "fill-down"
+    },
+    {
+      "do": "observe",
+      "cells": ["A2", "A3", "C2", "C3"]
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "description": "A budget totals its costs, shares filled down against an absolute total update together, text in a cost breaks only its own share, and undo repairs it.",
+  "steps": [
+    {
+      "do": "enter",
+      "cell": "A1",
+      "text": "Item"
+    },
+    {
+      "do": "enter",
+      "cell": "B1",
+      "text": "Cost"
+    },
+    {
+      "do": "enter",
+      "cell": "C1",
+      "text": "Share"
+    },
+    {
+      "do": "enter",
+      "cell": "A2",
+      "text": "Rent"
+    },
+    {
+      "do": "enter",
+      "cell": "B2",
+      "text": "1200"
+    },
+    {
+      "do": "enter",
+      "cell": "A3",
+      "text": "Food"
+    },
+    {
+      "do": "enter",
+      "cell": "B3",
+      "text": "350.5"
+    },
+    {
+      "do": "enter",
+      "cell": "A4",
+      "text": "Travel"
+    },
+    {
+      "do": "enter",
+      "cell": "B4",
+      "text": "99.99"
+    },
+    {
+      "do": "enter",
+      "cell": "A5",
+      "text": "Total"
+    },
+    {
+      "do": "enter",
+      "cell": "B5",
+      "text": "=SUM(B2:B4)"
+    },
+    {
+      "do": "enter",
+      "cell": "C2",
+      "text": "=B2/$B$5"
+    },
+    {
+      "do": "select",
+      "range": "C2:C4"
+    },
+    {
+      "do": "fill-down"
+    },
+    {
+      "do": "observe",
+      "cells": ["B5", "C2", "C3", "C4"]
+    },
+    {
+      "do": "enter",
+      "cell": "B3",
+      "text": "abc"
+    },
+    {
+      "do": "observe",
+      "cells": ["B5", "C3"]
+    },
+    {
+      "do": "undo"
+    },
+    {
+      "do": "observe",
+      "cells": ["B3", "B5", "C3"]
+    }
+  ]
+}
