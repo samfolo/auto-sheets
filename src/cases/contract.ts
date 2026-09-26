@@ -125,7 +125,11 @@ export const exploreOptionsSchema = z
       .number()
       .int()
       .min(1)
-      .max(20)
+      .max(30)
       .meta({ description: 'How many gestures each sequence makes.' }),
+    focus: z.enum(['mixed', 'areas']).default('mixed').meta({
+      description:
+        'What to concentrate on: mixed samples every gesture; areas builds selections of many separate areas with Command held.',
+    }),
   })
   .meta({ description: 'What `factory case explore` was asked to do.' });

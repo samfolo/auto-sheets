@@ -26,10 +26,7 @@ import { recordCase } from './record.ts';
 export const EXPLORE = {
   /** The area explored cases go in. */
   area: 'explore',
-  /** Gestures aim at the top-left of a new sheet, well inside the window. */
-  columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-  rows: 12,
-  /** How often a gesture holds a key. */
+  /** How often a mixed gesture holds a key. */
   holdChance: 0.35,
   /**
    * The keys explored: they move within the sheet's top-left without scrolling it, which would
@@ -44,6 +41,26 @@ const OBSERVE_SELECTION: Step = { do: 'observe-selection' };
 
 type Random = () => number;
 
+/** The cells and headers a focus aims at: the top-left of a new sheet, well inside the window. */
+interface Space {
+  readonly columns: readonly string[];
+  readonly rows: number;
+}
+
+type Gesture = (random: Random, space: Space) => ActionStep;
+
+/**
+ * What an exploration concentrates on: where it aims, how each sequence begins, and the gestures
+ * that follow. `mixed` samples everything a person might do; `areas` builds up complicated
+ * selections of many separate areas with Command held, as Sam suggested, which is where Excel's
+ * selections and their shading get interesting.
+ */
+interface Focus {
+  readonly space: Space;
+  readonly start: readonly Gesture[];
+  readonly gestures: readonly Gesture[];
+}
+
 const pick = <T>(random: Random, items: readonly T[]): T => {
   const item = items[Math.floor(random() * items.length)];
   // Every list here is a fixed, non-empty table.
@@ -51,36 +68,109 @@ const pick = <T>(random: Random, items: readonly T[]): T => {
   return item;
 };
 
-const column = (random: Random): string => pick(random, EXPLORE.columns);
-const row = (random: Random): number => 1 + Math.floor(random() * EXPLORE.rows);
-const cell = (random: Random): string => `${column(random)}${row(random)}`;
-const header = (random: Random): PointerTarget => pick(random, [column, row])(random);
+const column = (random: Random, { columns }: Space): string => pick(random, columns);
+const row = (random: Random, { rows }: Space): number => 1 + Math.floor(random() * rows);
+const cell = (random: Random, space: Space): string =>
+  `${column(random, space)}${row(random, space)}`;
+const header = (random: Random, space: Space): PointerTarget =>
+  pick(random, [column, row])(random, space);
 const hold = (random: Random) =>
   random() < EXPLORE.holdChance ? { hold: [pick(random, HELD_KEYS)] } : {};
-
 const shift = (random: Random) =>
   random() < EXPLORE.holdChance ? { hold: ['Shift' as const] } : {};
+const COMMAND = { hold: ['Command' as const] };
 
 /** What a person might do next, with the mouse or the keyboard, each drawing what it aims at. */
-const GESTURES: readonly ((random: Random) => ActionStep)[] = [
-  (random) => ({ do: 'click', cell: cell(random), ...hold(random) }),
-  (random) => ({ do: 'drag', from: cell(random), to: cell(random), ...hold(random) }),
-  (random) => ({ do: 'drag', from: header(random), to: cell(random), ...hold(random) }),
-  (random) => ({ do: 'click-column', column: column(random), ...hold(random) }),
-  (random) => ({ do: 'click-row', row: row(random), ...hold(random) }),
+const MIXED: readonly Gesture[] = [
+  (random, space) => ({ do: 'click', cell: cell(random, space), ...hold(random) }),
+  (random, space) => ({
+    do: 'drag',
+    from: cell(random, space),
+    to: cell(random, space),
+    ...hold(random),
+  }),
+  (random, space) => ({
+    do: 'drag',
+    from: header(random, space),
+    to: cell(random, space),
+    ...hold(random),
+  }),
+  (random, space) => ({ do: 'click-column', column: column(random, space), ...hold(random) }),
+  (random, space) => ({ do: 'click-row', row: row(random, space), ...hold(random) }),
   () => ({ do: 'click-corner' }),
   (random) => ({ do: 'press', key: pick(random, EXPLORE.keys), ...shift(random) }),
   () => ({ do: 'select-all' }),
   () => ({ do: 'undo' }),
 ];
 
+/** Adding to a selection with Command held: cells, ranges, headers, and drags across headers. */
+const COMMAND_GESTURES: readonly Gesture[] = [
+  (random, space) => ({ do: 'click', cell: cell(random, space), ...COMMAND }),
+  (random, space) => ({
+    do: 'drag',
+    from: cell(random, space),
+    to: cell(random, space),
+    ...COMMAND,
+  }),
+  (random, space) => ({ do: 'click-column', column: column(random, space), ...COMMAND }),
+  (random, space) => ({ do: 'click-row', row: row(random, space), ...COMMAND }),
+  (random, space) => ({
+    do: 'drag',
+    from: column(random, space),
+    to: column(random, space),
+    ...COMMAND,
+  }),
+  (random, space) => ({ do: 'drag', from: row(random, space), to: row(random, space), ...COMMAND }),
+];
+
+export const FOCUSES = {
+  mixed: {
+    space: { columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'], rows: 12 },
+    start: MIXED,
+    gestures: MIXED,
+  },
+  // Fourteen columns: the most that fit the checker's window on a clone with wider cells.
+  areas: {
+    space: {
+      columns: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+      rows: 20,
+    },
+    start: [
+      (random, space) => ({ do: 'drag', from: cell(random, space), to: cell(random, space) }),
+    ],
+    gestures: COMMAND_GESTURES,
+  },
+} as const satisfies Record<string, Focus>;
+
+export type FocusName = keyof typeof FOCUSES;
+
+/**
+ * Where a sequence's randomness starts. `mixed` keeps the form it had before focuses existed,
+ * so the cases it already produced can still be produced again.
+ */
+const seedOf = (focus: FocusName, seed: number, index: number): string =>
+  focus === 'mixed'
+    ? `${EXPLORE.area}:${seed}:${index}`
+    : `${EXPLORE.area}:${focus}:${seed}:${index}`;
+
+/** A sequence's case id, under the explore area. */
+export const exploredId = (focus: FocusName, seed: number, index: number): string =>
+  `${EXPLORE.area}/${focus === 'mixed' ? '' : `${focus}-`}seed-${seed}-${index}`;
+
 /** The case for one sequence: gestures, each followed by a look at the selection. */
-export const exploredCase = (seed: number, index: number, length: number): Case => {
-  const random = seededRandom(`${EXPLORE.area}:${seed}:${index}`);
+export const exploredCase = (
+  seed: number,
+  index: number,
+  length: number,
+  focus: FocusName = 'mixed',
+): Case => {
+  const random = seededRandom(seedOf(focus, seed, index));
+  const { space, start, gestures } = FOCUSES[focus];
+  const gesture = (step: number) => pick(random, step === 0 ? start : gestures)(random, space);
   return {
-    description: `An explored sequence of ${length} random gestures (seed ${seed}, number ${index}); the recording says what Excel selected after each.`,
+    description: `An explored sequence of ${length} random gestures (${focus} focus, seed ${seed}, number ${index}); the recording says what Excel selected after each.`,
     tags: [CASE_TAGS.explored],
-    steps: Array.from({ length }, () => [pick(random, GESTURES)(random), OBSERVE_SELECTION]).flat(),
+    steps: Array.from({ length }, (_, step) => [gesture(step), OBSERVE_SELECTION]).flat(),
   };
 };
 
@@ -121,13 +211,13 @@ export const exploreCases = async (
 ): Promise<Result<Exploration>> => {
   const options = validate(exploreOptionsSchema, request, 'the explore options');
   if (!options.success) return options;
-  const { seed, count, steps } = options.data;
+  const { seed, count, steps, focus } = options.data;
   const found: Record<Outcome, string[]> = { recorded: [], discarded: [], kept: [] };
   for (let index = 1; index <= count; index += 1) {
-    const id = `${EXPLORE.area}/seed-${seed}-${index}`;
+    const id = exploredId(focus, seed, index);
     // Each sequence drives the one browser session, so they run one at a time.
     // oxlint-disable-next-line no-await-in-loop
-    const outcome = await exploreOne(id, exploredCase(seed, index, steps), trace);
+    const outcome = await exploreOne(id, exploredCase(seed, index, steps, focus), trace);
     if (!outcome.success) return outcome;
     found[outcome.data].push(id);
   }

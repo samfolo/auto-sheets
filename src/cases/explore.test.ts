@@ -21,3 +21,23 @@ describe('exploredCase', () => {
     },
   );
 });
+
+describe('the areas focus', () => {
+  const explored = exploredCase(3, 1, 12, 'areas');
+  const gestures = explored.steps.filter((step) => step.do !== 'observe-selection');
+
+  it('begins with a plain drag, to have a range to add to', () => {
+    expect(gestures[0]).toMatchObject({ do: 'drag' });
+    expect(gestures[0]).not.toHaveProperty('hold');
+  });
+
+  it('then adds to the selection with Command held every time', () => {
+    expect(
+      gestures.slice(1).every((step) => 'hold' in step && step.hold?.includes('Command')),
+    ).toBe(true);
+  });
+
+  it('writes a valid case', () => {
+    expect(caseSchema.safeParse(explored).success).toBe(true);
+  });
+});
