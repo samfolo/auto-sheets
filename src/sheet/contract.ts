@@ -186,7 +186,10 @@ export const selectionObservationSchema = z
       description:
         'The selected range as the readout names it, such as C3:E6, K:K, 5:5 or A:XFD; null when only one cell is selected.',
     }),
-    editing: z.boolean().meta({ description: 'Whether the readout says a cell is being edited.' }),
+    editing: z.boolean().meta({
+      description:
+        'Whether a cell is being edited, which Excel announces with a readout of exactly "Editing".',
+    }),
   })
   .meta({ description: 'What the selection was at a checkpoint.' });
 

@@ -36,6 +36,8 @@ Readout format, exactly as Excel produces it:
 
 - one cell: `<display> . <address> . <annotation> . `, such as `5 . A3 . Contains Formula . `, with the display left out for an empty cell: `C5 . `;
 - a range: `<display of the active cell> . Selected range . <range> . <annotation> . `, such as `1 . Selected range . B1:B3 . `.
+- whole columns, whole rows and everything are ranges too: `Selected range . K:K . `, `Selected range . 5:5 . `, `Selected range . A:XFD . `;
+- while a cell is being edited, after a double-click or once typing has started, exactly `Editing`.
 
 The annotations seen so far are `Contains Formula`, `Contains error`, and `The formula in this cell contains an error.`; the references show which appears when.
 
