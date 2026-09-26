@@ -42,6 +42,18 @@ export const finalCheckSchema = z
     problem: z.string().nullable().meta({
       description: 'Why the check couldn’t run, such as the clone not starting; otherwise null.',
     }),
+    restored: z
+      .strictObject({
+        checkpoint: z.string().meta({ description: 'The commit that was restored.' }),
+        finalScore: cloneScoreSchema.nullable().meta({
+          description: 'How the agent’s final state did before it was replaced.',
+        }),
+      })
+      .optional()
+      .meta({
+        description:
+          'Present when the agent’s final state scored below its best checkpoint, which was restored and checked instead.',
+      }),
   })
   .meta({ description: 'The factory’s own check of the finished clone, on every recorded case.' });
 

@@ -9,6 +9,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { CHECKPOINT } from '../agent/index.ts';
 import { caseSchema, type LoadedCase, referenceSchema } from '../cases/index.ts';
 import {
   attempt,
@@ -116,3 +117,38 @@ export const prepareWorkspace = async (
       }),
   );
 };
+
+/** A commit where the agent's app reached a score, as `check_cases` recorded it. */
+export interface Checkpoint {
+  readonly commit: string;
+  readonly passed: number;
+}
+
+/** The checkpoint with the highest score, the latest among equals; null if there is none. */
+export const bestCheckpoint = (workspace: string): Checkpoint | null => {
+  const log = git(workspace, 'log', '--format=%H %s') ?? '';
+  const checkpoints = log.split('\n').flatMap((line) => {
+    const [commit = '', ...subject] = line.split(' ');
+    const match = CHECKPOINT.pattern.exec(subject.join(' '));
+    return match === null ? [] : [{ commit, passed: Number(match[1]) }];
+  });
+  // The log is newest first, so the first of the highest is the latest.
+  return checkpoints.reduce<Checkpoint | null>(
+    (best, next) => (best === null || next.passed > best.passed ? next : best),
+    null,
+  );
+};
+
+/**
+ * Puts the workspace back as it was at a checkpoint, as a new commit, so the agent's later work
+ * stays in the history. Returns whether it worked.
+ */
+export const restoreCheckpoint = (workspace: string, { commit, passed }: Checkpoint): boolean =>
+  git(workspace, 'read-tree', '-u', '--reset', commit) !== null &&
+  git(
+    workspace,
+    'commit',
+    '--quiet',
+    '--message',
+    `chore: restore the checkpoint at ${passed} cases, since the final state scored lower`,
+  ) !== null;

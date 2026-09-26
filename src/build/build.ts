@@ -28,7 +28,7 @@ import {
   writeJsonFile,
 } from '../kernel/index.ts';
 import { buildOptionsSchema, type BuildSummary, type FinalCheck } from './contract.ts';
-import { prepareWorkspace } from './workspace.ts';
+import { bestCheckpoint, prepareWorkspace, restoreCheckpoint } from './workspace.ts';
 
 /** What each run's folder holds. */
 export const RUN_FILES = {
@@ -40,6 +40,26 @@ export const RUN_FILES = {
   screenshots: 'screenshots',
   summary: 'summary.json',
 } as const;
+
+/**
+ * The final check, of whatever the agent built at its best. An agent can break its app after its
+ * best check and run out of time before noticing, so if the final state scores below the best
+ * checkpoint, the checkpoint is restored and checked instead, and both scores are kept.
+ */
+const keepTheBest = async (
+  workspace: string,
+  runDir: string,
+  cases: readonly RecordedCase[],
+  trace: Trace,
+): Promise<FinalCheck> => {
+  const final = await finalCheck(workspace, runDir, cases, trace);
+  const best = bestCheckpoint(workspace);
+  if (best === null || (final.score?.seen.passed ?? -1) >= best.passed) return final;
+  trace('build.restore', { checkpoint: best.commit, passed: best.passed, final: final.score });
+  if (!restoreCheckpoint(workspace, best)) return final;
+  const restored = await finalCheck(workspace, runDir, cases, trace);
+  return { ...restored, restored: { checkpoint: best.commit, finalScore: final.score } };
+};
 
 /** The definition with its model replaced for one build, given as provider/id. */
 const withModel = (definition: AgentDefinition, model: string | undefined): AgentDefinition => {
@@ -137,7 +157,7 @@ export const build = async (
   );
   if (!run.success) return run;
   trace('build.agent', { runId, ...run.data });
-  const check = await finalCheck(workspace.data, runDir, cases.data, runTrace);
+  const check = await keepTheBest(workspace.data, runDir, cases.data, runTrace);
 
   const summary: BuildSummary = {
     runId,
@@ -165,5 +185,10 @@ export const renderBuild = ({ runId, workspace, agent, run, check }: BuildSummar
     check.score === null
       ? `Clone: not checked. ${check.problem}`
       : `Clone: ${formatTally(check.score.seen)} seen cases, ${formatTally(check.score.heldOut)} held-out cases and ${formatTally(check.score.golden)} golden cases match Excel.`,
+    ...(check.restored === undefined
+      ? []
+      : [
+          `Restored the checkpoint ${check.restored.checkpoint.slice(0, 7)}: the final state scored ${check.restored.finalScore === null ? 'nothing' : formatTally(check.restored.finalScore.seen)} seen cases.`,
+        ]),
     `Details: ${displayPath(join(PATHS.runs, runId, RUN_FILES.summary))}`,
   ].join('\n');

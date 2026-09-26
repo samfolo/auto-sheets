@@ -27,16 +27,16 @@ export const CHECK_CASES = {
   logFile: 'check-app.log',
 } as const;
 
+/** How a checkpoint commit names the score it reached, written here and read by the build. */
+export const CHECKPOINT = {
+  message: (passed: number, total: number) => `chore: checkpoint at ${passed} of ${total} cases`,
+  pattern: /^chore: checkpoint at (\d+) of (\d+) cases$/,
+} as const;
+
 /** Commits the workspace as it stands, recording the score it reached. */
 const checkpoint = (workspace: string, passed: number, total: number): void => {
   git(workspace, 'add', '--all');
-  git(
-    workspace,
-    'commit',
-    '--quiet',
-    '--message',
-    `chore: checkpoint at ${passed} of ${total} cases`,
-  );
+  git(workspace, 'commit', '--quiet', '--message', CHECKPOINT.message(passed, total));
 };
 
 const parameters = Type.Object({
