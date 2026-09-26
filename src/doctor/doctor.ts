@@ -1,5 +1,14 @@
 import { DEFAULT_AGENT, loadAgentDefinition, openModel } from '../agent/index.ts';
-import { readCredentials, PROJECT, fail, ok, type Result, readStamp } from '../kernel/index.ts';
+import {
+  readCredentials,
+  PROJECT,
+  fail,
+  ok,
+  type Result,
+  readStamp,
+  SANDBOX_EXEC,
+  sandboxAvailable,
+} from '../kernel/index.ts';
 
 /** One prerequisite, and whether it's in place. */
 export interface Check {
@@ -67,12 +76,22 @@ const checkAgent = async (): Promise<Check> => {
     : { name, passed: false, detail: opened.error.message };
 };
 
+/** Agents can be confined to their workspaces, which only macOS supports so far. */
+const checkSandbox = (): Check =>
+  sandboxAvailable()
+    ? { name: 'Sandbox', passed: true, detail: `agents run inside ${SANDBOX_EXEC}` }
+    : {
+        name: 'Sandbox',
+        passed: false,
+        detail: `${SANDBOX_EXEC} is missing; builds need macOS to confine their agents`,
+      };
+
 /**
  * Checks everything the factory needs before it runs. Each stage adds its own check
  * here when it's built: the browser, the Excel session, the agent runtime.
  */
 export const doctor = async (): Promise<Result<Check[]>> => {
-  const checks = [checkNode(), checkGit(), checkCredentials(), await checkAgent()];
+  const checks = [checkNode(), checkGit(), checkCredentials(), checkSandbox(), await checkAgent()];
   const failed = checks.filter((check) => !check.passed);
   if (failed.length === 0) return ok(checks);
   return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {

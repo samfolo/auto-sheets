@@ -18,11 +18,14 @@ import {
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
   displayPath,
+  fail,
   ok,
   openTelemetry,
   PATHS,
   readCredentials,
   readStamp,
+  SANDBOX_EXEC,
+  sandboxAvailable,
   type Result,
   type Trace,
   validate,
@@ -88,6 +91,12 @@ export const build = async (
   const definition = withModel(loaded.data, options.data.model);
   const credentials = readCredentials();
   if (!credentials.success) return credentials;
+  if (!sandboxAvailable()) {
+    return fail('ENVIRONMENT_NOT_READY', 'Builds need a sandbox to confine their agent.', {
+      details: [`${SANDBOX_EXEC} is missing: it comes with macOS.`],
+      hint: 'Run builds on macOS. Linux needs another sandbox first, such as bubblewrap.',
+    });
+  }
 
   const runId = newRunId();
   const workspace = await prepareWorkspace(options.data.out ?? join(PATHS.builds, runId));

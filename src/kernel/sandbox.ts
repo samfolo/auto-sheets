@@ -5,12 +5,19 @@
  * sandbox. It can't read the factory (its credentials, its references, the held-out cases) or
  * other builds, write anywhere else, or stop processes it didn't start.
  */
+import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { PATHS } from './project.ts';
 
 /** macOS's sandbox runner. */
 export const SANDBOX_EXEC = '/usr/bin/sandbox-exec';
+
+/**
+ * Whether agents can be sandboxed here. Only macOS has `sandbox-exec`; Linux would need another
+ * sandbox, such as bubblewrap or a container, before builds can run there.
+ */
+export const sandboxAvailable = (): boolean => existsSync(SANDBOX_EXEC);
 
 /** Where tools write outside a workspace: temporary files and package caches. */
 const SCRATCH = [

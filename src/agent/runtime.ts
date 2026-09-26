@@ -140,7 +140,9 @@ const harnessTools = (
 
 /**
  * Pi's model runtime with the key held in memory, and the model the settings name. Nothing is
- * read from disk and nothing calls the model.
+ * read from disk and nothing calls the model. A model too new for Pi's catalogue is described
+ * like the provider's other models (the same endpoint and API) under its own id, with no known
+ * price; `listed` says which it was.
  */
 export const openModel = async ({ provider, id }: AgentSettings['model'], apiKey: string) => {
   const modelRuntime = await ModelRuntime.create({
@@ -148,13 +150,20 @@ export const openModel = async ({ provider, id }: AgentSettings['model'], apiKey
     modelsPath: null,
   });
   await modelRuntime.setRuntimeApiKey(provider, apiKey);
-  const model = modelRuntime.getModel(provider, id);
-  if (model === undefined) {
-    return fail('ENVIRONMENT_NOT_READY', `Pi's catalogue has no model ${provider}/${id}.`, {
-      hint: 'Check the model in the agent’s agent.json.',
+  const listed = modelRuntime.getModel(provider, id);
+  if (listed !== undefined) return ok({ modelRuntime, model: listed, listed: true });
+  const sibling = modelRuntime.getModels(provider)[0];
+  if (sibling === undefined) {
+    return fail('ENVIRONMENT_NOT_READY', `Pi knows no provider called ${provider}.`, {
+      hint: 'Check the model in the agent’s agent.json, or the --model option.',
     });
   }
-  return ok({ modelRuntime, model });
+  const unpriced = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+  return ok({
+    modelRuntime,
+    model: { ...sibling, id, name: id, cost: unpriced },
+    listed: false,
+  });
 };
 
 /** A Pi session for the agent, given only what its definition says. */
@@ -168,6 +177,7 @@ const openSession = async (
 ) => {
   const opened = await openModel(definition.settings.model, apiKey);
   if (!opened.success) return opened;
+  if (!opened.data.listed) trace('agent.model.unlisted', { model: opened.data.model.id });
   const tools = harnessTools(place, checker, trace);
   const { session } = await createAgentSession({
     cwd: place.workspace,
