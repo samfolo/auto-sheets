@@ -1,50 +1,74 @@
 /**
  * Ways to look at a page without knowing its structure in advance. Use them to explore a new
- * target: they show the controls a screen reader would find, which is usually the most
- * stable way to drive and read an application.
+ * target: they show the controls a screen reader would find, which is usually the most stable
+ * way to drive and read an application. Playwright does the work: one accessibility snapshot
+ * covers the page and its iframes, with each element's reference and position.
  */
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Frame, Page } from 'playwright';
-import { attempt, PATHS, fail, type Result } from '../kernel/index.ts';
+import type { Page } from 'playwright';
+import * as z from 'zod';
+import { attempt, fail, ok, PATHS, type Result, validate } from '../kernel/index.ts';
+import { ariaNodeSchema, type AriaNode } from './contract.ts';
 
-/** Accessibility roles worth listing when exploring: things a person can read or operate. */
-const CONTROL_ROLES =
-  /^\s*- (alert|alertdialog|button|checkbox|combobox|dialog|grid|gridcell|heading|link|menuitem|status|tab|textbox)\b/;
+/** The roles Playwright knows, as its own `getByRole` declares them. */
+type AriaRole = Parameters<Page['getByRole']>[0];
 
-/** The controls in one frame of a page, as lines of Playwright's accessibility snapshot. */
-export interface FrameControls {
-  /** `main` for the page itself, otherwise the iframe's name or address. */
-  readonly frame: string;
-  readonly controls: readonly string[];
-}
+/** Roles worth listing when exploring: things a person can read or operate. */
+const CONTROL_ROLES: ReadonlySet<string> = new Set<AriaRole>([
+  'alert',
+  'alertdialog',
+  'button',
+  'checkbox',
+  'columnheader',
+  'combobox',
+  'dialog',
+  'grid',
+  'gridcell',
+  'heading',
+  'link',
+  'menuitem',
+  'rowheader',
+  'status',
+  'tab',
+  'textbox',
+]);
 
-const controlsIn = async (frame: Frame, label: string): Promise<FrameControls> => {
-  const snapshot = await frame
-    .locator('body')
-    .ariaSnapshot({ timeout: 5_000 })
-    .catch(() => '');
-  return {
-    frame: label,
-    controls: snapshot.split('\n').filter((line) => CONTROL_ROLES.test(line)),
-  };
+const SNAPSHOT_TIMEOUT_MS = 5_000;
+
+/** A control found on the page, without the nodes inside it. */
+export type Control = Omit<AriaNode, 'children'>;
+
+const controlsIn = (nodes: readonly AriaNode[]): Control[] =>
+  nodes.flatMap(({ children = [], ...node }) => [
+    ...(CONTROL_ROLES.has(node.role) ? [node] : []),
+    ...controlsIn(children),
+  ]);
+
+/** Lists the controls on the page and in its iframes, with their references and positions. */
+export const listControls = async (page: Page): Promise<Result<Control[]>> => {
+  const snapshot = await attempt(
+    () => page.ariaSnapshotJSON({ mode: 'ai', boxes: true, timeout: SNAPSHOT_TIMEOUT_MS }),
+    (reason) =>
+      fail('BROWSER_ACTION_FAILED', 'Could not read the page’s accessibility tree.', {
+        details: [reason],
+      }),
+  );
+  if (!snapshot.success) return snapshot;
+  const nodes = validate(z.array(ariaNodeSchema), snapshot.data, 'the accessibility snapshot');
+  if (!nodes.success) return nodes;
+  return ok(controlsIn(nodes.data));
 };
 
-/** Lists the controls on the page and in each of its iframes. */
-export const listControls = async (page: Page): Promise<FrameControls[]> => {
-  const iframes = await page.locator('iframe').all();
-  const children = await Promise.all(
-    iframes.map(async (iframe) => {
-      const frame = await (await iframe.elementHandle())?.contentFrame();
-      const label = (await iframe.getAttribute('name')) ?? (await iframe.getAttribute('src'));
-      return frame ? controlsIn(frame, label ?? 'iframe') : undefined;
-    }),
-  );
-  const frames = [await controlsIn(page.mainFrame(), 'main'), ...children];
-  return frames.filter(
-    (frame): frame is FrameControls => frame !== undefined && frame.controls.length > 0,
-  );
-};
+/** One control as a line, in the style of Playwright's own snapshots. */
+export const formatControl = ({ role, name, text, ref, box }: Control): string =>
+  [
+    role,
+    name === undefined ? '' : ` "${name}"`,
+    ref === undefined ? '' : ` [ref=${ref}]`,
+    box === undefined ? '' : ` [box=${box.x},${box.y},${box.width},${box.height}]`,
+    text === undefined || text === '' ? '' : `: ${text}`,
+  ].join('');
 
 /** Saves a screenshot of the page and returns its path. */
 export const screenshot = async (page: Page, name: string): Promise<Result<string>> => {

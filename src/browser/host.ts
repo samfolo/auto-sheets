@@ -1,14 +1,18 @@
 /**
  * The browser host: launches Chromium with the persistent profile and keeps it running.
- * `factory browser start` runs this as a detached process; see session.ts. It takes one
- * argument, `headless` or `headed`, and exits when the browser closes.
+ * `factory browser start` runs this as a detached process; see session.ts. It takes one option,
+ * `--headless`, and exits when the browser closes.
  */
+import { parseArgs } from 'node:util';
 import { chromium } from 'playwright';
 import { PATHS } from '../kernel/index.ts';
 import { BROWSER } from './session.ts';
 
+// Strict parsing: an option the host doesn't know is a bug in session.ts, so it throws.
+const { values } = parseArgs({ options: { headless: { type: 'boolean', default: false } } });
+
 const context = await chromium.launchPersistentContext(PATHS.browser.profile, {
-  headless: process.argv[2] === 'headless',
+  headless: values.headless,
   viewport: BROWSER.viewport,
   locale: BROWSER.locale,
   timezoneId: BROWSER.timezoneId,

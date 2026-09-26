@@ -105,7 +105,7 @@ export const startSession = async ({
 
   mkdirSync(PATHS.browser.profile, { recursive: true });
   const log = openSync(PATHS.browser.hostLog, 'a');
-  const host = spawn(process.execPath, [PATHS.browser.host, headless ? 'headless' : 'headed'], {
+  const host = spawn(process.execPath, [PATHS.browser.host, ...(headless ? ['--headless'] : [])], {
     detached: true,
     stdio: ['ignore', log, log],
   });

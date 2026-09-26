@@ -17,3 +17,36 @@ export const browserSessionSchema = z
   });
 
 export type BrowserSession = z.output<typeof browserSessionSchema>;
+
+export const boxSchema = z
+  .strictObject({
+    x: z.number().meta({ description: 'Left edge, in CSS pixels from the viewport’s left.' }),
+    y: z.number().meta({ description: 'Top edge, in CSS pixels from the viewport’s top.' }),
+    width: z.number().meta({ description: 'Width in CSS pixels.' }),
+    height: z.number().meta({ description: 'Height in CSS pixels.' }),
+  })
+  .meta({ description: 'Where an element is drawn, as `getBoundingClientRect()` reports it.' });
+
+export type Box = z.output<typeof boxSchema>;
+
+/** Other fields, such as a heading's level, are dropped: exploring doesn't use them. */
+export const ariaNodeSchema = z
+  .object({
+    role: z.string().meta({ description: 'The node’s accessibility role, such as textbox.' }),
+    name: z.string().optional().meta({ description: 'Its accessible name, such as a label.' }),
+    text: z.string().optional().meta({ description: 'The text it shows, such as a value.' }),
+    ref: z.string().optional().meta({
+      description:
+        'Playwright’s reference to the element, usable as the selector `aria-ref=<ref>`.',
+    }),
+    box: boxSchema.optional(),
+    get children() {
+      return z.array(ariaNodeSchema).optional().meta({ description: 'The nodes inside it.' });
+    },
+  })
+  .meta({
+    description:
+      'One node of the page’s accessibility tree, as Playwright’s `ariaSnapshotJSON` returns it.',
+  });
+
+export type AriaNode = z.output<typeof ariaNodeSchema>;

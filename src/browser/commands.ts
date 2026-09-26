@@ -1,4 +1,4 @@
-import { listControls, screenshot, type FrameControls } from './inspect.ts';
+import { formatControl, listControls, screenshot, type Control } from './inspect.ts';
 import { readSession, startSession, stopSession, withBrowser } from './session.ts';
 import type { BrowserSession } from './contract.ts';
 import { displayPath, PATHS, ok, type Result } from '../kernel/index.ts';
@@ -30,28 +30,27 @@ export interface Inspection {
   readonly title: string;
   readonly url: string;
   readonly screenshot: string;
-  readonly frames: readonly FrameControls[];
+  readonly controls: readonly Control[];
 }
 
 export const inspectPage = (): Promise<Result<Inspection>> =>
   withBrowser(async ({ page }) => {
     const shot = await screenshot(page, 'inspect');
     if (!shot.success) return shot;
+    const controls = await listControls(page);
+    if (!controls.success) return controls;
     return ok({
       title: await page.title(),
       url: withoutQuery(page.url()),
       screenshot: displayPath(shot.data),
-      frames: await listControls(page),
+      controls: controls.data,
     });
   });
 
-export const renderInspection = ({ title, url, screenshot: file, frames }: Inspection): string =>
-  [
-    `Page: ${title}`,
-    `URL: ${url}`,
-    `Screenshot: ${file}`,
-    ...frames.flatMap(({ frame, controls }) => ['', `[${frame}]`, ...controls]),
-  ].join('\n');
+export const renderInspection = ({ title, url, screenshot: file, controls }: Inspection): string =>
+  [`Page: ${title}`, `URL: ${url}`, `Screenshot: ${file}`, '', ...controls.map(formatControl)].join(
+    '\n',
+  );
 
 /** `factory browser …`: the long-lived browser that the Excel and case commands attach to. */
 export const registerBrowserCommands = ({ program, run }: CommandRegistry): void => {
