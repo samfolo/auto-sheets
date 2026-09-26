@@ -20,7 +20,9 @@ const report = (failure: Result<never>): void =>
 /** The commands, as people and agents see them in --help. */
 const createProgram = (telemetry: Telemetry) => {
   const program = new Command(project.cli)
-    .description('Replicate a slice of a closed-source product, and prove the clone behaves the same.')
+    .description(
+      'Replicate a slice of a closed-source product, and prove the clone behaves the same.',
+    )
     .version(project.version)
     .option('--json', 'print the result as one line of JSON, for agents and scripts')
     .exitOverride()

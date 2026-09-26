@@ -8,8 +8,7 @@ import type { ErrorCode, FactoryError } from '../contracts/errors.ts';
  * straight through. Throwing is reserved for bugs.
  */
 export type Result<T, E = FactoryError> =
-  | { readonly success: true; readonly data: T }
-  | { readonly success: false; readonly error: E };
+  { readonly success: true; readonly data: T } | { readonly success: false; readonly error: E };
 
 export const ok = <T>(data: T): Result<T, never> => ({ success: true, data });
 

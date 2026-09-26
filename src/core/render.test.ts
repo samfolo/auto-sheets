@@ -1,48 +1,52 @@
-import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, expect, it } from 'vitest';
 import { render } from './render.ts';
 import { fail, ok } from './result.ts';
 
-describe('render', () => {
-  it('prints the whole Result as one line of JSON with --json, for success and failure alike', () => {
-    const success = render(ok({ checks: 3 }), true, () => 'unused');
-    assert.equal(success.stdout, '{"success":true,"data":{"checks":3}}\n');
-    assert.equal(success.exitCode, 0);
+const unused = (): never => {
+  throw new Error('renderData should not be called');
+};
 
-    const failure = render(fail('INVALID_USAGE', 'Unknown command.'), true, () => 'unused');
-    assert.deepEqual(JSON.parse(failure.stdout), {
-      success: false,
-      error: { code: 'INVALID_USAGE', message: 'Unknown command.' },
+describe('render', () => {
+  it('prints the whole Result as one line of JSON with --json', () => {
+    expect(render(ok({ checks: 3 }), true, unused)).toEqual({
+      stdout: '{"success":true,"data":{"checks":3}}\n',
+      stderr: '',
+      exitCode: 0,
     });
-    assert.equal(failure.stderr, '');
   });
 
   it('renders success through the command’s own renderer', () => {
-    const output = render(ok(['a', 'b']), false, (items) => items.join('\n'));
-    assert.deepEqual(output, { stdout: 'a\nb\n', stderr: '', exitCode: 0 });
+    expect(render(ok(['a', 'b']), false, (items) => items.join('\n'))).toEqual({
+      stdout: 'a\nb\n',
+      stderr: '',
+      exitCode: 0,
+    });
   });
 
-  it('sends failures to stderr with location, details and hint, and exits by category', () => {
-    const output = render(
-      fail('ENVIRONMENT_NOT_READY', 'Settings are missing.', {
-        location: '.env',
-        details: ['OPENROUTER_API_KEY is not set'],
-        hint: 'Set it in .env.',
-      }),
-      false,
-      () => 'unused',
-    );
-    assert.equal(output.stdout, '');
-    assert.equal(
-      output.stderr,
-      [
+  it.each([
+    { code: 'INVALID_USAGE', exitCode: 2 },
+    { code: 'ENVIRONMENT_NOT_READY', exitCode: 3 },
+    { code: 'INTERNAL', exitCode: 4 },
+  ] as const)('exits $exitCode for $code', ({ code, exitCode }) => {
+    expect(render(fail(code, 'Failed.'), true, unused).exitCode).toBe(exitCode);
+  });
+
+  it('sends failures to stderr with location, details and hint', () => {
+    const failure = fail('ENVIRONMENT_NOT_READY', 'Settings are missing.', {
+      location: '.env',
+      details: ['OPENROUTER_API_KEY is not set'],
+      hint: 'Set it in .env.',
+    });
+    expect(render(failure, false, unused)).toEqual({
+      stdout: '',
+      stderr: [
         '✖ ENVIRONMENT_NOT_READY Settings are missing.',
         '  at .env',
         '  OPENROUTER_API_KEY is not set',
         '  hint: Set it in .env.',
         '',
       ].join('\n'),
-    );
-    assert.equal(output.exitCode, 3);
+      exitCode: 3,
+    });
   });
 });

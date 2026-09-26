@@ -9,8 +9,7 @@ export interface Rendered {
   readonly exitCode: number;
 }
 
-const asLines = (text: string): string =>
-  text === '' || text.endsWith('\n') ? text : `${text}\n`;
+const asLines = (text: string): string => (text === '' || text.endsWith('\n') ? text : `${text}\n`);
 
 const styleForStderr = (format: 'red' | 'dim', text: string): string =>
   styleText(format, text, { stream: process.stderr });
