@@ -26,6 +26,19 @@ const STEP_USAGE: Readonly<Record<StepName, StepUsage>> = {
   paste: NO_ARGUMENTS,
   undo: NO_ARGUMENTS,
   redo: NO_ARGUMENTS,
+  click: { arguments: ['cell'], build: ([cell]) => ({ cell }) },
+  'double-click': { arguments: ['cell'], build: ([cell]) => ({ cell }) },
+  drag: { arguments: ['from', 'to'], build: ([from, to]) => ({ from, to }) },
+  'click-column': { arguments: ['column'], build: ([column]) => ({ column }) },
+  'click-row': { arguments: ['row'], build: ([row]) => ({ row: Number(row) }) },
+  'drag-columns': { arguments: ['from', 'to'], build: ([from, to]) => ({ from, to }) },
+  'drag-rows': {
+    arguments: ['from', 'to'],
+    build: ([from, to]) => ({ from: Number(from), to: Number(to) }),
+  },
+  'click-corner': NO_ARGUMENTS,
+  type: { arguments: ['text'], build: ([text]) => ({ text }) },
+  'observe-selection': NO_ARGUMENTS,
   observe: { arguments: ['cells...'], build: (cells) => ({ cells }) },
 };
 

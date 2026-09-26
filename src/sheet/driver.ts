@@ -7,7 +7,14 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { screenshot } from '../browser/index.ts';
 import { formatStep } from './steps.ts';
-import type { ActionStep, CellAddress, CellObservation } from './contract.ts';
+import type {
+  ActionStep,
+  CellAddress,
+  CellObservation,
+  PointerStep,
+  SelectionObservation,
+} from './contract.ts';
+import { measureGrid, point, type GridGeometry } from './pointer.ts';
 import {
   displayPath,
   attempt,
@@ -18,7 +25,15 @@ import {
   type Trace,
   unreachable,
 } from '../kernel/index.ts';
-import { enter, enterInSelection, press, readCell, select } from './actions.ts';
+import {
+  enter,
+  enterInSelection,
+  press,
+  readCell,
+  readSelection,
+  select,
+  typeAndCommit,
+} from './actions.ts';
 import { KEYS } from './keys.ts';
 import type { Surface } from './surface.ts';
 
@@ -38,6 +53,8 @@ export interface Driver {
   readonly perform: (step: ActionStep) => Promise<Result<void>>;
   /** Selects the cell and reads what the formula bar and the cell show. */
   readonly observe: (cell: CellAddress) => Promise<Result<CellObservation>>;
+  /** Reads the selection without changing it. */
+  readonly observeSelection: () => Promise<Result<SelectionObservation>>;
   /** Saves a picture of the sheet as a person sees it, for review. Returns the file. */
   readonly capture: (file: string) => Promise<Result<string>>;
 }
@@ -53,6 +70,20 @@ export interface SheetTarget {
   /** Finds a sheet that is already open, so step-by-step commands can continue on it. */
   readonly findOpen: () => Promise<Surface | null>;
 }
+
+/** The pointer steps, which need the grid measured first. */
+const POINTER_STEPS: ReadonlySet<string> = new Set([
+  'click',
+  'double-click',
+  'drag',
+  'click-column',
+  'click-row',
+  'drag-columns',
+  'drag-rows',
+  'click-corner',
+] satisfies PointerStep['do'][]);
+
+const isPointerStep = (step: ActionStep): step is PointerStep => POINTER_STEPS.has(step.do);
 
 const performStep = (surface: Surface, step: ActionStep, trace: Trace): Promise<void> => {
   switch (step.do) {
@@ -74,6 +105,17 @@ const performStep = (surface: Surface, step: ActionStep, trace: Trace): Promise<
       return press(surface, KEYS.undo);
     case 'redo':
       return press(surface, KEYS.redo);
+    case 'type':
+      return typeAndCommit(surface, step.text);
+    case 'click':
+    case 'double-click':
+    case 'drag':
+    case 'click-column':
+    case 'click-row':
+    case 'drag-columns':
+    case 'drag-rows':
+    case 'click-corner':
+      throw new Error(`${step.do} needs the grid's geometry; the driver measures it first.`);
     default:
       return unreachable(step);
   }
@@ -88,7 +130,18 @@ const actionFailed = async (surface: Surface, action: string, reason: string) =>
 };
 
 export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => {
-  const state: { surface: Surface | null } = { surface: null };
+  const state: { surface: Surface | null; grid: GridGeometry | null } = {
+    surface: null,
+    grid: null,
+  };
+
+  /** The grid's geometry, measured once: every sheet a target opens is laid out alike. */
+  const gridOf = async (surface: Surface): Promise<GridGeometry> => {
+    state.grid ??= await measureGrid(surface);
+    if (state.grid === null) throw new Error('Could not find the grid to measure it.');
+    trace('sheet.grid', { target: target.name, ...state.grid });
+    return state.grid;
+  };
 
   const currentSurface = async (): Promise<Result<Surface>> => {
     state.surface ??= await target.findOpen();
@@ -135,9 +188,16 @@ export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => 
       return ok(undefined);
     },
 
-    perform: (step) => act(formatStep(step), (surface) => performStep(surface, step, trace)),
+    perform: (step) =>
+      act(formatStep(step), async (surface) =>
+        isPointerStep(step)
+          ? point(surface, await gridOf(surface), step)
+          : performStep(surface, step, trace),
+      ),
 
     observe: (cell) => act(`observe ${cell}`, (surface) => readCell(surface, cell)),
+
+    observeSelection: () => act('observe the selection', readSelection),
 
     capture: (file) =>
       act('capture', async ({ page }) => {

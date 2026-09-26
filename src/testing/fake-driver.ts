@@ -89,6 +89,12 @@ export const createFakeDriver = ({ failOn = [] }: { failOn?: readonly CellAddres
       return ok({ raw, display: raw, annotations: [] });
     },
     capture: async (file) => ok(file),
+    observeSelection: async () =>
+      ok({
+        active: state.selection.split(':')[0] ?? state.selection,
+        range: state.selection.includes(':') ? state.selection : null,
+        editing: false,
+      }),
   };
   return driver;
 };

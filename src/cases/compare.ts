@@ -8,7 +8,7 @@ export interface Difference {
   readonly step: number;
   /** The cell, or null when a whole checkpoint is missing. */
   readonly cell: string | null;
-  readonly field: keyof CellObservation | 'checkpoint' | 'cell';
+  readonly field: keyof CellObservation | 'checkpoint' | 'cell' | 'selection';
   readonly expected: unknown;
   readonly actual: unknown;
 }
@@ -32,6 +32,20 @@ const compareCells = (step: number, expected: Checkpoint, actual: Checkpoint): D
     }));
   });
 
+/** The selection, when the checkpoint recorded one. */
+const compareSelection = (step: number, expected: Checkpoint, actual: Checkpoint): Difference[] =>
+  expected.selection === undefined || sameValue(expected.selection, actual.selection)
+    ? []
+    : [
+        {
+          step,
+          cell: null,
+          field: 'selection',
+          expected: expected.selection,
+          actual: actual.selection,
+        },
+      ];
+
 /** Every difference between an expected trajectory and an actual one, in step order. */
 export const compareTrajectories = (
   expected: readonly Checkpoint[],
@@ -41,12 +55,15 @@ export const compareTrajectories = (
     const got = actual.find((checkpoint) => checkpoint.step === want.step);
     return got === undefined
       ? [{ step: want.step, cell: null, field: 'checkpoint', expected: want, actual: undefined }]
-      : compareCells(want.step, want, got);
+      : [...compareCells(want.step, want, got), ...compareSelection(want.step, want, got)];
   });
 
 /** One line per difference, pointing at the observe step in case.json. */
 export const formatDifference = ({ step, cell, field, expected, actual }: Difference): string => {
   const where = formatPath(['steps', step]);
+  if (field === 'selection') {
+    return `${where} selection: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;
+  }
   if (cell === null) return `${where}: the checkpoint is missing`;
   if (field === 'cell') return `${where} ${cell}: the cell was not observed`;
   return `${where} ${cell} ${field}: expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;

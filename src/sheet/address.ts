@@ -5,12 +5,14 @@ const PARTS = /^([A-Z]+)(\d+)$/;
 const LETTERS = 26;
 const CHAR_CODE_BEFORE_A = 64;
 
-interface Position {
+/** A cell's column and row, both counted from 1. */
+export interface Position {
   readonly column: number;
   readonly row: number;
 }
 
-const columnNumber = (letters: string): number =>
+/** Column letters counted from 1: A is 1, Z is 26, AA is 27. */
+export const columnNumber = (letters: string): number =>
   Array.from(letters).reduce(
     (number, letter) => number * LETTERS + letter.charCodeAt(0) - CHAR_CODE_BEFORE_A,
     0,
@@ -22,7 +24,8 @@ const columnLetters = (column: number): string =>
     : columnLetters(Math.floor((column - 1) / LETTERS)) +
       String.fromCharCode(CHAR_CODE_BEFORE_A + 1 + ((column - 1) % LETTERS));
 
-const positionOf = (address: CellAddress): Position => {
+/** Where an address is. Anything that isn't an address is at column 0, row 0. */
+export const positionOf = (address: CellAddress): Position => {
   const [, letters = '', row = '0'] = PARTS.exec(address) ?? [];
   return { column: columnNumber(letters), row: Number(row) };
 };

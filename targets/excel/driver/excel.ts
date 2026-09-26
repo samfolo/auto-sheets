@@ -21,6 +21,8 @@ export const EXCEL = {
     formulaBar: '#formulaBarTextDivId_textElement',
     cellEditor: '#gridKeyboardContentEditable_textElement',
     readout: '#m_excelWebRenderer_ewaCtl_readoutElement1',
+    /** The grid is drawn on tiles of canvas; together they cover the headers and the cells. */
+    grid: 'canvas.ewr-sheettable',
   } satisfies SheetSelectors,
   /** Buttons on the Excel home page, by accessible name. */
   home: {

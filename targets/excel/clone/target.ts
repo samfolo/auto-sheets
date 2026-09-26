@@ -20,6 +20,7 @@ export const CLONE = {
     formulaBar: '#formula-bar',
     cellEditor: '#cell-editor',
     readout: '#readout',
+    grid: '#grid',
   } satisfies SheetSelectors,
   api: {
     health: '/api/health',

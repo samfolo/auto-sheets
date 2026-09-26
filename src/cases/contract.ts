@@ -3,7 +3,12 @@ import * as z from 'zod';
  * The contracts for cases: case.json, which says what a person does, and reference.json, which
  * records what Excel showed at each checkpoint.
  */
-import { cellAddressSchema, cellObservationSchema, stepSchema } from '../sheet/index.ts';
+import {
+  cellAddressSchema,
+  cellObservationSchema,
+  selectionObservationSchema,
+  stepSchema,
+} from '../sheet/index.ts';
 
 export const checkpointSchema = z
   .strictObject({
@@ -13,8 +18,13 @@ export const checkpointSchema = z
     cells: z
       .record(cellAddressSchema, cellObservationSchema)
       .meta({ description: 'Each observed cell, by address, in the order the step listed them.' }),
+    selection: selectionObservationSchema
+      .optional()
+      .meta({ description: 'The selection, at an observe-selection step.' }),
   })
-  .meta({ description: 'What the sheet showed at one observe step.' });
+  .meta({
+    description: 'What the sheet showed at one checkpoint: an observe or observe-selection step.',
+  });
 
 export type Checkpoint = z.output<typeof checkpointSchema>;
 
@@ -63,9 +73,12 @@ export const caseSchema = z
     steps: z
       .array(stepSchema)
       .min(1)
-      .refine((steps) => steps.some((step) => step.do === 'observe'), {
-        error: 'needs at least one observe step, or nothing is recorded',
-      })
+      .refine(
+        (steps) => steps.some((step) => step.do === 'observe' || step.do === 'observe-selection'),
+        {
+          error: 'needs at least one observe or observe-selection step, or nothing is recorded',
+        },
+      )
       .meta({
         description:
           'What to do, in order, starting from a blank sheet, or from seed.xlsx in the case’s folder if there is one.',

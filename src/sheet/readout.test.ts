@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describesSelection, parseReadout } from './readout.ts';
+import { describeSelection, describesSelection, parseReadout } from './readout.ts';
 
 /** Labels copied from Excel for the web on 26 September 2026. */
 describe('parseReadout', () => {
@@ -44,5 +44,19 @@ describe('describesSelection', () => {
     { label: '5 . A3 . ', range: 'A4', describes: false },
   ])('$describes for $range in $label', ({ label, range, describes }) => {
     expect(describesSelection(label, range)).toBe(describes);
+  });
+});
+
+describe('describeSelection', () => {
+  it.each([
+    { label: 'C3 . ', nameBox: 'C3', range: null, editing: false },
+    { label: '5 . A3 . Contains Formula . ', nameBox: 'A3', range: null, editing: false },
+    { label: 'Selected range . C3:E6 . ', nameBox: 'C3', range: 'C3:E6', editing: false },
+    { label: 'Selected range . K:K . ', nameBox: 'K1', range: 'K:K', editing: false },
+    { label: '1 . Selected range . 5:5 . ', nameBox: 'A5', range: '5:5', editing: false },
+    { label: 'Selected range . A:XFD . ', nameBox: 'A1', range: 'A:XFD', editing: false },
+    { label: 'Editing', nameBox: 'B2', range: null, editing: true },
+  ])('reads $label', ({ label, nameBox, range, editing }) => {
+    expect(describeSelection(nameBox, label)).toEqual({ active: nameBox, range, editing });
   });
 });

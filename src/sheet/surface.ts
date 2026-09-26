@@ -1,8 +1,9 @@
 import type { Frame, Page } from 'playwright';
 
 /**
- * Where a spreadsheet's controls are. Excel for the web exposes these for screen readers, and
- * a clone must expose the same four, so one driver works on both.
+ * Where a spreadsheet's controls are. Excel for the web exposes the first four for screen
+ * readers, and a clone must expose the same four, so one driver works on both. The grid is where
+ * the mouse is used.
  */
 export interface SheetSelectors {
   /** Shows the active cell's address; typing an address and pressing Enter selects it. */
@@ -13,6 +14,11 @@ export interface SheetSelectors {
   readonly cellEditor: string;
   /** Its aria-label describes the selection for screen readers. See readout.ts. */
   readonly readout: string;
+  /**
+   * The element or elements that draw the grid, headers included. Together their top-left corner
+   * is the select-all corner. Pointer steps measure the cells inside them; see pointer.ts.
+   */
+  readonly grid: string;
 }
 
 /** How long to wait for a sheet, and how many times to repeat what is safe to repeat. */

@@ -13,6 +13,7 @@ import {
   createSheetDriver,
   parseStep,
   stepHelp,
+  type SelectionObservation,
 } from '../../src/sheet/index.ts';
 import {
   readCredentials,
@@ -56,7 +57,7 @@ export const openWorkbookInSession = (
 /** What one step did: the step, and the cells it read if it was an observe step. */
 export interface StepOutcome {
   readonly step: string;
-  readonly observed: Checkpoint['cells'] | null;
+  readonly observed: Omit<Checkpoint, 'step'> | null;
 }
 
 export const doStep = async (
@@ -84,8 +85,14 @@ const renderObservations = (observed: Checkpoint['cells']): string =>
     )
     .join('\n');
 
-export const renderStepOutcome = ({ step, observed }: StepOutcome): string =>
-  observed === null ? `Done: ${step}.` : renderObservations(observed);
+const renderSelection = ({ active, range, editing }: SelectionObservation): string =>
+  `Active cell ${active}${range === null ? '' : `, selected ${range}`}${editing ? ', editing' : ''}.`;
+
+export const renderStepOutcome = ({ step, observed }: StepOutcome): string => {
+  if (observed === null) return `Done: ${step}.`;
+  if (observed.selection !== undefined) return renderSelection(observed.selection);
+  return renderObservations(observed.cells);
+};
 
 /** `factory excel …`: signing in, and acting on Excel one step at a time. */
 export const registerExcelCommands = ({ program, run }: CommandRegistry): void => {

@@ -12,10 +12,15 @@
  *   reported, or traced when it can't be proved, and recording each case twice catches the rest.
  */
 import { cellBelow } from './address.ts';
-import type { CellAddress, CellObservation, RangeAddress } from './contract.ts';
+import type {
+  CellAddress,
+  CellObservation,
+  RangeAddress,
+  SelectionObservation,
+} from './contract.ts';
 import { poll, type Trace } from '../kernel/index.ts';
 import { KEYS } from './keys.ts';
-import { describesSelection, parseReadout } from './readout.ts';
+import { describeSelection, describesSelection, parseReadout } from './readout.ts';
 import type { Surface } from './surface.ts';
 
 const readLabel = async ({ frame, selectors }: Surface): Promise<string> =>
@@ -202,3 +207,20 @@ export const enterInSelection = async (
   await surface.page.keyboard.press(KEYS.enterInSelection);
   await surface.page.waitForTimeout(surface.timing.settleMs);
 };
+
+/**
+ * Types text where the sheet has the focus, as a person does after clicking or double-clicking a
+ * cell, and presses Enter. It changes the undo history, so it is never repeated.
+ */
+export const typeAndCommit = async ({ page, timing }: Surface, text: string): Promise<void> => {
+  await page.keyboard.type(text, { delay: timing.keystrokeMs });
+  await page.keyboard.press(KEYS.commit);
+  await page.waitForTimeout(timing.settleMs);
+};
+
+/** Reads the selection from the Name Box and the readout, without changing it. */
+export const readSelection = async ({ frame, selectors }: Surface): Promise<SelectionObservation> =>
+  describeSelection(
+    await frame.locator(selectors.nameBox).inputValue(),
+    (await frame.locator(selectors.readout).first().getAttribute('aria-label')) ?? '',
+  );

@@ -1,9 +1,10 @@
 /**
  * Doing one step on a sheet through a Driver. An observe step reads its cells one at a time,
- * since observing a cell selects it; every other step is one action.
+ * since observing a cell selects it; an observe-selection step reads the selection without
+ * changing it; every other step is one action.
  */
 import { ok, type Result } from '../kernel/index.ts';
-import type { CellAddress, CellObservation, Step } from './contract.ts';
+import type { CellAddress, CellObservation, SelectionObservation, Step } from './contract.ts';
 import type { Driver } from './driver.ts';
 
 /** What an observe step saw: each cell, by address. */
@@ -25,9 +26,25 @@ export const observeCells = async (
   return ok(observed);
 };
 
-/** Does one step. An observe step returns what it saw; every other step returns null. */
-export const performStep = async (driver: Driver, step: Step): Promise<Result<Observed | null>> => {
-  if (step.do === 'observe') return observeCells(driver, step.cells);
+/** What a checkpoint saw: cells, or the selection. */
+export interface Observation {
+  readonly cells: Observed;
+  readonly selection?: SelectionObservation;
+}
+
+/** Does one step. A checkpoint returns what it saw; every other step returns null. */
+export const performStep = async (
+  driver: Driver,
+  step: Step,
+): Promise<Result<Observation | null>> => {
+  if (step.do === 'observe') {
+    const cells = await observeCells(driver, step.cells);
+    return cells.success ? ok({ cells: cells.data }) : cells;
+  }
+  if (step.do === 'observe-selection') {
+    const selection = await driver.observeSelection();
+    return selection.success ? ok({ cells: {}, selection: selection.data }) : selection;
+  }
   const done = await driver.perform(step);
   return done.success ? ok(null) : done;
 };

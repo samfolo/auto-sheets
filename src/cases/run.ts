@@ -31,7 +31,7 @@ export const runSteps = async (
     // oxlint-disable-next-line no-await-in-loop
     const outcome = atStep(await performStep(driver, step), index);
     if (!outcome.success) return outcome;
-    if (outcome.data !== null) checkpoints.push({ step: index, cells: outcome.data });
+    if (outcome.data !== null) checkpoints.push({ step: index, ...outcome.data });
   }
   return ok(checkpoints);
 };

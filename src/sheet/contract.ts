@@ -29,6 +29,18 @@ export const cellAddressListSchema = z
   .min(1)
   .meta({ description: 'One or more cells, each in A1 notation.' });
 
+export const columnSchema = z
+  .string()
+  .regex(/^[A-Z]{1,3}$/, { error: 'is not a column, such as B' })
+  .meta({ description: 'A column, by its letters, such as B.' });
+
+export const rowSchema = z
+  .number()
+  .int()
+  .min(1)
+  .max(1_048_576)
+  .meta({ description: 'A row, by its number, such as 3.' });
+
 const typedText = z.string().min(1).meta({
   description:
     'Exactly what a person types, before the sheet interprets it. It may be stored as a number, date, formula or text.',
@@ -67,6 +79,41 @@ export const STEP_SCHEMAS = {
   redo: z
     .strictObject({ do: z.literal('redo') })
     .meta({ description: 'Press Ctrl+Y (Cmd+Y on a Mac) to redo the last undone change.' }),
+  click: z
+    .strictObject({ do: z.literal('click'), cell: cellAddressSchema })
+    .meta({ description: 'Click the cell with the mouse, which selects it.' }),
+  'double-click': z
+    .strictObject({ do: z.literal('double-click'), cell: cellAddressSchema })
+    .meta({ description: 'Double-click the cell, which starts editing it in place.' }),
+  drag: z
+    .strictObject({ do: z.literal('drag'), from: cellAddressSchema, to: cellAddressSchema })
+    .meta({
+      description: 'Press the mouse on one cell, move it to another and release: a range.',
+    }),
+  'click-column': z
+    .strictObject({ do: z.literal('click-column'), column: columnSchema })
+    .meta({ description: 'Click the column’s header, above its first row.' }),
+  'click-row': z
+    .strictObject({ do: z.literal('click-row'), row: rowSchema })
+    .meta({ description: 'Click the row’s header, left of its first column.' }),
+  'drag-columns': z
+    .strictObject({ do: z.literal('drag-columns'), from: columnSchema, to: columnSchema })
+    .meta({ description: 'Press on one column’s header, drag to another’s and release.' }),
+  'drag-rows': z
+    .strictObject({ do: z.literal('drag-rows'), from: rowSchema, to: rowSchema })
+    .meta({ description: 'Press on one row’s header, drag to another’s and release.' }),
+  'click-corner': z.strictObject({ do: z.literal('click-corner') }).meta({
+    description:
+      'Click the corner above the row headers and left of the column headers, which selects everything.',
+  }),
+  type: z.strictObject({ do: z.literal('type'), text: typedText }).meta({
+    description:
+      'Type the text where the sheet has the focus, without selecting anything first, then press Enter.',
+  }),
+  'observe-selection': z.strictObject({ do: z.literal('observe-selection') }).meta({
+    description:
+      'A checkpoint: record the selection as the Name Box and the screen-reader readout describe it, without changing it.',
+  }),
   observe: z
     .strictObject({
       do: z.literal('observe'),
@@ -91,6 +138,16 @@ export const stepSchema = z
     STEP_SCHEMAS.paste,
     STEP_SCHEMAS.undo,
     STEP_SCHEMAS.redo,
+    STEP_SCHEMAS.click,
+    STEP_SCHEMAS['double-click'],
+    STEP_SCHEMAS.drag,
+    STEP_SCHEMAS['click-column'],
+    STEP_SCHEMAS['click-row'],
+    STEP_SCHEMAS['drag-columns'],
+    STEP_SCHEMAS['drag-rows'],
+    STEP_SCHEMAS['click-corner'],
+    STEP_SCHEMAS.type,
+    STEP_SCHEMAS['observe-selection'],
     STEP_SCHEMAS.observe,
   ])
   .meta({
@@ -100,8 +157,40 @@ export const stepSchema = z
 
 export type Step = z.output<typeof stepSchema>;
 
-/** Every step except observe: the things a person does to the sheet. */
-export type ActionStep = Exclude<Step, { do: 'observe' }>;
+/** Every step except the checkpoints: the things a person does to the sheet. */
+export type ActionStep = Exclude<Step, { do: 'observe' } | { do: 'observe-selection' }>;
+
+/** A step that only makes sense with a mouse: the driver finds the grid's geometry first. */
+export type PointerStep = Extract<
+  ActionStep,
+  {
+    do:
+      | 'click'
+      | 'double-click'
+      | 'drag'
+      | 'click-column'
+      | 'click-row'
+      | 'drag-columns'
+      | 'drag-rows'
+      | 'click-corner';
+  }
+>;
+
+export const selectionObservationSchema = z
+  .strictObject({
+    active: z.string().meta({
+      description:
+        'What the Name Box shows: the active cell, such as K1 when column K is selected.',
+    }),
+    range: z.string().nullable().meta({
+      description:
+        'The selected range as the readout names it, such as C3:E6, K:K, 5:5 or A:XFD; null when only one cell is selected.',
+    }),
+    editing: z.boolean().meta({ description: 'Whether the readout says a cell is being edited.' }),
+  })
+  .meta({ description: 'What the selection was at a checkpoint.' });
+
+export type SelectionObservation = z.output<typeof selectionObservationSchema>;
 
 export const cellObservationSchema = z
   .strictObject({

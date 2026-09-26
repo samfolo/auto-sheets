@@ -46,3 +46,26 @@ export const describesSelection = (label: string, range: string): boolean =>
   range.includes(':')
     ? label.includes(`${RANGE_MARKER}${SEPARATOR}${range}${SEPARATOR}`)
     : parseReadout(label, range) !== null;
+
+/** What the readout says while a cell is being edited. */
+const EDITING = 'Editing';
+
+/**
+ * The selection as the Name Box and the readout describe it: the active cell, the range when more
+ * than one cell is selected (such as C3:E6, K:K, 5:5 or A:XFD), and whether a cell is being edited.
+ */
+export const describeSelection = (
+  nameBox: string,
+  label: string,
+): { active: string; range: string | null; editing: boolean } => {
+  const marker = `${RANGE_MARKER}${SEPARATOR}`;
+  const start = label.indexOf(marker);
+  const range =
+    start < 0
+      ? null
+      : (label
+          .slice(start + marker.length)
+          .split(SEPARATOR)[0]
+          ?.trim() ?? null);
+  return { active: nameBox, range: range === '' ? null : range, editing: label.trim() === EDITING };
+};
