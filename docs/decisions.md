@@ -97,6 +97,7 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 87. **A drag can be taken apart: `press-mouse`, `move-mouse`, `release-mouse`.** Checkpoints between the moves show the selection while the button is held. `type` can leave its text uncommitted, and `edit-in-formula-bar` enters content the other way in.
 88. **Exploration's `entry` focus fills in values and formulas that refer to each other**, by every route a person uses: Enter, typing after a click, typing then clicking away, the formula bar, and double-clicking to add to a cell, with undo and redo among them. After each entry it observes the latest cells written.
 89. **The clone in `clone/` is copied from a build, not written by hand.** It is the DeepSeek v4.1 Flash build on factory 0.2.0 that passed 37 of 37 visible cases. The factory's linter reads only its own configuration, so the clone keeps its own tools. Sandboxed code may read the details, not the contents, of every folder above its workspace, since resolving a path needs them; that lets the factory check a clone inside itself.
+90. **A build is judged on the agent's best work, not its last keystroke.** If the final state scores below the agent's best checkpoint, the build restores the checkpoint as a new commit, checks it instead, and keeps both scores in its summary. The agent's later commits stay in the history.
 
 ## Open questions
 
