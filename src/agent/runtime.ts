@@ -97,6 +97,8 @@ export interface AgentPlace {
 export interface AgentOptions extends AgentPlace {
   readonly apiKey: string;
   readonly minutes: number;
+  /** The cases the agent may check against, fixed when the run started. */
+  readonly caseIds: readonly string[];
 }
 
 /** What an agent is given, exactly as Pi will send it. */
@@ -207,7 +209,7 @@ export const briefAgent = async (
     place,
     apiKey,
     SessionManager.inMemory(place.workspace),
-    createCaseChecker(place.workspace, place.runDir, NO_TRACE),
+    createCaseChecker(place.workspace, place.runDir, [], NO_TRACE),
     NO_TRACE,
   );
   if (!session.success) return session;
@@ -280,7 +282,7 @@ export const runAgent = async (
   options: AgentOptions,
   trace: Trace,
 ): Promise<Result<AgentRun>> => {
-  const checker = createCaseChecker(options.workspace, options.runDir, trace);
+  const checker = createCaseChecker(options.workspace, options.runDir, options.caseIds, trace);
   const opened = await openSession(
     definition,
     options,

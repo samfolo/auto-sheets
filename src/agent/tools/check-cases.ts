@@ -8,7 +8,6 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from '@earendil-works/pi-ai';
 import { join } from 'node:path';
-import { CASE_TAGS, selectCases } from '../../cases/index.ts';
 import { checkClone } from '../../clone/index.ts';
 import { git, type Trace } from '../../kernel/index.ts';
 import { createScoreboard, formatScoreReport } from '../scoreboard.ts';
@@ -23,8 +22,6 @@ export const CHECK_CASES = {
     'runs each recorded case through the screen exactly as it was recorded on the original, then stops it.',
     'It reports your score, what your last change fixed or broke, and every difference from the original.',
   ].join(' '),
-  /** Everything a check keeps from the agent. */
-  withoutTags: [CASE_TAGS.heldOut],
   /** The app's output from every check, in the run's folder. */
   logFile: 'check-app.log',
 } as const;
@@ -65,14 +62,21 @@ export interface CaseChecker {
 
 const incomplete = (text: string): CheckOutcome => ({ text, complete: false });
 
-export const createCaseChecker = (workspace: string, runDir: string, trace: Trace): CaseChecker => {
+/**
+ * A checker for one run, over the cases the run was given when it started. Cases recorded later,
+ * and the held-out cases, are never checked, so a run is judged against one fixed set.
+ */
+export const createCaseChecker = (
+  workspace: string,
+  runDir: string,
+  caseIds: readonly string[],
+  trace: Trace,
+): CaseChecker => {
   const scoreboard = createScoreboard();
   const best = { passed: 0 };
+  const known = new Set(caseIds);
   return {
     check: async (cases) => {
-      const visible = await selectCases({ ids: [], withoutTags: CHECK_CASES.withoutTags });
-      if (!visible.success) return incomplete(visible.error.message);
-      const known = new Set(visible.data.map(({ id }) => id));
       const unknown = cases.filter((id) => !known.has(id));
       if (unknown.length > 0) {
         return incomplete(
@@ -81,11 +85,7 @@ export const createCaseChecker = (workspace: string, runDir: string, trace: Trac
       }
       const verdicts = await checkClone(
         workspace,
-        {
-          ids: cases,
-          withoutTags: CHECK_CASES.withoutTags,
-          logFile: join(runDir, CHECK_CASES.logFile),
-        },
+        { ids: cases.length > 0 ? cases : caseIds, logFile: join(runDir, CHECK_CASES.logFile) },
         trace,
       );
       if (!verdicts.success) {

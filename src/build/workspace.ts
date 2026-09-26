@@ -1,15 +1,15 @@
 /**
  * A build's workspace: a new directory outside the factory, where the agent builds a clone from
  * scratch. It holds the job's material: the standards' scaffold, the target's spec, the cases the
- * agent may see, the knowledge and the documentation notes, and nothing else from the factory or
- * from earlier builds. (The
+ * agent may see (recorded, and not held out, when the build started), the knowledge and the
+ * documentation notes, and nothing else from the factory or from earlier builds. (The
  * standards themselves travel with the agent as context.) Its first commit names the factory
  * version that made it, and its Git history records the agent's progress from there.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { cp, mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { CASE_TAGS, caseSchema, loadAllCases, referenceSchema } from '../cases/index.ts';
+import { caseSchema, type LoadedCase, referenceSchema } from '../cases/index.ts';
 import {
   attempt,
   fail,
@@ -60,17 +60,6 @@ const checkLocation = (dir: string): Result<string> => {
   return ok(absolute);
 };
 
-/** The folders of the cases kept from the agent. */
-const heldOutFolders = async (): Promise<Result<string[]>> => {
-  const cases = await loadAllCases();
-  if (!cases.success) return cases;
-  return ok(
-    cases.data
-      .filter(({ definition }) => definition.tags.includes(CASE_TAGS.heldOut))
-      .map(({ definitionFile }) => dirname(definitionFile)),
-  );
-};
-
 /** Runs Git as part of preparing the workspace, where any failure stops the preparation. */
 const mustGit = (dir: string, ...args: string[]): void => {
   if (git(dir, ...args) === null) throw new Error(`git ${args[0]} failed.`);
@@ -84,22 +73,28 @@ const startingPoint = (): string => {
   return `chore: start from factory ${version}${at}`;
 };
 
-/** Creates the workspace and commits its starting point. Returns its path. */
-export const prepareWorkspace = async (dir: string): Promise<Result<string>> => {
+/**
+ * Creates the workspace with the cases the agent may see, and commits its starting point.
+ * Returns its path.
+ */
+export const prepareWorkspace = async (
+  dir: string,
+  cases: readonly LoadedCase[],
+): Promise<Result<string>> => {
   const location = checkLocation(dir);
   if (!location.success) return location;
   const workspace = location.data;
-  const hidden = await heldOutFolders();
-  if (!hidden.success) return hidden;
   return attempt(
     async () => {
       await mkdir(workspace, { recursive: true });
       await cp(PATHS.standards.scaffold, workspace, { recursive: true });
       await cp(PATHS.cloneSpec, join(workspace, WORKSPACE.spec));
-      await cp(PATHS.excelCases, join(workspace, WORKSPACE.cases), {
-        recursive: true,
-        filter: (source) => !hidden.data.some((folder) => isInside(source, folder)),
-      });
+      for (const { id, definitionFile } of cases) {
+        // oxlint-disable-next-line no-await-in-loop
+        await cp(dirname(definitionFile), join(workspace, WORKSPACE.cases, ...id.split('/')), {
+          recursive: true,
+        });
+      }
       for (const { file, schema } of CASE_FORMATS) {
         // oxlint-disable-next-line no-await-in-loop
         await writeFile(

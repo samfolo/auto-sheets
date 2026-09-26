@@ -15,6 +15,7 @@ import {
   runAgent,
   type AgentRun,
 } from '../agent/index.ts';
+import { CASE_TAGS, selectCases } from '../cases/index.ts';
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
   displayPath,
@@ -66,11 +67,16 @@ const RUN_ID_SUFFIX_BYTES = 2;
 const newRunId = (): string =>
   `${new Date().toISOString().replaceAll(/[:.]/g, '-')}-${randomBytes(RUN_ID_SUFFIX_BYTES).toString('hex')}`;
 
-const finalCheck = async (workspace: string, runDir: string, trace: Trace): Promise<FinalCheck> => {
+const finalCheck = async (
+  workspace: string,
+  runDir: string,
+  ids: readonly string[],
+  trace: Trace,
+): Promise<FinalCheck> => {
   const verdicts = await checkClone(
     workspace,
     {
-      ids: [],
+      ids,
       logFile: join(runDir, RUN_FILES.appLog),
       screenshots: join(runDir, RUN_FILES.screenshots),
     },
@@ -98,8 +104,14 @@ export const build = async (
     });
   }
 
+  // The cases are fixed now: ones recorded while the agent works belong to later builds.
+  const cases = await selectCases({ ids: [] });
+  if (!cases.success) return cases;
+  const visible = cases.data.filter(
+    (recorded) => !recorded.definition.tags.includes(CASE_TAGS.heldOut),
+  );
   const runId = newRunId();
-  const workspace = await prepareWorkspace(options.data.out ?? join(PATHS.builds, runId));
+  const workspace = await prepareWorkspace(options.data.out ?? join(PATHS.builds, runId), visible);
   if (!workspace.success) return workspace;
   const runDir = join(PATHS.runs, runId);
   const runTrace = openTelemetry({ logFile: join(runDir, RUN_FILES.log), runId }).trace;
@@ -117,12 +129,23 @@ export const build = async (
 
   const run = await runAgent(
     definition,
-    { workspace: workspace.data, runDir, apiKey: credentials.data.openRouterApiKey, minutes },
+    {
+      workspace: workspace.data,
+      runDir,
+      apiKey: credentials.data.openRouterApiKey,
+      minutes,
+      caseIds: visible.map(({ id }) => id),
+    },
     runTrace,
   );
   if (!run.success) return run;
   trace('build.agent', { runId, ...run.data });
-  const check = await finalCheck(workspace.data, runDir, runTrace);
+  const check = await finalCheck(
+    workspace.data,
+    runDir,
+    cases.data.map(({ id }) => id),
+    runTrace,
+  );
 
   const summary: BuildSummary = {
     runId,
