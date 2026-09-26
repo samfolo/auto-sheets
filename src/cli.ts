@@ -10,6 +10,7 @@ import {
   stopBrowser,
 } from './commands/browser.ts';
 import { listCases, recordCase, renderCases, renderRecording } from './commands/case.ts';
+import { build, renderBuild } from './build/build.ts';
 import { doctor, renderChecks } from './commands/doctor.ts';
 import { renderVerdicts, verifyClone } from './commands/verify.ts';
 import {
@@ -59,6 +60,15 @@ const createProgram = (telemetry: Telemetry) => {
     .command('doctor')
     .description('check that everything the factory needs is in place')
     .action(() => runCommand(invocation('doctor'), doctor, renderChecks));
+
+  program
+    .command('build')
+    .description('have the agent build a clone from scratch in a new workspace, then check it')
+    .requiredOption('--out <dir>', 'a new directory outside the factory for the workspace')
+    .option('--minutes <minutes>', 'how long the agent may work', '30')
+    .action(({ out, minutes }) =>
+      runCommand(invocation('build'), (trace) => build({ out, minutes }, trace), renderBuild),
+    );
 
   const browser = program
     .command('browser')

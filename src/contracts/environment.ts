@@ -16,6 +16,16 @@ export const loadEnvFile = (): void => {
   if (existsSync(PATHS.envFile)) process.loadEnvFile(PATHS.envFile);
 };
 
+/**
+ * What a child process needs to run, such as the agent or a clone: where programs are, the home
+ * directory and the language. Nothing secret; a caller adds only the secrets that child needs.
+ */
+export const childEnvironment = (): Readonly<Record<string, string | undefined>> => ({
+  PATH: process.env.PATH,
+  HOME: process.env.HOME,
+  LANG: process.env.LANG,
+});
+
 const runtimeSchema = z
   .object({
     FACTORY_LOG: z.string().min(1, { error: 'is empty' }).optional().meta({
