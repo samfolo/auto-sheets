@@ -9,6 +9,20 @@ export interface Rendered {
   readonly exitCode: number;
 }
 
+const asLines = (text: string): string =>
+  text === '' || text.endsWith('\n') ? text : `${text}\n`;
+
+const styleForStderr = (format: 'red' | 'dim', text: string): string =>
+  styleText(format, text, { stream: process.stderr });
+
+export const formatError = (error: FactoryError): string => {
+  const lines = [`${styleForStderr('red', `✖ ${error.code}`)} ${error.message}`];
+  if (error.location) lines.push(`  at ${error.location}`);
+  for (const detail of error.details ?? []) lines.push(`  ${detail}`);
+  if (error.hint) lines.push(styleForStderr('dim', `  hint: ${error.hint}`));
+  return asLines(lines.join('\n'));
+};
+
 /**
  * Turns a command's Result into terminal output.
  *
@@ -16,27 +30,13 @@ export interface Rendered {
  * an agent always parses one shape. Otherwise, success goes to stdout through the
  * command's own renderer, and failure goes to stderr.
  */
-export function render<T>(
+export const render = <T>(
   result: Result<T>,
   json: boolean,
   renderData: (data: T) => string,
-): Rendered {
+): Rendered => {
   const exitCode = result.success ? 0 : exitCodeFor(result.error.code);
   if (json) return { stdout: `${JSON.stringify(result)}\n`, stderr: '', exitCode };
   if (result.success) return { stdout: asLines(renderData(result.data)), stderr: '', exitCode };
   return { stdout: '', stderr: formatError(result.error), exitCode };
-}
-
-export function formatError(error: FactoryError): string {
-  const style = (format: 'red' | 'dim', text: string) =>
-    styleText(format, text, { stream: process.stderr });
-  const lines = [`${style('red', `✖ ${error.code}`)} ${error.message}`];
-  if (error.location) lines.push(`  at ${error.location}`);
-  for (const detail of error.details ?? []) lines.push(`  ${detail}`);
-  if (error.hint) lines.push(style('dim', `  hint: ${error.hint}`));
-  return asLines(lines.join('\n'));
-}
-
-function asLines(text: string): string {
-  return text === '' || text.endsWith('\n') ? text : `${text}\n`;
-}
+};

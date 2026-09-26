@@ -44,6 +44,4 @@ export interface FactoryError {
   readonly hint?: string;
 }
 
-export function exitCodeFor(code: ErrorCode): number {
-  return exitCodes[errorCodes[code]];
-}
+export const exitCodeFor = (code: ErrorCode): number => exitCodes[errorCodes[code]];

@@ -1,4 +1,5 @@
-import { readEnvironment } from '../contracts/environment.ts';
+import { readCredentials } from '../contracts/environment.ts';
+import { project } from '../core/project.ts';
 import { fail, ok, type Result } from '../core/result.ts';
 import { readStamp } from '../core/stamp.ts';
 
@@ -10,42 +11,23 @@ export interface Check {
   readonly detail: string;
 }
 
-/** Node runs the factory's TypeScript directly, which needs type stripping. */
-const minimumNodeMajor = 24;
+const formatCheck = (check: Check): string =>
+  `${check.passed ? '✔' : '✖'} ${check.name}: ${check.detail}`;
 
-/**
- * Checks everything the factory needs before it runs. Each stage adds its own check
- * here when it's built: the browser, the Excel session, the agent runtime.
- */
-export async function doctor(): Promise<Result<Check[]>> {
-  const checks = [checkNode(), checkGit(), checkEnvironment()];
-  const failed = checks.filter((check) => !check.passed);
-  if (failed.length === 0) return ok(checks);
-  return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {
-    details: checks.map(formatCheck),
-    hint: 'Fix the failed checks, then run `factory doctor` again.',
-  });
-}
+export const renderChecks = (checks: readonly Check[]): string =>
+  checks.map(formatCheck).join('\n');
 
-export function renderChecks(checks: readonly Check[]): string {
-  return checks.map(formatCheck).join('\n');
-}
-
-function formatCheck(check: Check): string {
-  return `${check.passed ? '✔' : '✖'} ${check.name}: ${check.detail}`;
-}
-
-function checkNode(): Check {
+const checkNode = (): Check => {
   const version = process.versions.node;
-  const passed = Number(version.split('.')[0]) >= minimumNodeMajor;
+  const passed = Number(version.split('.')[0]) >= project.minimumNodeMajor;
   return {
     name: 'Node.js',
     passed,
-    detail: passed ? version : `found ${version}; need ${minimumNodeMajor} or later`,
+    detail: passed ? version : `found ${version}; need ${project.minimumNodeMajor} or later`,
   };
-}
+};
 
-function checkGit(): Check {
+const checkGit = (): Check => {
   const { commit, dirty } = readStamp();
   if (commit === null) {
     return {
@@ -59,13 +41,27 @@ function checkGit(): Check {
     passed: true,
     detail: `${commit.slice(0, 7)}${dirty ? ' with uncommitted changes' : ''}`,
   };
-}
+};
 
-function checkEnvironment(): Check {
-  const environment = readEnvironment();
-  if (environment.success) {
-    return { name: 'Environment', passed: true, detail: 'all required settings are present' };
+const checkCredentials = (): Check => {
+  const credentials = readCredentials();
+  if (credentials.success) {
+    return { name: 'Credentials', passed: true, detail: 'all required credentials are set' };
   }
-  const { details = [], message } = environment.error;
-  return { name: 'Environment', passed: false, detail: details.join('; ') || message };
-}
+  const { details = [], message } = credentials.error;
+  return { name: 'Credentials', passed: false, detail: details.join('; ') || message };
+};
+
+/**
+ * Checks everything the factory needs before it runs. Each stage adds its own check
+ * here when it's built: the browser, the Excel session, the agent runtime.
+ */
+export const doctor = async (): Promise<Result<Check[]>> => {
+  const checks = [checkNode(), checkGit(), checkCredentials()];
+  const failed = checks.filter((check) => !check.passed);
+  if (failed.length === 0) return ok(checks);
+  return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {
+    details: checks.map(formatCheck),
+    hint: `Fix the failed checks, then run \`${project.cli} doctor\` again.`,
+  });
+};

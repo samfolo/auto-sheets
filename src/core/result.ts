@@ -11,14 +11,10 @@ export type Result<T, E = FactoryError> =
   | { readonly success: true; readonly data: T }
   | { readonly success: false; readonly error: E };
 
-export function ok<T>(data: T): Result<T, never> {
-  return { success: true, data };
-}
+export const ok = <T>(data: T): Result<T, never> => ({ success: true, data });
 
-export function fail(
+export const fail = (
   code: ErrorCode,
   message: string,
   context: Omit<FactoryError, 'code' | 'message'> = {},
-): Result<never> {
-  return { success: false, error: { code, message, ...context } };
-}
+): Result<never> => ({ success: false, error: { code, message, ...context } });
