@@ -1,18 +1,5 @@
-import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { stripVTControlCharacters } from 'node:util';
-import { AGENT } from '../agent/index.ts';
-import {
-  childEnvironment,
-  readCredentials,
-  PATHS,
-  PROJECT,
-  fail,
-  ok,
-  type Result,
-  readStamp,
-} from '../kernel/index.ts';
+import { DEFAULT_AGENT, loadAgentDefinition, openModel } from '../agent/index.ts';
+import { readCredentials, PROJECT, fail, ok, type Result, readStamp } from '../kernel/index.ts';
 
 /** One prerequisite, and whether it's in place. */
 export interface Check {
@@ -64,41 +51,20 @@ const checkCredentials = (): Check => {
 };
 
 /**
- * Pi is installed, and its OpenRouter catalogue offers the model the agent uses. Pi lists a
- * provider's models only when it has that provider's key; listing is offline, so no model is
- * called.
+ * The default agent's definition is valid, and Pi's catalogue has its model. Nothing calls the
+ * model.
  */
-const checkAgent = (): Check => {
-  if (!existsSync(AGENT.cli)) {
-    return { name: 'Agent', passed: false, detail: 'Pi is not installed; run `npm install`' };
-  }
+const checkAgent = async (): Promise<Check> => {
+  const name = 'Agent';
+  const definition = await loadAgentDefinition(DEFAULT_AGENT);
+  if (!definition.success) return { name, passed: false, detail: definition.error.message };
   const credentials = readCredentials();
-  if (!credentials.success) {
-    return { name: 'Agent', passed: false, detail: 'needs OPENROUTER_API_KEY to list models' };
-  }
-  const listed = spawnSync(
-    process.execPath,
-    [AGENT.cli, '--offline', '--provider', AGENT.provider, '--list-models', AGENT.model],
-    {
-      encoding: 'utf8',
-      env: {
-        ...childEnvironment(),
-        OPENROUTER_API_KEY: credentials.data.openRouterApiKey,
-        PI_CODING_AGENT_DIR: join(PATHS.artifacts, 'pi'),
-        PI_TELEMETRY: '0',
-      },
-    },
-  );
-  const offered = stripVTControlCharacters(listed.stdout)
-    .split('\n')
-    .some((line) => line.split(/\s+/).includes(AGENT.model));
-  return offered
-    ? { name: 'Agent', passed: true, detail: `Pi with ${AGENT.provider}/${AGENT.model}` }
-    : {
-        name: 'Agent',
-        passed: false,
-        detail: `Pi's ${AGENT.provider} catalogue has no ${AGENT.model}`,
-      };
+  if (!credentials.success) return { name, passed: false, detail: 'needs OPENROUTER_API_KEY' };
+  const { model } = definition.data.settings;
+  const opened = await openModel(model, credentials.data.openRouterApiKey);
+  return opened.success
+    ? { name, passed: true, detail: `${DEFAULT_AGENT} on ${model.provider}/${model.id}` }
+    : { name, passed: false, detail: opened.error.message };
 };
 
 /**
@@ -106,7 +72,7 @@ const checkAgent = (): Check => {
  * here when it's built: the browser, the Excel session, the agent runtime.
  */
 export const doctor = async (): Promise<Result<Check[]>> => {
-  const checks = [checkNode(), checkGit(), checkCredentials(), checkAgent()];
+  const checks = [checkNode(), checkGit(), checkCredentials(), await checkAgent()];
   const failed = checks.filter((check) => !check.passed);
   if (failed.length === 0) return ok(checks);
   return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {

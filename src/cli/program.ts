@@ -4,9 +4,11 @@
  */
 import { Command, CommanderError } from '@commander-js/extra-typings';
 import { registerExcelCommands } from '../../targets/excel/index.ts';
+import { registerAgentCommands } from '../agent/index.ts';
 import { registerBrowserCommands } from '../browser/index.ts';
 import { registerBuildCommands } from '../build/index.ts';
 import { registerCaseCommands } from '../cases/index.ts';
+import { registerCloneCommands } from '../clone/index.ts';
 import { registerDoctorCommands } from '../doctor/index.ts';
 import {
   exitCodeFor,
@@ -29,10 +31,12 @@ const JSON_FLAG = '--json';
 /** Each slice's commands, in the order `--help` lists them. */
 const REGISTRATIONS: readonly RegisterCommands[] = [
   registerDoctorCommands,
+  registerAgentCommands,
   registerBuildCommands,
   registerBrowserCommands,
   registerExcelCommands,
   registerCaseCommands,
+  registerCloneCommands,
 ];
 
 /** What commander calls a bare `factory`, which prints the help to stderr. */

@@ -1,0 +1,11 @@
+{
+  "description": "Builds a replica of a product's slice from its spec and recorded cases, in a fresh workspace.",
+  "model": {
+    "provider": "openrouter",
+    "id": "deepseek/deepseek-v4.1-flash",
+    "thinking": "high"
+  },
+  "tools": ["read", "bash", "edit", "write", "grep", "ls", "check_cases"],
+  "context": ["standards/code.md"],
+  "budgetMinutes": 30
+}

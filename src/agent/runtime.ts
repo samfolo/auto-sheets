@@ -1,150 +1,199 @@
 /**
- * Runs Pi, the factory's agent, in a build workspace. Pi is a subprocess with an explicit tool
- * list, its own runtime directory and session directory, and only the environment it needs: it
- * can call the model through OpenRouter, but it never sees the Microsoft credentials. Its JSON
- * events are kept in the run's agent.jsonl with the key redacted, and each tool call is traced
- * into the run's log, next to the events from the `./factory` commands the agent runs.
+ * Runs an agent in a workspace through Pi's SDK, in the factory's own process. The factory
+ * supplies every service Pi would otherwise read from its agent directory, so the agent has no
+ * directory on disk and Pi discovers nothing on its own:
+ *
+ * - the model, with its key held in memory, never in a file or an environment variable;
+ * - the definition's system prompt, its context as Pi's context files, and its task; no
+ *   extensions, skills, prompt templates or themes;
+ * - exactly the tools the definition lists, with the factory's harness tools in place of Pi's
+ *   where they differ;
+ * - in-memory settings, and a session kept in the run's folder, where the full transcript lives.
+ *
+ * The factory traces each tool call and reply, and stops the agent when its time is up.
  */
-import { spawn } from 'node:child_process';
-import { once } from 'node:events';
-import { appendFile, readFile } from 'node:fs/promises';
+import {
+  createAgentSession,
+  createExtensionRuntime,
+  ModelRuntime,
+  type ResourceLoader,
+  SessionManager,
+  SettingsManager,
+  type ToolDefinition,
+} from '@earendil-works/pi-coding-agent';
+import { InMemoryCredentialStore } from '@earendil-works/pi-ai';
 import { join } from 'node:path';
-import { agentEventSchema, type AgentEvent } from './contract.ts';
-import { childEnvironment, PATHS, type Trace } from '../kernel/index.ts';
+import { attempt, fail, NO_TRACE, ok, type Result, type Trace } from '../kernel/index.ts';
+import type { AgentRun, AgentSettings, AgentToolName } from './contract.ts';
+import type { AgentDefinition } from './definition.ts';
+import { createBashTool, createCheckCasesTool } from './tools/index.ts';
 
-export const AGENT = {
-  /** The package's command-line entry point. */
-  cli: join(
-    PATHS.root,
-    'node_modules',
-    '@earendil-works',
-    'pi-coding-agent',
-    'dist',
-    'bundle',
-    'cli.js',
-  ),
-  provider: 'openrouter',
-  model: 'deepseek/deepseek-v4.1-flash',
-  thinking: 'medium',
-  /** Pi's built-in coding tools. Nothing else is loaded. */
-  tools: ['read', 'bash', 'edit', 'write', 'grep', 'find', 'ls'],
-  task: 'Build the clone described in SPEC.md, following the manual in your instructions. Start by reading SPEC.md.',
-} as const;
+/** Where Pi keeps the agent's session, inside the run's folder. */
+const SESSIONS_FOLDER = 'sessions';
 
-/** How a run of the agent went. */
-export interface AgentRun {
-  readonly exitCode: number | null;
-  readonly timedOut: boolean;
-  readonly toolCalls: number;
-  readonly replies: number;
-  readonly tokens: number;
-  /** Pi's own estimate, not a bill. */
-  readonly estimatedCostUsd: number;
-}
+const MINUTE_MS = 60_000;
 
-export interface AgentOptions {
+/** Where an agent works: its workspace, and the run's folder for its session and the tools' logs. */
+export interface AgentPlace {
   readonly workspace: string;
   readonly runDir: string;
-  readonly runId: string;
-  readonly logFile: string;
+}
+
+export interface AgentOptions extends AgentPlace {
   readonly apiKey: string;
   readonly minutes: number;
 }
 
-/** Only what Pi and the tools it runs need. Credentials for anything else stay out. */
-const agentEnvironment = ({ runDir, runId, logFile, apiKey }: AgentOptions) => ({
-  ...childEnvironment(),
-  OPENROUTER_API_KEY: apiKey,
-  PI_CODING_AGENT_DIR: join(runDir, 'pi'),
-  PI_OFFLINE: '1',
-  PI_TELEMETRY: '0',
-  FACTORY_RUN_ID: runId,
-  FACTORY_LOG: logFile,
+/** What an agent is given, exactly as Pi will send it. */
+export interface AgentBriefing {
+  readonly model: string;
+  readonly thinking: string;
+  readonly tools: readonly string[];
+  readonly systemPrompt: string;
+  readonly task: string;
+}
+
+/** Only what the definition supplies: Pi discovers nothing from disk. */
+const resourcesFor = (definition: AgentDefinition): ResourceLoader => ({
+  getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
+  getSkills: () => ({ skills: [], diagnostics: [] }),
+  getPrompts: () => ({ prompts: [], diagnostics: [] }),
+  getThemes: () => ({ themes: [], diagnostics: [] }),
+  getAgentsFiles: () => ({ agentsFiles: [...definition.context] }),
+  getSystemPrompt: () => definition.systemPrompt,
+  getSystemPromptSource: () => undefined,
+  getAppendSystemPrompt: () => [],
+  getAppendSystemPromptSources: () => [],
+  extendResources: () => undefined,
+  reload: async () => undefined,
 });
 
-const parseEvent = (line: string): AgentEvent | null => {
-  try {
-    const parsed = agentEventSchema.safeParse(JSON.parse(line));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
+/** The factory's tools, by the name the definition uses. Other names are Pi's built-in tools. */
+const harnessTools = (
+  { workspace, runDir }: AgentPlace,
+  trace: Trace,
+): Partial<Record<AgentToolName, ToolDefinition>> => ({
+  bash: createBashTool(workspace),
+  check_cases: createCheckCasesTool(workspace, runDir, trace),
+});
+
+/**
+ * Pi's model runtime with the key held in memory, and the model the settings name. Nothing is
+ * read from disk and nothing calls the model.
+ */
+export const openModel = async ({ provider, id }: AgentSettings['model'], apiKey: string) => {
+  const modelRuntime = await ModelRuntime.create({
+    credentials: new InMemoryCredentialStore(),
+    modelsPath: null,
+  });
+  await modelRuntime.setRuntimeApiKey(provider, apiKey);
+  const model = modelRuntime.getModel(provider, id);
+  if (model === undefined) {
+    return fail('ENVIRONMENT_NOT_READY', `Pi's catalogue has no model ${provider}/${id}.`, {
+      hint: 'Check the model in the agent’s agent.json.',
+    });
   }
+  return ok({ modelRuntime, model });
 };
 
-export const runAgent = async (options: AgentOptions, trace: Trace): Promise<AgentRun> => {
-  const manual = await readFile(join(options.workspace, 'AGENTS.md'), 'utf8');
-  const args = [
-    AGENT.cli,
-    '--offline',
-    '--mode',
-    'json',
-    '--print',
-    '--provider',
-    AGENT.provider,
-    '--model',
-    AGENT.model,
-    '--thinking',
-    AGENT.thinking,
-    // Nothing is discovered from disk: no extensions, skills, templates, themes or context
-    // files, and no project-local settings. The manual is given explicitly instead.
-    '--no-extensions',
-    '--no-skills',
-    '--no-prompt-templates',
-    '--no-themes',
-    '--no-context-files',
-    '--no-approve',
-    '--tools',
-    AGENT.tools.join(','),
-    '--session-dir',
-    join(options.runDir, 'sessions'),
-    '--append-system-prompt',
-    manual,
-    AGENT.task,
-  ];
-  const agent = spawn(process.execPath, args, {
-    cwd: options.workspace,
-    env: agentEnvironment(options),
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
+/** A Pi session for the agent, given only what its definition says. */
+const openSession = async (
+  definition: AgentDefinition,
+  place: AgentPlace,
+  apiKey: string,
+  sessionManager: SessionManager,
+  trace: Trace,
+) => {
+  const opened = await openModel(definition.settings.model, apiKey);
+  if (!opened.success) return opened;
+  const tools = harnessTools(place, trace);
+  const { session } = await createAgentSession({
+    cwd: place.workspace,
+    model: opened.data.model,
+    thinkingLevel: definition.settings.model.thinking,
+    modelRuntime: opened.data.modelRuntime,
+    resourceLoader: resourcesFor(definition),
+    settingsManager: SettingsManager.inMemory({ enableInstallTelemetry: false }),
+    sessionManager,
+    tools: [...definition.settings.tools],
+    customTools: definition.settings.tools.flatMap((name) => tools[name] ?? []),
   });
+  return ok(session);
+};
 
-  const redact = (text: string) => text.replaceAll(options.apiKey, '[REDACTED]');
-  const totals = { toolCalls: 0, replies: 0, tokens: 0, estimatedCostUsd: 0 };
-  const writes: Promise<void>[] = [];
-  const record = (line: string) => {
-    if (line.trim() === '') return;
-    writes.push(appendFile(join(options.runDir, 'agent.jsonl'), `${redact(line)}\n`));
-    const event = parseEvent(line);
-    if (event?.type === 'tool_execution_start') {
-      totals.toolCalls += 1;
-      trace('agent.tool', { tool: event.toolName ?? 'unknown' });
-    }
-    if (event?.type === 'message_end' && event.message?.role === 'assistant') {
-      totals.replies += 1;
-      totals.tokens += event.message.usage?.totalTokens ?? 0;
-      totals.estimatedCostUsd += event.message.usage?.cost?.total ?? 0;
-    }
+/**
+ * What the agent would be given in a workspace: its model, tools, task and the whole system
+ * prompt as Pi assembles it. Nothing calls the model, so it's safe to run before any build.
+ */
+export const briefAgent = async (
+  definition: AgentDefinition,
+  place: AgentPlace,
+  apiKey: string,
+): Promise<Result<AgentBriefing>> => {
+  const session = await openSession(
+    definition,
+    place,
+    apiKey,
+    SessionManager.inMemory(place.workspace),
+    NO_TRACE,
+  );
+  if (!session.success) return session;
+  const briefing = {
+    model: `${session.data.model?.provider}/${session.data.model?.id}`,
+    thinking: session.data.thinkingLevel,
+    tools: session.data.getActiveToolNames(),
+    systemPrompt: session.data.systemPrompt,
+    task: definition.task,
   };
+  session.data.dispose();
+  return ok(briefing);
+};
 
-  const pending = { stdout: '' };
-  agent.stdout.on('data', (chunk: Buffer) => {
-    const lines = `${pending.stdout}${chunk.toString()}`.split('\n');
-    pending.stdout = lines.pop() ?? '';
-    lines.forEach(record);
-  });
-  agent.stderr.on('data', (chunk: Buffer) => {
-    writes.push(appendFile(join(options.runDir, 'agent.stderr.log'), redact(chunk.toString())));
-  });
+export const runAgent = async (
+  definition: AgentDefinition,
+  options: AgentOptions,
+  trace: Trace,
+): Promise<Result<AgentRun>> => {
+  const opened = await openSession(
+    definition,
+    options,
+    options.apiKey,
+    SessionManager.create(options.workspace, join(options.runDir, SESSIONS_FOLDER)),
+    trace,
+  );
+  if (!opened.success) return opened;
+  const session = opened.data;
 
-  const state = { timedOut: false };
+  const state = { timedOut: false, error: null as string | null };
+  session.subscribe((event) => {
+    if (event.type === 'tool_execution_start') trace('agent.tool', { tool: event.toolName });
+    if (event.type === 'tool_execution_end' && event.isError) {
+      trace('agent.tool.error', { tool: event.toolName });
+    }
+    if (event.type === 'message_end' && event.message.role === 'assistant') {
+      const { stopReason, errorMessage, usage } = event.message;
+      trace('agent.reply', { stopReason, tokens: usage.totalTokens, costUsd: usage.cost.total });
+      if (stopReason === 'error') state.error = errorMessage ?? 'The model call failed.';
+    }
+  });
   const timer = setTimeout(() => {
     state.timedOut = true;
-    if (agent.pid !== undefined) process.kill(-agent.pid, 'SIGTERM');
-  }, options.minutes * 60_000);
-  const [code]: unknown[] = await once(agent, 'exit');
-  const exitCode = typeof code === 'number' ? code : null;
+    void session.abort();
+  }, options.minutes * MINUTE_MS);
+  const prompted = await attempt(
+    () => session.prompt(definition.task, { expandPromptTemplates: false }),
+    (reason) => fail('INTERNAL', `The agent stopped unexpectedly: ${reason}`),
+  );
   clearTimeout(timer);
-  record(pending.stdout);
-  await Promise.all(writes);
-  return { exitCode, timedOut: state.timedOut, ...totals };
+  const stats = session.getSessionStats();
+  session.dispose();
+  const error = prompted.success ? state.error : prompted.error.message;
+  return ok({
+    outcome: state.timedOut ? 'timedOut' : error === null ? 'finished' : 'failed',
+    error,
+    toolCalls: stats.toolCalls,
+    replies: stats.assistantMessages,
+    tokens: stats.tokens.total,
+    costUsd: stats.cost,
+  });
 };

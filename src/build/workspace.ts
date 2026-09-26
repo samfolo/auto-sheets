@@ -1,27 +1,23 @@
 /**
- * A build's workspace: a new directory outside the factory, where the agent builds a clone
- * from scratch. It gets copies of exactly what the agent needs (the spec, its operating manual,
- * the cases and the knowledge) and nothing from earlier builds. Its own Git history records the
- * agent's progress.
+ * A build's workspace: a new directory outside the factory, where the agent builds a clone from
+ * scratch. It holds the job's material: the standards' scaffold, the target's spec, the cases the
+ * agent may see and the knowledge, and nothing else from the factory or from earlier builds. (The
+ * standards themselves travel with the agent as context.) Its first commit names the factory
+ * version that made it, and its Git history records the agent's progress from there.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
-import { chmod, cp, mkdir, writeFile } from 'node:fs/promises';
-import { isAbsolute, join, relative, resolve } from 'node:path';
-import { attempt, PATHS, fail, ok, type Result } from '../kernel/index.ts';
+import { cp, mkdir } from 'node:fs/promises';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { CASE_TAGS, loadAllCases } from '../cases/index.ts';
+import { attempt, fail, ok, PATHS, readStamp, type Result } from '../kernel/index.ts';
 
-/** What a new workspace is given, and where each copy goes inside it. */
-const INPUTS = [
-  { from: PATHS.clone.spec, to: 'SPEC.md' },
-  { from: PATHS.clone.agents, to: 'AGENTS.md' },
-  { from: PATHS.excelCases, to: 'cases' },
-  { from: PATHS.excelKnowledge, to: 'knowledge' },
-] as const;
-
-/** Lets the agent run the factory's CLI from inside the workspace as `./factory`. */
-const FACTORY_WRAPPER = `#!/bin/sh\nexec node "${PATHS.cli}" "$@"\n`;
-
-const GITIGNORE = ['node_modules/', 'dist/', 'app.log', ''].join('\n');
+/** Where each input goes inside a workspace. */
+export const WORKSPACE = {
+  spec: 'SPEC.md',
+  cases: 'cases',
+  knowledge: 'knowledge',
+} as const;
 
 const isInside = (child: string, parent: string): boolean => {
   const path = relative(parent, child);
@@ -45,35 +41,49 @@ const checkLocation = (dir: string): Result<string> => {
   return ok(absolute);
 };
 
+/** The folders of the cases kept from the agent. */
+const heldOutFolders = async (): Promise<Result<string[]>> => {
+  const cases = await loadAllCases();
+  if (!cases.success) return cases;
+  return ok(
+    cases.data
+      .filter(({ definition }) => definition.tags.includes(CASE_TAGS.heldOut))
+      .map(({ definitionFile }) => dirname(definitionFile)),
+  );
+};
+
 const git = (dir: string, ...args: string[]): void => {
   execFileSync('git', args, { cwd: dir, stdio: 'ignore' });
 };
 
-/** Creates the workspace and commits its starting point. Returns its absolute path. */
+/** The first commit's message, naming the factory version that made the workspace. */
+const startingPoint = (): string => {
+  const { version, commit, dirty } = readStamp();
+  const at =
+    commit === null ? '' : ` at ${commit.slice(0, 7)}${dirty === true ? ' with changes' : ''}`;
+  return `chore: start from factory ${version}${at}`;
+};
+
+/** Creates the workspace and commits its starting point. Returns its path. */
 export const prepareWorkspace = async (dir: string): Promise<Result<string>> => {
   const location = checkLocation(dir);
   if (!location.success) return location;
   const workspace = location.data;
+  const hidden = await heldOutFolders();
+  if (!hidden.success) return hidden;
   return attempt(
     async () => {
       await mkdir(workspace, { recursive: true });
-      for (const { from, to } of INPUTS) {
-        // Copies run in order so a failure names the input that caused it.
-        // oxlint-disable-next-line no-await-in-loop
-        await cp(from, join(workspace, to), { recursive: true });
-      }
-      await writeFile(join(workspace, 'factory'), FACTORY_WRAPPER);
-      await chmod(join(workspace, 'factory'), 0o755);
-      await writeFile(join(workspace, '.gitignore'), GITIGNORE);
+      await cp(PATHS.standards.scaffold, workspace, { recursive: true });
+      await cp(PATHS.cloneSpec, join(workspace, WORKSPACE.spec));
+      await cp(PATHS.excelCases, join(workspace, WORKSPACE.cases), {
+        recursive: true,
+        filter: (source) => !hidden.data.some((folder) => isInside(source, folder)),
+      });
+      await cp(PATHS.excelKnowledge, join(workspace, WORKSPACE.knowledge), { recursive: true });
       git(workspace, 'init', '--quiet');
       git(workspace, 'add', '--all');
-      git(
-        workspace,
-        'commit',
-        '--quiet',
-        '--message',
-        'chore: start from the factory’s spec, cases and knowledge',
-      );
+      git(workspace, 'commit', '--quiet', '--message', startingPoint());
       return workspace;
     },
     (reason) =>

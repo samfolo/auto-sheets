@@ -1,116 +1,50 @@
 /**
- * `factory build`: one attempt by the agent to build a clone from scratch, and the factory's own
- * verdict on it. The run gets an id and a folder under artifacts/runs/; the workspace is created
- * outside the factory; the agent works in it until it stops or runs out of time; and then the
- * factory starts the clone itself and runs every recorded case against it. The summary records
- * which factory version produced the run, so runs can be compared as the factory improves.
+ * `factory build`: one attempt by an agent to build a clone from scratch, and the factory's own
+ * verdict on it. The run gets an id, which is its start time, and a folder under artifacts/runs/
+ * for its log, the agent's session and the summary. The workspace is created outside the
+ * factory, named by the same id unless another directory is given. The agent works until it
+ * stops or runs out of time; then the factory starts the clone itself and runs every recorded
+ * case on it, including the held-out cases the agent never saw. The summary records the factory
+ * version and the agent's model, so runs can be compared as either changes.
  */
-import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { setTimeout as sleep } from 'node:timers/promises';
-import { judgeClone, type Verdict } from '../cases/index.ts';
-import { buildOptionsSchema } from './contract.ts';
+import { loadAgentDefinition, runAgent, type AgentRun } from '../agent/index.ts';
+import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
-  childEnvironment,
-  readCredentials,
-  validate,
-  PATHS,
+  displayPath,
   ok,
-  type Result,
+  openTelemetry,
+  PATHS,
+  readCredentials,
   readStamp,
-  type FactoryStamp,
+  type Result,
   type Trace,
+  validate,
+  writeJsonFile,
 } from '../kernel/index.ts';
-import { AGENT, runAgent, type AgentRun } from '../agent/index.ts';
+import { buildOptionsSchema, type BuildSummary, type FinalCheck } from './contract.ts';
 import { prepareWorkspace } from './workspace.ts';
 
-export const BUILD = {
-  /** Where the factory runs the finished clone for the final check, away from the agent's port. */
-  verifyPort: 4399,
-  /** How long the finished clone has to answer its health check. */
-  startupMs: 60_000,
-  pollMs: 500,
+/** What each run's folder holds. */
+export const RUN_FILES = {
+  /** Every event from the run: the agent's tool calls, its scores, and the driver's actions. */
+  log: 'events.jsonl',
+  /** The clone's output during the final check. */
+  appLog: 'app.log',
+  summary: 'summary.json',
 } as const;
 
-/** The factory's check of the finished clone. */
-export interface FinalCheck {
-  readonly passed: number;
-  readonly failed: number;
-  readonly verdicts: readonly Verdict[];
-  /** Why the check couldn't run, such as the clone not starting. */
-  readonly problem: string | null;
-}
-
-export interface BuildSummary {
-  readonly runId: string;
-  readonly factory: FactoryStamp;
-  readonly model: string;
-  readonly workspace: string;
-  readonly startedAt: string;
-  readonly finishedAt: string;
-  readonly agent: AgentRun;
-  readonly check: FinalCheck;
-}
-
+/** A run's id: when it started, in a form that sorts and is safe in a path. */
 const newRunId = (): string => new Date().toISOString().replaceAll(/[:.]/g, '-');
 
-const waitForHealth = async (url: string, deadline: number): Promise<boolean> => {
-  const healthy = await fetch(new URL('/api/health', url)).then(
-    (response) => response.ok,
-    () => false,
+const finalCheck = async (workspace: string, runDir: string, trace: Trace): Promise<FinalCheck> => {
+  const verdicts = await checkClone(
+    workspace,
+    { ids: [], logFile: join(runDir, RUN_FILES.appLog) },
+    trace,
   );
-  if (healthy || performance.now() >= deadline) return healthy;
-  await sleep(BUILD.pollMs);
-  return waitForHealth(url, deadline);
-};
-
-const stop = (app: ChildProcess): void => {
-  if (app.pid !== undefined && app.exitCode === null) process.kill(-app.pid, 'SIGTERM');
-};
-
-/** A final check that couldn't run, and why. */
-const uncheckable = (problem: string): FinalCheck => ({
-  passed: 0,
-  failed: 0,
-  verdicts: [],
-  problem,
-});
-
-/** Starts the finished clone with `npm start`, runs every recorded case on it, and stops it. */
-const checkClone = async (workspace: string, runDir: string, trace: Trace): Promise<FinalCheck> => {
-  if (!existsSync(join(workspace, 'package.json')))
-    return uncheckable('The workspace has no package.json.');
-  const url = `http://localhost:${BUILD.verifyPort}`;
-  const log = join(runDir, 'app.log');
-  const app = spawn('npm', ['start'], {
-    cwd: workspace,
-    env: { ...childEnvironment(), PORT: String(BUILD.verifyPort) },
-    stdio: ['ignore', 'pipe', 'pipe'],
-    detached: true,
-  });
-  const output: Promise<void>[] = [];
-  const keep = (chunk: Buffer) => output.push(writeFile(log, chunk, { flag: 'a' }));
-  app.stdout.on('data', keep);
-  app.stderr.on('data', keep);
-  try {
-    if (!(await waitForHealth(url, performance.now() + BUILD.startupMs))) {
-      return uncheckable(`The clone did not answer at ${url} within a minute; see ${log}.`);
-    }
-    const verdicts = await judgeClone({ url, ids: [], headed: false }, trace);
-    if (!verdicts.success) return uncheckable(verdicts.error.message);
-    const passed = verdicts.data.filter((verdict) => verdict.passed).length;
-    return {
-      passed,
-      failed: verdicts.data.length - passed,
-      verdicts: verdicts.data,
-      problem: null,
-    };
-  } finally {
-    stop(app);
-    await Promise.all(output);
-  }
+  if (!verdicts.success) return { score: null, verdicts: [], problem: verdicts.error.message };
+  return { score: scoreClone(verdicts.data), verdicts: verdicts.data, problem: null };
 };
 
 export const build = async (
@@ -119,52 +53,66 @@ export const build = async (
 ): Promise<Result<BuildSummary>> => {
   const options = validate(buildOptionsSchema, request, 'the build options');
   if (!options.success) return options;
-  const { out, minutes } = options.data;
+  const definition = await loadAgentDefinition(options.data.agent);
+  if (!definition.success) return definition;
   const credentials = readCredentials();
   if (!credentials.success) return credentials;
-  const workspace = await prepareWorkspace(out);
-  if (!workspace.success) return workspace;
 
   const runId = newRunId();
+  const workspace = await prepareWorkspace(options.data.out ?? join(PATHS.builds, runId));
+  if (!workspace.success) return workspace;
   const runDir = join(PATHS.runs, runId);
-  await mkdir(runDir, { recursive: true });
+  const runTrace = openTelemetry({ logFile: join(runDir, RUN_FILES.log), runId }).trace;
+  const { name, settings } = definition.data;
+  const agent = {
+    name,
+    model: `${settings.model.provider}/${settings.model.id}`,
+    thinking: settings.model.thinking,
+  };
+  const minutes = options.data.minutes ?? settings.budgetMinutes;
   const startedAt = new Date().toISOString();
-  trace('build.start', { runId, workspace: workspace.data, model: AGENT.model, minutes });
+  trace('build.start', { runId, workspace: workspace.data, ...agent, minutes });
 
-  const agent = await runAgent(
-    {
-      workspace: workspace.data,
-      runDir,
-      runId,
-      logFile: join(runDir, 'events.jsonl'),
-      apiKey: credentials.data.openRouterApiKey,
-      minutes,
-    },
-    trace,
+  const run = await runAgent(
+    definition.data,
+    { workspace: workspace.data, runDir, apiKey: credentials.data.openRouterApiKey, minutes },
+    runTrace,
   );
-  trace('build.agent', { runId, ...agent });
-  const check = await checkClone(workspace.data, runDir, trace);
+  if (!run.success) return run;
+  trace('build.agent', { runId, ...run.data });
+  const check = await finalCheck(workspace.data, runDir, runTrace);
 
   const summary: BuildSummary = {
     runId,
     factory: readStamp(),
-    model: AGENT.model,
+    agent,
     workspace: workspace.data,
     startedAt,
     finishedAt: new Date().toISOString(),
-    agent,
+    run: run.data,
     check,
   };
-  await writeFile(join(runDir, 'summary.json'), `${JSON.stringify(summary, null, 2)}\n`);
-  trace('build.end', { runId, passed: check.passed, failed: check.failed, problem: check.problem });
+  const written = await writeJsonFile(join(runDir, RUN_FILES.summary), summary);
+  if (!written.success) return written;
+  trace('build.end', { runId, score: check.score, problem: check.problem });
   return ok(summary);
 };
 
-export const renderBuild = ({ runId, workspace, agent, check }: BuildSummary): string =>
+const formatTally = ({ passed, total }: Tally): string => `${passed} of ${total}`;
+
+const OUTCOMES: Readonly<Record<AgentRun['outcome'], string>> = {
+  finished: 'finished',
+  timedOut: 'stopped at its time limit',
+  failed: 'failed',
+};
+
+export const renderBuild = ({ runId, workspace, agent, run, check }: BuildSummary): string =>
   [
-    `Run ${runId}: workspace ${workspace}`,
-    `Agent: ${agent.toolCalls} tool calls, ${agent.replies} replies, about $${agent.estimatedCostUsd.toFixed(2)}${agent.timedOut ? ', stopped at the time limit' : ''}.`,
-    check.problem === null
-      ? `Clone: ${check.passed} of ${check.passed + check.failed} cases match Excel.`
-      : `Clone: not checked. ${check.problem}`,
+    `Run ${runId}`,
+    `Workspace: ${workspace}`,
+    `Agent: ${agent.name} on ${agent.model} ${OUTCOMES[run.outcome]}${run.error === null ? '' : ` (${run.error})`} after ${run.toolCalls} tool calls and ${run.replies} replies, for about $${run.costUsd.toFixed(2)}.`,
+    check.score === null
+      ? `Clone: not checked. ${check.problem}`
+      : `Clone: ${formatTally(check.score.seen)} seen cases, ${formatTally(check.score.heldOut)} held-out cases and ${formatTally(check.score.golden)} golden cases match Excel.`,
+    `Details: ${displayPath(join(PATHS.runs, runId, RUN_FILES.summary))}`,
   ].join('\n');

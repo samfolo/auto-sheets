@@ -42,11 +42,22 @@ export const PATHS = {
   excelCases: join(root, 'targets', 'excel', 'cases'),
   /** What was learned about Excel while recording. */
   excelKnowledge: join(root, 'targets', 'excel', 'knowledge'),
-  /** What a clone must provide, and the manual its builder works from. */
-  clone: {
-    spec: join(root, 'targets', 'excel', 'clone', 'spec.md'),
-    agents: join(root, 'targets', 'excel', 'clone', 'AGENTS.md'),
+  /** What a clone of Excel must provide: the brief a build's workspace starts with. */
+  cloneSpec: join(root, 'targets', 'excel', 'clone', 'spec.md'),
+  /** Agent definitions: each folder holds one agent's settings and prompts. */
+  agents: join(root, 'agents'),
+  /** What good work looks like, for every agent and target. */
+  standards: {
+    /** The judgement that tooling can't enforce, given to agents as context. */
+    code: join(root, 'standards', 'code.md'),
+    /** What tooling can enforce: the configuration every workspace starts with. */
+    scaffold: join(root, 'standards', 'scaffold'),
   },
   /** One folder per build: the agent's events, its sessions and the summary. Gitignored. */
   runs: join(artifacts, 'runs'),
+  /**
+   * Where build workspaces go by default: beside the factory, never inside it, so an agent
+   * can't see the factory's files.
+   */
+  builds: join(root, '..', `${packageJson.name}-builds`),
 } as const;
