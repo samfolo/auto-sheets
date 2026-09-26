@@ -1,0 +1,71 @@
+import { readEnvironment } from '../contracts/environment.ts';
+import { fail, ok, type Result } from '../core/result.ts';
+import { readStamp } from '../core/stamp.ts';
+
+/** One prerequisite, and whether it's in place. */
+export interface Check {
+  readonly name: string;
+  readonly passed: boolean;
+  /** What was found, or what's wrong. */
+  readonly detail: string;
+}
+
+/** Node runs the factory's TypeScript directly, which needs type stripping. */
+const minimumNodeMajor = 24;
+
+/**
+ * Checks everything the factory needs before it runs. Each stage adds its own check
+ * here when it's built: the browser, the Excel session, the agent runtime.
+ */
+export async function doctor(): Promise<Result<Check[]>> {
+  const checks = [checkNode(), checkGit(), checkEnvironment()];
+  const failed = checks.filter((check) => !check.passed);
+  if (failed.length === 0) return ok(checks);
+  return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {
+    details: checks.map(formatCheck),
+    hint: 'Fix the failed checks, then run `factory doctor` again.',
+  });
+}
+
+export function renderChecks(checks: readonly Check[]): string {
+  return checks.map(formatCheck).join('\n');
+}
+
+function formatCheck(check: Check): string {
+  return `${check.passed ? '✔' : '✖'} ${check.name}: ${check.detail}`;
+}
+
+function checkNode(): Check {
+  const version = process.versions.node;
+  const passed = Number(version.split('.')[0]) >= minimumNodeMajor;
+  return {
+    name: 'Node.js',
+    passed,
+    detail: passed ? version : `found ${version}; need ${minimumNodeMajor} or later`,
+  };
+}
+
+function checkGit(): Check {
+  const { commit, dirty } = readStamp();
+  if (commit === null) {
+    return {
+      name: 'Git',
+      passed: false,
+      detail: 'not a Git checkout with a commit, so runs cannot be matched to a factory version',
+    };
+  }
+  return {
+    name: 'Git',
+    passed: true,
+    detail: `${commit.slice(0, 7)}${dirty ? ' with uncommitted changes' : ''}`,
+  };
+}
+
+function checkEnvironment(): Check {
+  const environment = readEnvironment();
+  if (environment.success) {
+    return { name: 'Environment', passed: true, detail: 'all required settings are present' };
+  }
+  const { details = [], message } = environment.error;
+  return { name: 'Environment', passed: false, detail: details.join('; ') || message };
+}
