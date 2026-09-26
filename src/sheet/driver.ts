@@ -135,9 +135,17 @@ export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => 
     grid: null,
   };
 
-  /** The grid's geometry, measured once: every sheet a target opens is laid out alike. */
+  /**
+   * The grid's geometry, measured once: every sheet a target opens is laid out alike. Measuring
+   * clicks cells, so the active cell is put back afterwards; otherwise a case's first run would
+   * start from wherever the measuring stopped, and its second from a new sheet's A1.
+   */
   const gridOf = async (surface: Surface): Promise<GridGeometry> => {
-    state.grid ??= await measureGrid(surface);
+    if (state.grid === null) {
+      const active = await surface.frame.locator(surface.selectors.nameBox).inputValue();
+      state.grid = await measureGrid(surface);
+      await select(surface, active);
+    }
     if (state.grid === null) throw new Error('Could not find the grid to measure it.');
     trace('sheet.grid', { target: target.name, ...state.grid });
     return state.grid;

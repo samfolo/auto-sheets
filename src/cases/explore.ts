@@ -101,7 +101,11 @@ export const exploreCases = async (
     if (!written.success) return written;
     // oxlint-disable-next-line no-await-in-loop
     const recording = await recordCase(id, trace);
-    trace('case.explored', { id, recorded: recording.success });
+    trace('case.explored', {
+      id,
+      recorded: recording.success,
+      differences: recording.success ? [] : (recording.error.details ?? [recording.error.message]),
+    });
     if (recording.success) found.recorded.push(id);
     else {
       found.discarded.push(id);
