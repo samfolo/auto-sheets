@@ -14,7 +14,7 @@ import type {
   PointerStep,
   SelectionObservation,
 } from './contract.ts';
-import { measureGrid, point, type GridGeometry } from './pointer.ts';
+import { measureGrid, pointAndWait, type GridGeometry } from './pointer.ts';
 import {
   displayPath,
   attempt,
@@ -191,7 +191,7 @@ export const createSheetDriver = (target: SheetTarget, trace: Trace): Driver => 
     perform: (step) =>
       act(formatStep(step), async (surface) =>
         isPointerStep(step)
-          ? point(surface, await gridOf(surface), step)
+          ? pointAndWait(surface, await gridOf(surface), step)
           : performStep(surface, step, trace),
       ),
 

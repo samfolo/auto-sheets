@@ -187,12 +187,47 @@ const drag = async (surface: Surface, from: Point, to: Point): Promise<void> => 
   await mouse.up();
 };
 
-/** Does one pointer step on a measured grid. */
-export const point = async (
+/** What the sheet says about the selection: the Name Box and the readout together. */
+const selectionText = async ({ frame, selectors }: Surface): Promise<string> =>
+  `${await frame.locator(selectors.nameBox).inputValue()} | ${
+    (await frame.locator(selectors.readout).first().getAttribute('aria-label')) ?? ''
+  }`;
+
+/**
+ * Waits until the selection has changed from `before` and then held still for the sheet's settle
+ * time, or until the step's time is up. Excel updates the Name Box before the readout, so the
+ * first change isn't the end of it.
+ */
+const waitUntilSettled = async (surface: Surface, before: string): Promise<void> => {
+  const { actionMs, pollMs, settleMs } = surface.timing;
+  const deadline = performance.now() + actionMs;
+  const watch = async (last: string, stillSince: number): Promise<void> => {
+    await surface.page.waitForTimeout(pollMs);
+    const now = await selectionText(surface);
+    const time = performance.now();
+    const settled = now !== before && now === last && time - stillSince >= settleMs;
+    if (settled || time >= deadline) return;
+    return watch(now, now === last ? stillSince : time);
+  };
+  return watch(before, performance.now());
+};
+
+/**
+ * Does one pointer step, then waits for the sheet to show its effect, so the next step sees what
+ * a person would. A step that leaves the selection as it was waits out its time.
+ */
+export const pointAndWait = async (
   surface: Surface,
   grid: GridGeometry,
   step: PointerStep,
 ): Promise<void> => {
+  const before = await selectionText(surface);
+  await point(surface, grid, step);
+  await waitUntilSettled(surface, before);
+};
+
+/** Does one pointer step on a measured grid. */
+const point = async (surface: Surface, grid: GridGeometry, step: PointerStep): Promise<void> => {
   const { mouse } = surface.page;
   switch (step.do) {
     case 'click': {
