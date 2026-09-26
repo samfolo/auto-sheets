@@ -33,6 +33,10 @@ export const ERROR_CODES = {
   FILE_UNREADABLE: 'invalidInput',
   /** A file could not be written. */
   FILE_UNWRITABLE: 'environment',
+  /** No case exists with the given id. */
+  CASE_NOT_FOUND: 'invalidInput',
+  /** Two recordings of the same case disagreed, so neither is trusted as a reference. */
+  REFERENCE_UNSTABLE: 'failed',
   /** A prerequisite checked by `factory doctor` is missing or invalid. */
   ENVIRONMENT_NOT_READY: 'environment',
   /** A command needs the browser session, and none is running. */
