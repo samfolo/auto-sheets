@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-09-26T19:08:06.228Z",
+  "recordedAt": "2026-09-26T23:03:10.118Z",
   "environment": "Excel for the web (en-US regional format)",
   "checkpoints": [
     {
@@ -8,7 +8,8 @@
       "selection": {
         "active": "C3",
         "range": "C3:E6",
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -17,7 +18,8 @@
       "selection": {
         "active": "B1",
         "range": "B:D",
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -26,7 +28,8 @@
       "selection": {
         "active": "A2",
         "range": "2:4",
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     }
   ]

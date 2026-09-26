@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-09-26T20:56:42.787Z",
+  "recordedAt": "2026-09-26T23:07:49.281Z",
   "environment": "Excel for the web (en-US regional format)",
   "checkpoints": [
     {
@@ -8,7 +8,8 @@
       "selection": {
         "active": "L6",
         "range": "B5:L6",
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -21,7 +22,8 @@
           "B5:L6",
           "B:B"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -35,7 +37,8 @@
           "B:B",
           "L:L"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -50,7 +53,8 @@
           "L:L",
           "G1"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -63,7 +67,8 @@
           "B5:C6",
           "B:B"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -77,7 +82,8 @@
           "B:B",
           "8:8"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -92,7 +98,8 @@
           "8:8",
           "J:J"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -108,7 +115,8 @@
           "J:J",
           "M4"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -125,7 +133,8 @@
           "M4",
           "E6:L16"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -143,7 +152,8 @@
           "E6:L16",
           "I4:N12"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -160,7 +170,8 @@
           "F6:L16",
           "I4:N12"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -178,7 +189,8 @@
           "I4:N12",
           "7:18"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -197,7 +209,8 @@
           "7:18",
           "18:20"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -217,7 +230,8 @@
           "K18:XFD20",
           "A18:A20"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     }
   ]

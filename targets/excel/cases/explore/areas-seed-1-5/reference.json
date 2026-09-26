@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-09-26T20:57:29.136Z",
+  "recordedAt": "2026-09-26T23:06:59.892Z",
   "environment": "Excel for the web (en-US regional format)",
   "checkpoints": [
     {
@@ -8,7 +8,8 @@
       "selection": {
         "active": "A5",
         "range": "A5:F8",
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -21,7 +22,8 @@
           "A5:F8",
           "6:14"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -35,7 +37,8 @@
           "6:14",
           "5:5"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -50,7 +53,8 @@
           "5:5",
           "M:M"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -66,7 +70,8 @@
           "M:M",
           "F:N"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -83,7 +88,8 @@
           "A5:B5",
           "N:N"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -101,7 +107,8 @@
           "N:N",
           "B:L"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -120,7 +127,8 @@
           "K:L",
           "B:I"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -140,7 +148,8 @@
           "B:I",
           "4:4"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -164,7 +173,8 @@
           "D4:XFD4",
           "A4:B4"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -191,7 +201,8 @@
           "D4:XFD4",
           "A4:B4"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -223,7 +234,8 @@
           "H4:XFD4",
           "A4:B4"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -256,7 +268,8 @@
           "A4:B4",
           "A10"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     },
     {
@@ -290,7 +303,8 @@
           "A10",
           "A:I"
         ],
-        "editing": false
+        "editing": false,
+        "formulaBar": ""
       }
     }
   ]
