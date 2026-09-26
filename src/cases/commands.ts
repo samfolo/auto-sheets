@@ -4,9 +4,10 @@
  */
 import type { CommandRegistry } from '../cli/index.ts';
 import { PROJECT, fail, ok, type Result, type Trace } from '../kernel/index.ts';
-import { judgeClone, type Verdict, type VerifyOptions } from './judge.ts';
+import type { Verdict } from './contract.ts';
+import { judgeClone, type VerifyOptions } from './judge.ts';
 import { recordCase, renderRecording } from './record.ts';
-import { listCaseIds, loadCase, type LoadedCase } from './repository.ts';
+import { loadAllCases } from './repository.ts';
 
 /** One line of `case list`. */
 export interface CaseSummary {
@@ -17,22 +18,8 @@ export interface CaseSummary {
   readonly recorded: boolean;
 }
 
-/** Loads every case, reporting every invalid one rather than stopping at the first. */
-const loadAll = async (): Promise<Result<LoadedCase[]>> => {
-  const loaded = await Promise.all((await listCaseIds()).map((id) => loadCase(id)));
-  const failures = loaded.filter((result) => !result.success);
-  if (failures.length > 0) {
-    return fail('CONTRACT_VIOLATION', `${failures.length} of ${loaded.length} cases are invalid.`, {
-      details: failures.flatMap((failure) =>
-        failure.success ? [] : [failure.error.message, ...(failure.error.details ?? [])],
-      ),
-    });
-  }
-  return ok(loaded.flatMap((result) => (result.success ? [result.data] : [])));
-};
-
 export const listCases = async (): Promise<Result<CaseSummary[]>> => {
-  const loaded = await loadAll();
+  const loaded = await loadAllCases();
   if (!loaded.success) return loaded;
   return ok(
     loaded.data.map(({ id, definition, recorded }) => ({
@@ -58,6 +45,19 @@ export const renderCases = (cases: readonly CaseSummary[]): string =>
         )
         .join('\n');
 
+/** Verdicts as a command's outcome: a failure, with every difference, if any case differs. */
+export const reportVerdicts = (verdicts: Verdict[], hint: string): Result<Verdict[]> => {
+  const failed = verdicts.filter((verdict) => !verdict.passed);
+  if (failed.length === 0) return ok(verdicts);
+  return fail('CASES_FAILED', `${failed.length} of ${verdicts.length} cases differ from Excel.`, {
+    details: failed.flatMap(({ id, problems }) => [
+      `✖ ${id}`,
+      ...problems.map((problem) => `    ${problem}`),
+    ]),
+    hint,
+  });
+};
+
 /** The `case verify` command: fails, with every difference, if any case differs from Excel. */
 export const verifyClone = async (
   options: VerifyOptions,
@@ -65,18 +65,9 @@ export const verifyClone = async (
 ): Promise<Result<Verdict[]>> => {
   const verdicts = await judgeClone(options, trace);
   if (!verdicts.success) return verdicts;
-  const failed = verdicts.data.filter((verdict) => !verdict.passed);
-  if (failed.length === 0) return verdicts;
-  return fail(
-    'CASES_FAILED',
-    `${failed.length} of ${verdicts.data.length} cases differ from Excel.`,
-    {
-      details: failed.flatMap(({ id, problems }) => [
-        `✖ ${id}`,
-        ...problems.map((problem) => `    ${problem}`),
-      ]),
-      hint: `Run one case with \`${PROJECT.cli} case verify <id> --url ${options.url} --headed\` to watch it.`,
-    },
+  return reportVerdicts(
+    verdicts.data,
+    `Run one case with \`${PROJECT.cli} case verify <id> --url ${options.url} --headed\` to watch it.`,
   );
 };
 

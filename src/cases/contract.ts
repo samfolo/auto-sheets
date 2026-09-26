@@ -41,6 +41,11 @@ export type Reference = z.output<typeof referenceSchema>;
 export const CASE_TAGS = {
   /** The end-to-end walkthrough that must pass identically on Excel and on the clone. */
   golden: 'golden',
+  /**
+   * Kept from the agent that builds a clone, so the final check can tell whether it learned the
+   * rules or fitted the cases it saw. Held-out cases test rules the other cases also show.
+   */
+  heldOut: 'held-out',
 } as const;
 
 export const caseSchema = z
@@ -52,7 +57,9 @@ export const caseSchema = z
     tags: z
       .array(z.enum(Object.values(CASE_TAGS)))
       .default([])
-      .meta({ description: 'Labels that cut across areas, such as "golden". See CASE_TAGS.' }),
+      .meta({
+        description: 'Labels that cut across areas, such as "golden" or "held-out". See CASE_TAGS.',
+      }),
     steps: z
       .array(stepSchema)
       .min(1)
@@ -70,3 +77,20 @@ export const caseSchema = z
   });
 
 export type Case = z.output<typeof caseSchema>;
+
+export const verdictSchema = z
+  .strictObject({
+    id: z.string().meta({ description: 'The case’s id.' }),
+    tags: z.array(z.string()).meta({
+      description: 'The case’s tags, so verdicts can be counted by kind, such as held-out.',
+    }),
+    passed: z
+      .boolean()
+      .meta({ description: 'Whether the clone matched Excel at every checkpoint.' }),
+    problems: z.array(z.string()).meta({
+      description: 'Each difference from Excel, or the reason the case couldn’t run.',
+    }),
+  })
+  .meta({ description: 'How one case went on a clone.' });
+
+export type Verdict = z.output<typeof verdictSchema>;

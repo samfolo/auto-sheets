@@ -6,25 +6,19 @@
 import { cloneTarget, CLONE } from '../../targets/excel/index.ts';
 import { withFreshBrowser } from '../browser/index.ts';
 import { compareTrajectories, formatDifference } from './compare.ts';
-import { listCaseIds, loadCase, readReference, type LoadedCase } from './repository.ts';
+import { loadAllCases, loadCase, readReference, type LoadedCase } from './repository.ts';
 import { runSteps } from './run.ts';
-import type { Checkpoint, Reference } from './contract.ts';
+import type { Checkpoint, Reference, Verdict } from './contract.ts';
 import { attempt, fail, ok, type Result, type Trace } from '../kernel/index.ts';
 import { createSheetDriver } from '../sheet/index.ts';
-
-/** How one case went on the clone. */
-export interface Verdict {
-  readonly id: string;
-  readonly passed: boolean;
-  /** Each difference from Excel, or the reason the case couldn't run. */
-  readonly problems: readonly string[];
-}
 
 export interface VerifyOptions {
   /** Where the clone is running. */
   readonly url: string;
   /** The cases to run; every recorded case when empty. */
   readonly ids: readonly string[];
+  /** Leaves out cases with any of these tags, such as held-out cases while an agent works. */
+  readonly withoutTags?: readonly string[];
   /** Show the browser window while the cases run. */
   readonly headed: boolean;
 }
@@ -46,12 +40,26 @@ const checkRunning = async (url: string): Promise<Result<Response>> =>
       }),
   );
 
-const recordedCases = async (ids: readonly string[]): Promise<Result<LoadedCase[]>> => {
-  const loaded = await Promise.all((ids.length > 0 ? ids : await listCaseIds()).map(loadCase));
+const loadCases = async (ids: readonly string[]): Promise<Result<LoadedCase[]>> => {
+  if (ids.length === 0) return loadAllCases();
+  const loaded = await Promise.all(ids.map(loadCase));
   const failure = loaded.find((result) => !result.success);
   if (failure !== undefined && !failure.success) return failure;
+  return ok(loaded.flatMap((result) => (result.success ? [result.data] : [])));
+};
+
+/** The recorded cases to run: the ones asked for, or every one, less any with an excluded tag. */
+export const selectCases = async ({
+  ids,
+  withoutTags = [],
+}: Pick<VerifyOptions, 'ids' | 'withoutTags'>): Promise<Result<LoadedCase[]>> => {
+  const loaded = await loadCases(ids);
+  if (!loaded.success) return loaded;
   return ok(
-    loaded.flatMap((result) => (result.success && result.data.recorded ? [result.data] : [])),
+    loaded.data.filter(
+      ({ recorded, definition }) =>
+        recorded && !definition.tags.some((tag) => withoutTags.includes(tag)),
+    ),
   );
 };
 
@@ -60,12 +68,12 @@ const recordedCases = async (ids: readonly string[]): Promise<Result<LoadedCase[
  * check itself are failures here; a case that differs from Excel is a verdict.
  */
 export const judgeClone = async (
-  { url, ids, headed }: VerifyOptions,
+  { url, headed, ...selection }: VerifyOptions,
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
   const running = await checkRunning(url);
   if (!running.success) return running;
-  const cases = await recordedCases(ids);
+  const cases = await selectCases(selection);
   if (!cases.success) return cases;
 
   return withFreshBrowser(
@@ -80,7 +88,12 @@ export const judgeClone = async (
         const actual = await runSteps(driver, loaded.definition.steps, loaded.seedFile);
         const problems = problemsWith(reference, actual);
         trace('case.verdict', { id: loaded.id, passed: problems.length === 0, problems });
-        results.push({ id: loaded.id, passed: problems.length === 0, problems });
+        results.push({
+          id: loaded.id,
+          tags: loaded.definition.tags,
+          passed: problems.length === 0,
+          problems,
+        });
       }
       return ok(results);
     },

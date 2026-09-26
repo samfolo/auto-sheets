@@ -79,6 +79,20 @@ export const loadCase = async (id: string): Promise<Result<LoadedCase>> => {
   });
 };
 
+/** Loads every case, reporting every invalid one rather than stopping at the first. */
+export const loadAllCases = async (): Promise<Result<LoadedCase[]>> => {
+  const loaded = await Promise.all((await listCaseIds()).map((id) => loadCase(id)));
+  const failures = loaded.filter((result) => !result.success);
+  if (failures.length > 0) {
+    return fail('CONTRACT_VIOLATION', `${failures.length} of ${loaded.length} cases are invalid.`, {
+      details: failures.flatMap((failure) =>
+        failure.success ? [] : [failure.error.message, ...(failure.error.details ?? [])],
+      ),
+    });
+  }
+  return ok(loaded.flatMap((result) => (result.success ? [result.data] : [])));
+};
+
 export const readReference = (loaded: LoadedCase): Promise<Result<Reference>> =>
   readJsonFile(loaded.referenceFile, referenceSchema);
 

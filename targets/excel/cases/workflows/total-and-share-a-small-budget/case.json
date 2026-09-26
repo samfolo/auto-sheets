@@ -1,5 +1,6 @@
 {
   "description": "A budget totals its costs, shares filled down against an absolute total update together, text in a cost breaks only its own share, and undo repairs it.",
+  "tags": ["held-out"],
   "steps": [
     {
       "do": "enter",

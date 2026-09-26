@@ -1,5 +1,6 @@
 {
   "description": "Formulas that refer forward to later cells are calculated in dependency order, and the whole chain updates when its input changes.",
+  "tags": ["held-out"],
   "steps": [
     {
       "do": "enter",
