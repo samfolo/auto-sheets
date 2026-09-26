@@ -1,3 +1,4 @@
+import { stripVTControlCharacters } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { render } from './render.ts';
 import { fail, ok } from './result.ts';
@@ -37,7 +38,9 @@ describe('render', () => {
       details: ['OPENROUTER_API_KEY is not set'],
       hint: 'Set it in .env.',
     });
-    expect(render(failure, false, unused)).toEqual({
+    const rendered = render(failure, false, unused);
+    // Colour depends on the terminal; the content is what's under test.
+    expect({ ...rendered, stderr: stripVTControlCharacters(rendered.stderr) }).toEqual({
       stdout: '',
       stderr: [
         '✖ ENVIRONMENT_NOT_READY Settings are missing.',
