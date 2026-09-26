@@ -7,6 +7,9 @@ This repository is the factory. Clones are built elsewhere. Landed decisions are
 - `npx factory --help` lists the CLI's commands. `npx factory doctor` checks prerequisites.
 - `npm run check` type-checks, lints, checks formatting and runs the tests. Run it before every commit.
 - `npm run format` formats everything with Prettier.
+- `npx factory browser start` launches the long-lived browser session that the Excel and case commands attach to. `npx factory browser inspect` lists the controls on the current page and saves a screenshot.
+- `npx factory excel open | enter <cell> <text> | observe <cells...> | undo | redo` drive Excel one step at a time. `npx factory excel sign-in` signs the session in (the account is passwordless; a person supplies the emailed code with `--code`).
+- `npx factory case list` lists cases; `npx factory case record <id>` records one against Excel. Cases and their layout are explained in `targets/README.md`.
 
 ## Conventions
 

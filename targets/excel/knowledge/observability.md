@@ -32,7 +32,7 @@ The display is the text shown in the cell. The readout doesn't say whether a val
 
 ## Entering content
 
-- Typing into the grid straight after navigating sometimes drops keystrokes. Entering through the formula bar (click it, type, press Enter) worked 12 times out of 12, at about 0.8 seconds per entry.
+- Typing into the grid straight after navigating sometimes drops keystrokes. Entering through the formula bar (click it, type, press Enter) worked 12 times out of 12, at about 0.8 seconds per entry, but every one of those cells was empty. Later the same day, overwriting a cell that already had content through the formula bar failed reliably: the old value stayed, although the formula bar showed the new text and the selection moved. Selecting the cell and typing into it, which replaces its content, overwrote correctly 5 times out of 5. While a cell is being edited, the grid's keyboard element holds the typed text (spaces as U+00A0), so it can be checked before pressing Enter.
 - Undo and redo are Cmd+Z and Cmd+Y (`ControlOrMeta` in Playwright) with the grid focused. Both restored the raw content and the recalculated dependants.
 - An edit followed by a read takes about 1.4 seconds.
 
@@ -56,5 +56,14 @@ The display is the text shown in the cell. The readout doesn't say whether a val
 | `="a"&1`   | `="a"&1`       | `a1`       |
 
 - An invalid formula such as `=1+` is accepted with no dialog. It's stored as typed, drawn with a red dashed border, and the readout says the formula contains an error.
-- `=SUM(1,2` was once silently completed to `=SUM(1,2)` (showing 3), and once left the cell empty. Unresolved.
+- `=SUM(1,2` was completed to `=SUM(1,2)` (showing 3) on later tries. The one time it left the cell empty was probably the dropped entry described below.
 - Under automation, the same input doesn't always produce the same result. A recorder must detect its own failures rather than trust a single run.
+
+## Opening a new workbook
+
+Observed 26 September 2026, later the same day.
+
+- "Create blank workbook" first opens the workbook in a temporary editor. A few seconds later Excel saves it to OneDrive, moves the page to `/open/onedrive/?docId=…`, and starts a new editor. Anything typed into the first editor is lost.
+- Even after the page moves, the new editor keeps loading helper frames for a few more seconds; the clipboard frame (`shared.officeapps.live.com/clipboard/`) comes last. An entry made before then can be dropped too.
+- A dropped entry looks like a successful one: the selection still moves down after Enter. The cell is simply empty afterwards. Only reading the cell back shows it.
+- So the driver waits for the saved address and the clipboard frame, pauses, and then confirms every entry. The typed text must be in the cell editor before Enter, the selection must reach the cell below, and non-blank text must leave the cell non-empty. Otherwise it retries once. A lost overwrite, where the old value stays, gets past these checks; recording twice is what catches it.

@@ -51,7 +51,12 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 41. **Node runs the TypeScript directly, with no build step; TypeScript 7 only type-checks.** Dependencies are kept to Zod 4, commander and pino until a step needs more.
 42. **Every command logs the factory version, Git commit and whether there were uncommitted changes.** This is how runs are matched to factory states (28), with nothing to bump by hand.
 43. **A person signs in to the test account once per browser profile.** The account is passwordless: Microsoft emails a code for every new sign-in, so the credentials in `.env` can't sign in on their own. The session is saved in a profile under `artifacts/` and survives restarts. Reference access is autonomous after that one sign-in.
-44. **The Excel driver works through Excel's accessibility interface.** It navigates with the Name Box, enters content through the formula bar, and reads the formula bar and the active-cell readout. The grid is a canvas, and typing straight into it drops keystrokes; see `targets/excel/knowledge/observability.md`.
+44. **The Excel driver works through Excel's accessibility interface.** It navigates with the Name Box, enters content through the formula bar, and reads the formula bar and the active-cell readout. The grid is a canvas, and typing straight into it drops keystrokes; see `targets/excel/knowledge/observability.md`. _Superseded in part by 49: entry now types into the cell._
+45. **Every case is recorded twice and kept only if both runs agree.** A disagreement is reported as `REFERENCE_UNSTABLE`, not recorded as behaviour.
+46. **Cases are organised by area, and a case's folder path is its id.** The last folder states the behaviour as a claim, so a listing reads like a specification. `targets/README.md` explains the layout and every field.
+47. **The browser session is a first-class tool.** One long-lived browser, which commands attach to over the Chrome DevTools Protocol. The driver's actions (open, enter, observe, undo, redo) are CLI commands, so a person or the agent can build a journey a few steps at a time before writing it down as a case.
+48. **The driver checks the effect of every entry, not a stand-in for it.** The selection must reach the cell below and non-blank text must leave the cell non-empty; otherwise the entry is retried once. A new workbook counts as open only once Excel has moved it to its saved address and its new editor has loaded.
+49. **The driver enters content by selecting the cell and typing into it, as a person overwriting a cell does.** Overwrites through the formula bar kept the old value. The typed text is checked in the cell editor before Enter, and retyped after Escape if keystrokes were dropped.
 
 ## Open questions
 
@@ -62,4 +67,3 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 - **Grid.** Glide Data Grid is the likely choice. It exposes an accessible table, but its peer dependencies cap React at 18.
 - **Reference capture of typed values.** The readout gives displayed text and whether a cell holds a formula or an error, but not whether a value is a number or text. Options: a downloaded `.xlsx`, or asking Excel itself with `=TYPE()`.
 - **Clone UI contract.** Proposed: the clone exposes the same accessible controls as Excel (Name Box, formula bar, an active-cell readout in the same format), so one driver with a selector map per target drives both.
-- **Recorder reliability.** Proposed: record every case twice and keep it only if both runs agree. A disagreement is reported as a reference failure, not as behaviour.
