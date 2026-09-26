@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { paths, project } from './project.ts';
+import { PATHS, PROJECT } from './project.ts';
 
 /** Identifies the exact factory state behind a log line or a build. */
 export interface FactoryStamp {
@@ -14,7 +14,7 @@ export interface FactoryStamp {
 const git = (...args: string[]): string | null => {
   try {
     return execFileSync('git', args, {
-      cwd: paths.root,
+      cwd: PATHS.root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();
@@ -27,7 +27,7 @@ export const readStamp = (): FactoryStamp => {
   const commit = git('rev-parse', 'HEAD');
   const status = git('status', '--porcelain');
   return {
-    version: project.version,
+    version: PROJECT.version,
     commit,
     dirty: status === null ? null : status.length > 0,
   };

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import * as z from 'zod';
-import { paths } from '../core/project.ts';
+import { PATHS } from '../core/project.ts';
 import { fail, ok, type Result } from '../core/result.ts';
 
 /*
@@ -13,7 +13,7 @@ type Source = Readonly<Record<string, string | undefined>>;
 
 /** Loads .env with Node's built-in loader. Variables that are already set win. */
 export const loadEnvFile = (): void => {
-  if (existsSync(paths.envFile)) process.loadEnvFile(paths.envFile);
+  if (existsSync(PATHS.envFile)) process.loadEnvFile(PATHS.envFile);
 };
 
 /** How this process reports. A build sets both, so every command it runs shares one log. */
@@ -24,7 +24,7 @@ const runtimeSchema = z
   })
   .transform((env) => ({
     /** Where telemetry lines go. */
-    logFile: env.FACTORY_LOG ?? paths.defaultLog,
+    logFile: env.FACTORY_LOG ?? PATHS.defaultLog,
     /** The build this process belongs to, or null outside a build. */
     runId: env.FACTORY_RUN_ID ?? null,
   }));
@@ -76,6 +76,6 @@ export const readRuntime = (source: Source = process.env): Result<Runtime> =>
 export const readCredentials = (source: Source = process.env): Result<Credentials> =>
   parse(credentialsSchema, source, {
     message: 'Required credentials are missing or invalid.',
-    location: existsSync(paths.envFile) ? paths.envFile : `${paths.envFile} (not found)`,
+    location: existsSync(PATHS.envFile) ? PATHS.envFile : `${PATHS.envFile} (not found)`,
     hint: 'Set them in .env at the repository root.',
   });

@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { paths } from '../core/project.ts';
+import { PATHS } from '../core/project.ts';
 import { ok } from '../core/result.ts';
-import { testCredentials } from '../testing/settings.ts';
+import { TEST_CREDENTIALS } from '../testing/settings.ts';
 import { readCredentials, readRuntime } from './environment.ts';
 
 describe('readCredentials', () => {
   it('gives the settings idiomatic names', () => {
-    expect(readCredentials(testCredentials)).toEqual(
+    expect(readCredentials(TEST_CREDENTIALS)).toEqual(
       ok({
         openRouterApiKey: 'test-key',
         microsoftAccount: { email: 'test@example.com', password: 'test-password' },
@@ -17,17 +17,17 @@ describe('readCredentials', () => {
   it.each([
     {
       problem: 'a missing key',
-      source: { ...testCredentials, OPENROUTER_API_KEY: undefined },
+      source: { ...TEST_CREDENTIALS, OPENROUTER_API_KEY: undefined },
       detail: 'OPENROUTER_API_KEY is not set',
     },
     {
       problem: 'an empty password',
-      source: { ...testCredentials, MICROSOFT_ACCOUNT_PASSWORD: '' },
+      source: { ...TEST_CREDENTIALS, MICROSOFT_ACCOUNT_PASSWORD: '' },
       detail: 'MICROSOFT_ACCOUNT_PASSWORD is empty',
     },
     {
       problem: 'a malformed email',
-      source: { ...testCredentials, MICROSOFT_ACCOUNT_EMAIL: 'sam' },
+      source: { ...TEST_CREDENTIALS, MICROSOFT_ACCOUNT_EMAIL: 'sam' },
       detail: 'MICROSOFT_ACCOUNT_EMAIL is not an email address',
     },
   ])('rejects $problem', ({ source, detail }) => {
@@ -37,7 +37,7 @@ describe('readCredentials', () => {
 
 describe('readRuntime', () => {
   it('writes to the shared log outside a build', () => {
-    expect(readRuntime({})).toEqual(ok({ logFile: paths.defaultLog, runId: null }));
+    expect(readRuntime({})).toEqual(ok({ logFile: PATHS.defaultLog, runId: null }));
   });
 
   it('writes to the build’s own log inside a build', () => {

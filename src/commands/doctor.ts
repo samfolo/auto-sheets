@@ -1,5 +1,5 @@
 import { readCredentials } from '../contracts/environment.ts';
-import { project } from '../core/project.ts';
+import { PROJECT } from '../core/project.ts';
 import { fail, ok, type Result } from '../core/result.ts';
 import { readStamp } from '../core/stamp.ts';
 
@@ -19,11 +19,11 @@ export const renderChecks = (checks: readonly Check[]): string =>
 
 const checkNode = (): Check => {
   const version = process.versions.node;
-  const passed = Number(version.split('.')[0]) >= project.minimumNodeMajor;
+  const passed = Number(version.split('.')[0]) >= PROJECT.minimumNodeMajor;
   return {
     name: 'Node.js',
     passed,
-    detail: passed ? version : `found ${version}; need ${project.minimumNodeMajor} or later`,
+    detail: passed ? version : `found ${version}; need ${PROJECT.minimumNodeMajor} or later`,
   };
 };
 
@@ -62,6 +62,6 @@ export const doctor = async (): Promise<Result<Check[]>> => {
   if (failed.length === 0) return ok(checks);
   return fail('ENVIRONMENT_NOT_READY', `${failed.length} of ${checks.length} checks failed.`, {
     details: checks.map(formatCheck),
-    hint: `Fix the failed checks, then run \`${project.cli} doctor\` again.`,
+    hint: `Fix the failed checks, then run \`${PROJECT.cli} doctor\` again.`,
   });
 };

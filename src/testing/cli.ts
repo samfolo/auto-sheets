@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import * as z from 'zod';
 import { commandOutputSchema, type CommandOutput } from '../contracts/output.ts';
 import { logLineSchema, type LogLine } from '../contracts/telemetry.ts';
-import { paths } from '../core/project.ts';
-import { testCredentials } from './settings.ts';
+import { PATHS } from '../core/project.ts';
+import { TEST_CREDENTIALS } from './settings.ts';
 
 /** A finished run of the real CLI. */
 export interface CliRun {
@@ -48,9 +48,9 @@ export const runFactory = (
   env: Readonly<Record<string, string>> = {},
 ): CliRun => {
   const logFile = join(mkdtempSync(join(tmpdir(), 'factory-test-')), 'events.jsonl');
-  const child = spawnSync(process.execPath, [paths.cli, '--json', ...args], {
+  const child = spawnSync(process.execPath, [PATHS.cli, '--json', ...args], {
     encoding: 'utf8',
-    env: { ...process.env, ...testCredentials, ...env, FACTORY_LOG: logFile },
+    env: { ...process.env, ...TEST_CREDENTIALS, ...env, FACTORY_LOG: logFile },
   });
   return {
     args,

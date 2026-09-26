@@ -4,7 +4,7 @@ import { doctor, renderChecks } from './commands/doctor.ts';
 import { loadEnvFile, readRuntime } from './contracts/environment.ts';
 import { exitCodeFor } from './contracts/errors.ts';
 import { internalError, runCommand, write } from './core/command.ts';
-import { project } from './core/project.ts';
+import { PROJECT } from './core/project.ts';
 import { render } from './core/render.ts';
 import { fail, type Result } from './core/result.ts';
 import type { Telemetry } from './core/telemetry.ts';
@@ -19,11 +19,11 @@ const report = (failure: Result<never>): void =>
 
 /** The commands, as people and agents see them in --help. */
 const createProgram = (telemetry: Telemetry) => {
-  const program = new Command(project.cli)
+  const program = new Command(PROJECT.cli)
     .description(
       'Replicate a slice of a closed-source product, and prove the clone behaves the same.',
     )
-    .version(project.version)
+    .version(PROJECT.version)
     .option('--json', 'print the result as one line of JSON, for agents and scripts')
     .exitOverride()
     // Rejected command lines are reported like any other failure, in reportUsageError.
@@ -59,7 +59,7 @@ const reportUsageError = (error: CommanderError, telemetry: Telemetry): void => 
   report(
     fail('INVALID_USAGE', sentence(first), {
       details: rest.length > 0 ? rest : undefined,
-      hint: `Run \`${project.cli} --help\` to see the commands and their options.`,
+      hint: `Run \`${PROJECT.cli} --help\` to see the commands and their options.`,
     }),
   );
 };

@@ -9,7 +9,7 @@ import * as z from 'zod';
  */
 
 /** Process exit codes by kind of failure. Success is 0. */
-export const exitCodes = {
+export const EXIT_CODES = {
   /** The command ran, and a check or comparison failed. */
   failed: 1,
   /** Arguments, files or data did not match what the command needs. */
@@ -20,9 +20,9 @@ export const exitCodes = {
   internal: 4,
 } as const;
 
-export type ErrorCategory = keyof typeof exitCodes;
+export type ErrorCategory = keyof typeof EXIT_CODES;
 
-export const errorCodes = {
+export const ERROR_CODES = {
   /** The command was called with unknown or malformed arguments. */
   INVALID_USAGE: 'invalidInput',
   /** A prerequisite checked by `factory doctor` is missing or invalid. */
@@ -31,10 +31,10 @@ export const errorCodes = {
   INTERNAL: 'internal',
 } as const satisfies Record<string, ErrorCategory>;
 
-export type ErrorCode = keyof typeof errorCodes;
+export type ErrorCode = keyof typeof ERROR_CODES;
 
 const isErrorCode = (value: unknown): value is ErrorCode =>
-  typeof value === 'string' && Object.hasOwn(errorCodes, value);
+  typeof value === 'string' && Object.hasOwn(ERROR_CODES, value);
 
 /** A failure, described well enough that a person or an agent can act on it. */
 export const factoryErrorSchema = z
@@ -53,4 +53,4 @@ export const factoryErrorSchema = z
 
 export type FactoryError = z.output<typeof factoryErrorSchema>;
 
-export const exitCodeFor = (code: ErrorCode): number => exitCodes[errorCodes[code]];
+export const exitCodeFor = (code: ErrorCode): number => EXIT_CODES[ERROR_CODES[code]];

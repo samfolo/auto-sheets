@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = join(root, 'artifacts');
 
 /** Facts about the factory itself. Other modules read them from here instead of repeating them. */
-export const project = {
+export const PROJECT = {
   /** The command people and agents type. The type check keeps it in step with package.json. */
   cli: 'factory' satisfies keyof typeof packageJson.bin,
   version: packageJson.version,
@@ -15,7 +15,7 @@ export const project = {
 } as const;
 
 /** Every location the factory reads or writes, resolved from the repository root. */
-export const paths = {
+export const PATHS = {
   root,
   /** The CLI's entry point, for anything that needs to run the factory as a process. */
   cli: join(root, 'src', 'cli.ts'),
