@@ -1,3 +1,5 @@
+import * as z from 'zod';
+
 /**
  * The registry of every failure the factory can report.
  *
@@ -31,17 +33,24 @@ export const errorCodes = {
 
 export type ErrorCode = keyof typeof errorCodes;
 
+const isErrorCode = (value: unknown): value is ErrorCode =>
+  typeof value === 'string' && Object.hasOwn(errorCodes, value);
+
 /** A failure, described well enough that a person or an agent can act on it. */
-export interface FactoryError {
-  readonly code: ErrorCode;
-  /** One specific sentence: what went wrong. */
-  readonly message: string;
-  /** Where it went wrong: a file, optionally followed by a path inside it. */
-  readonly location?: string;
-  /** Supporting lines, such as each failed check or each schema issue. */
-  readonly details?: readonly string[];
-  /** The most useful next step. */
-  readonly hint?: string;
-}
+export const factoryErrorSchema = z
+  .object({
+    code: z.custom<ErrorCode>(isErrorCode, { error: 'is not a registered error code' }),
+    /** One specific sentence: what went wrong. */
+    message: z.string(),
+    /** Where it went wrong: a file, optionally followed by a path inside it. */
+    location: z.string().optional(),
+    /** Supporting lines, such as each failed check or each schema issue. */
+    details: z.array(z.string()).readonly().optional(),
+    /** The most useful next step. */
+    hint: z.string().optional(),
+  })
+  .readonly();
+
+export type FactoryError = z.output<typeof factoryErrorSchema>;
 
 export const exitCodeFor = (code: ErrorCode): number => exitCodes[errorCodes[code]];
