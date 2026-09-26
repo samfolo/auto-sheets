@@ -24,11 +24,15 @@ export interface RunReport {
   readonly scores: readonly ScorePoint[];
 }
 
-/** The newest run that has finished, since runs are named after the time they started. */
-const latestRun = async (): Promise<Result<string>> => {
+/** Every run that has finished, oldest first, since runs are named after the time they started. */
+const finishedRuns = async (): Promise<string[]> => {
   const runs = existsSync(PATHS.runs) ? await readdir(PATHS.runs) : [];
-  const finished = runs.filter((run) => existsSync(join(PATHS.runs, run, RUN_FILES.summary)));
-  const latest = finished.toSorted().at(-1);
+  return runs.filter((run) => existsSync(join(PATHS.runs, run, RUN_FILES.summary))).toSorted();
+};
+
+/** The newest run that has finished. */
+const latestRun = async (): Promise<Result<string>> => {
+  const latest = (await finishedRuns()).at(-1);
   return latest === undefined
     ? fail('FILE_UNREADABLE', 'No build has finished yet.', {
         hint: `Run \`${PROJECT.cli} build\` first.`,
@@ -102,3 +106,37 @@ export const renderRun = ({ summary, scores }: RunReport): string => {
       : `Final check: ${tallied(check.score.seen)} seen, ${tallied(check.score.heldOut)} held-out and ${tallied(check.score.golden)} golden cases match Excel.`,
   ].join('\n');
 };
+
+/**
+ * Every finished run whose summary meets the current contract, for comparing runs side by side.
+ * Runs from before the contract are skipped rather than failing the list.
+ */
+export const listRuns = async (): Promise<Result<BuildSummary[]>> => {
+  const summaries = await Promise.all(
+    (await finishedRuns()).map((run) =>
+      readJsonFile(join(PATHS.runs, run, RUN_FILES.summary), buildSummarySchema),
+    ),
+  );
+  return ok(summaries.flatMap((summary) => (summary.success ? [summary.data] : [])));
+};
+
+const scoreColumn = ({ check }: BuildSummary): string =>
+  check.score === null
+    ? 'not checked'
+    : `${tallied(check.score.seen)} seen, ${tallied(check.score.heldOut)} held out`;
+
+export const renderRuns = (summaries: readonly BuildSummary[]): string =>
+  summaries.length === 0
+    ? 'No finished runs with a summary yet.'
+    : summaries
+        .map((summary) =>
+          [
+            summary.runId,
+            summary.agent.model.padEnd(48),
+            clock(Date.parse(summary.finishedAt) - Date.parse(summary.startedAt)).padStart(6),
+            `$${summary.run.costUsd.toFixed(2)}`.padStart(6),
+            OUTCOMES[summary.run.outcome].padEnd(26),
+            scoreColumn(summary),
+          ].join('  '),
+        )
+        .join('\n');

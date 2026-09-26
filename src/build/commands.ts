@@ -1,7 +1,7 @@
 import { DEFAULT_AGENT } from '../agent/index.ts';
 import type { CommandRegistry } from '../cli/index.ts';
 import { build, renderBuild } from './build.ts';
-import { renderRun, showRun } from './report.ts';
+import { listRuns, renderRun, renderRuns, showRun } from './report.ts';
 
 /**
  * `factory build`: one attempt by an agent to build a clone, and the factory's verdict on it.
@@ -17,9 +17,14 @@ export const registerBuildCommands = ({ program, run }: CommandRegistry): void =
     .option('--minutes <minutes>', 'how long the agent may work; by default its own budget')
     .action((options) => run('build', (trace) => build(options, trace), renderBuild));
 
-  program
+  const runs = program
     .command('runs')
-    .description('runs: what each build did, from its summary and log')
+    .description('runs: what each build did, from its summary and log');
+  runs
+    .command('list')
+    .description('list every finished run: model, time, cost, outcome and score')
+    .action(() => run('runs list', listRuns, renderRuns));
+  runs
     .command('show')
     .description('show a run at a glance: outcome, time, cost and how its score moved')
     .argument('[run]', 'the run id, a folder under artifacts/runs; by default the latest')

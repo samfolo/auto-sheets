@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BuildSummary } from './contract.ts';
-import { renderRun } from './report.ts';
+import { renderRun, renderRuns } from './report.ts';
 
 const SUMMARY: BuildSummary = {
   runId: '2026-09-26T17-07-53-315Z',
@@ -49,5 +49,22 @@ describe('renderRun', () => {
       '',
       'Final check: 9 of 10 seen, 1 of 2 held-out and 1 of 1 golden cases match Excel.',
     ]);
+  });
+});
+
+describe('renderRuns', () => {
+  it('puts each run on one line, with its model, time, cost, outcome and score', () => {
+    expect(
+      renderRuns([SUMMARY, { ...SUMMARY, check: { score: null, verdicts: [], problem: 'x' } }]),
+    ).toBe(
+      [
+        '2026-09-26T17-07-53-315Z  openrouter/deepseek/deepseek-v4.1-flash            31:10   $0.12  stopped at its time limit   9 of 10 seen, 1 of 2 held out',
+        '2026-09-26T17-07-53-315Z  openrouter/deepseek/deepseek-v4.1-flash            31:10   $0.12  stopped at its time limit   not checked',
+      ].join('\n'),
+    );
+  });
+
+  it('says when there are no runs', () => {
+    expect(renderRuns([])).toBe('No finished runs with a summary yet.');
   });
 });
