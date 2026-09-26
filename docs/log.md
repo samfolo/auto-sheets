@@ -44,4 +44,6 @@ Moments where the thinking shifted: tensions, wrong assumptions and ideas worth 
 
 **A test account changed the autonomy claim.** A dedicated Microsoft account removed the reason for keeping credentials out of the harness. It also removed the privacy problems with videos and workbook metadata. The harness can now sign itself back in.
 
+**Check current docs rather than model memory.** Sam asked for library knowledge to come from current documentation, not what the model remembers. Reading it before writing code changed two things. Zod's new "compiled" schemas (`z.compile()`, in 4.5) turned out to be an optional speed-up for heavily used validation, so not needed here. TypeScript 7 now defaults `types` to an empty list, which would have broken every Node import with a confusing error. The same discipline the factory applies to Excel applies to its own dependencies.
+
 **Determinism versus volatile functions.** The brief requires a deterministic, resettable clone, but `RAND` and `NOW` are nondeterministic in Excel. The clone therefore needs a seeded random number generator and an injectable clock, and those functions can only be checked against Excel through properties, such as "`RAND` is in [0, 1) and changes on every recalculation", not through exact values.
