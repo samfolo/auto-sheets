@@ -1,0 +1,24 @@
+{
+  "recordedAt": "2026-09-26T19:09:21.216Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 2,
+      "cells": {},
+      "selection": {
+        "active": "C3",
+        "range": "C3:E6",
+        "editing": false
+      }
+    },
+    {
+      "step": 4,
+      "cells": {},
+      "selection": {
+        "active": "G8",
+        "range": null,
+        "editing": false
+      }
+    }
+  ]
+}

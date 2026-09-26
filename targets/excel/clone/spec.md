@@ -22,14 +22,15 @@ The cases are checked by running them on the replica's screen exactly as they we
 
 ### The screen
 
-The checker drives the screen the way a person drives Excel, through four controls. They must exist exactly as described, because this is how the same case runs on both Excel and the replica.
+The checker drives the screen the way a person drives Excel, through four controls and the grid. They must exist exactly as described, because this is how the same case runs on both Excel and the replica.
 
-| Control     | Element                                                                      | Behaviour                                                                                                                                                                                       |
-| ----------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Name Box    | `<input id="name-box" aria-label="Name Box">`                                | Shows the active cell's address. Typing a cell or range (`B2`, `B2:C4`) and pressing Enter selects it; the active cell becomes the range's first cell.                                          |
-| Formula bar | an element with `id="formula-bar"`                                           | Its text is the active cell's raw content: the formula for a formula, the value as stored otherwise.                                                                                            |
-| Cell editor | a focusable element with `id="cell-editor"`, such as a `contenteditable` div | Receives keystrokes aimed at the grid. Typing while a cell is selected starts editing and replaces the cell's content; while editing, the element's text is exactly what has been typed so far. |
-| Readout     | an element with `id="readout"`                                               | Its `aria-label` describes the selection in Excel's screen-reader format, below. It changes whenever the selection or the active cell's content changes.                                        |
+| Control     | Element                                                                                     | Behaviour                                                                                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Name Box    | `<input id="name-box" aria-label="Name Box">`                                               | Shows the active cell's address. Typing a cell or range (`B2`, `B2:C4`) and pressing Enter selects it; the active cell becomes the range's first cell.                                                  |
+| Formula bar | an element with `id="formula-bar"`                                                          | Its text is the active cell's raw content: the formula for a formula, the value as stored otherwise.                                                                                                    |
+| Cell editor | a focusable element with `id="cell-editor"`, such as a `contenteditable` div                | Receives keystrokes aimed at the grid. Typing while a cell is selected starts editing and replaces the cell's content; while editing, the element's text is exactly what has been typed so far.         |
+| Readout     | an element with `id="readout"`                                                              | Its `aria-label` describes the selection in Excel's screen-reader format, below. It changes whenever the selection or the active cell's content changes.                                                |
+| Grid        | an element with `id="grid"` that contains the column headers, the row headers and the cells | Its top-left corner is the select-all corner. The checker clicks and drags inside it with the mouse, and reads the Name Box to learn where the cells are, so cells must be evenly sized in a new sheet. |
 
 Readout format, exactly as Excel produces it:
 
@@ -52,6 +53,6 @@ Keys, with the cell editor focused:
 
 ### Interaction and look
 
-- Beyond the four controls, implement what a person does with a sheet: click a cell to select it, drag across cells to select a range, click a row or column header to select it, click the corner to select everything, double-click or type to edit, and Enter, Tab, Escape and the arrow keys.
+- Implement what a person does with a sheet, with the mouse and the keyboard: click a cell to select it, drag across cells to select a range, click or drag across row and column headers to select them, click the corner to select everything, double-click or type to edit, and Enter, Tab, Escape and the arrow keys. The cases in `cases/selection/` record several of these on Excel.
 - Show a grid with column letters and row numbers and each cell's displayed value, looking like Excel's sheet in `knowledge/screenshots/`: gridlines, headers, the selection outline and the highlighted headers of the selection, numbers aligned right and text left, and errors as Excel shows them.
-- Glide Data Grid (`@glideapps/glide-data-grid`) is recommended for the grid: it is hardened and accessible, and already handles clicking, dragging and selecting rows and columns. The four controls sit beside it.
+- Glide Data Grid (`@glideapps/glide-data-grid`) is recommended for the grid: it is hardened and accessible, and already handles clicking, dragging and selecting rows and columns. The four controls sit beside it, and its container is the grid element.

@@ -1,0 +1,10 @@
+{
+  "description": "A drag right after double-clicking another cell ends that edit and still selects the dragged range.",
+  "steps": [
+    { "do": "double-click", "cell": "B2" },
+    { "do": "drag", "from": "C3", "to": "E6" },
+    { "do": "observe-selection" },
+    { "do": "click", "cell": "G8" },
+    { "do": "observe-selection" }
+  ]
+}

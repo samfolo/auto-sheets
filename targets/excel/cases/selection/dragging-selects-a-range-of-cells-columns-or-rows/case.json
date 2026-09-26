@@ -1,0 +1,11 @@
+{
+  "description": "Dragging across cells selects the rectangle between them, and dragging across column or row headers selects those whole columns or rows.",
+  "steps": [
+    { "do": "drag", "from": "C3", "to": "E6" },
+    { "do": "observe-selection" },
+    { "do": "drag-columns", "from": "B", "to": "D" },
+    { "do": "observe-selection" },
+    { "do": "drag-rows", "from": 2, "to": 4 },
+    { "do": "observe-selection" }
+  ]
+}

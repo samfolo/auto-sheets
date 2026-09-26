@@ -1,0 +1,11 @@
+{
+  "description": "Clicking a column's header selects that column alone, clicking a row's header selects that row, and clicking the corner selects everything.",
+  "steps": [
+    { "do": "click-column", "column": "K" },
+    { "do": "observe-selection" },
+    { "do": "click-row", "row": 5 },
+    { "do": "observe-selection" },
+    { "do": "click-corner" },
+    { "do": "observe-selection" }
+  ]
+}

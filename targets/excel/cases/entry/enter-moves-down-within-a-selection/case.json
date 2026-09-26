@@ -1,0 +1,11 @@
+{
+  "description": "With a range selected, typing and pressing Enter fills only the active cell and moves the active cell down within the selection, which stays selected.",
+  "steps": [
+    { "do": "select", "range": "C3:C5" },
+    { "do": "type", "text": "1" },
+    { "do": "observe-selection" },
+    { "do": "type", "text": "2" },
+    { "do": "observe-selection" },
+    { "do": "observe", "cells": ["C3", "C4", "C5"] }
+  ]
+}

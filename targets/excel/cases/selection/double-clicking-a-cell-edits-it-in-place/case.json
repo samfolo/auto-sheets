@@ -1,0 +1,10 @@
+{
+  "description": "Double-clicking a cell starts editing it with its content kept, so what is typed next is added to it rather than replacing it.",
+  "steps": [
+    { "do": "enter", "cell": "A1", "text": "5" },
+    { "do": "double-click", "cell": "A1" },
+    { "do": "observe-selection" },
+    { "do": "type", "text": "0" },
+    { "do": "observe", "cells": ["A1"] }
+  ]
+}
