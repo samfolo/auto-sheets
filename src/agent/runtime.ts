@@ -210,6 +210,17 @@ export const runAgent = async (
       const { type, delta } = event.assistantMessageEvent;
       heartbeat.grow(STREAMED_PARTS[type], delta);
     }
+    if (event.type === 'auto_retry_start') {
+      trace('agent.retry', {
+        attempt: event.attempt,
+        maxAttempts: event.maxAttempts,
+        reason: event.errorMessage,
+      });
+    }
+    if (event.type === 'auto_retry_end' && !event.success) {
+      trace('agent.retry.failed', { attempt: event.attempt, reason: event.finalError });
+    }
+    if (event.type === 'compaction_start') trace('agent.compaction', { reason: event.reason });
     if (event.type === 'tool_execution_start') trace('agent.tool', { tool: event.toolName });
     if (event.type === 'tool_execution_end' && event.isError) {
       trace('agent.tool.error', { tool: event.toolName });
