@@ -42,6 +42,12 @@ const SESSIONS_FOLDER = 'sessions';
 const MINUTE_MS = 60_000;
 
 /**
+ * How often the agent is told how much time it has left. Models misjudge their own clocks: one
+ * decided time was nearly out a third of the way through its budget.
+ */
+const TIME_REMINDER_MS = 15 * MINUTE_MS;
+
+/**
  * Pi's settings for every session. Retries back off for about five minutes in all, because a
  * free model's shared rate limit clears in minutes, while Pi's defaults give up in seconds.
  */
@@ -301,6 +307,13 @@ export const runAgent = async (
     state.timedOut = true;
     void session.abort();
   }, options.minutes * MINUTE_MS);
+  // Delivered between turns, so it never interrupts a reply or a tool.
+  const reminder = setInterval(() => {
+    if (!session.isStreaming) return;
+    session.steer(timeLeft(minutesLeft())).catch((error: unknown) => {
+      trace('agent.reminder.failed', { reason: String(error) });
+    });
+  }, TIME_REMINDER_MS);
 
   const work = async (prompt: string, followUps: number): Promise<Result<void>> => {
     const prompted = await attempt(
@@ -317,6 +330,7 @@ export const runAgent = async (
   };
   const worked = await work(definition.task, 0);
   clearTimeout(timer);
+  clearInterval(reminder);
   const stats = session.getSessionStats();
   session.dispose();
   const error = worked.success ? state.error : worked.error.message;
