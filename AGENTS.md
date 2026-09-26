@@ -23,7 +23,7 @@ This repository is the factory. Clones are built elsewhere. Landed decisions are
 - `./factory.sh excel open [--seed <file>]` opens a workbook, and `./factory.sh excel do <step> …` runs one case step on it (`--help` lists the steps). `./factory.sh excel sign-in` signs the session in: the account is passwordless, so a person supplies the emailed code with `--code`.
 - `./factory.sh case list` lists cases; `./factory.sh case record <id>` records one against Excel; `./factory.sh case verify --url <url>` runs them on a running clone. Cases and their layout are explained in `targets/README.md`.
 - `./factory.sh agent show [name]` prints exactly what an agent would be given (model, tools, task and the whole system prompt) without calling the model. Review it before any build.
-- `./factory.sh build` has an agent build a clone in a new workspace beside the factory, then checks it on every case, held-out ones included. `./factory.sh clone check <workspace>` re-checks a build's clone.
+- `./factory.sh build` has an agent build a clone in a new workspace beside the factory, then checks it on every case, held-out ones included. `./factory.sh runs show [run]` shows a run at a glance: outcome, time, cost and how the score moved. `./factory.sh clone check <workspace>` re-checks a build's clone.
 
 ## Layout
 

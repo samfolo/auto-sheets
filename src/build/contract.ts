@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { agentRunSchema, THINKING_LEVELS } from '../agent/index.ts';
 import { verdictSchema } from '../cases/index.ts';
 import { cloneScoreSchema } from '../clone/index.ts';
-import { factoryStampSchema } from '../kernel/index.ts';
+import { factoryStampSchema, logLineSchema } from '../kernel/index.ts';
 
 export const buildOptionsSchema = z
   .strictObject({
@@ -58,3 +58,13 @@ export const buildSummarySchema = z
   });
 
 export type BuildSummary = z.output<typeof buildSummarySchema>;
+
+export const scoreEventSchema = logLineSchema
+  .extend({
+    msg: z.literal('agent.score'),
+    passed: z.number().int().min(0).meta({ description: 'How many of the checked cases passed.' }),
+    total: z.number().int().min(0).meta({ description: 'How many cases were checked.' }),
+  })
+  .meta({ description: 'A check_cases result in a run’s log: one point on its score curve.' });
+
+export type ScoreEvent = z.output<typeof scoreEventSchema>;
