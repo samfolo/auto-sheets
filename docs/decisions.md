@@ -70,6 +70,10 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 60. **The agent verifies through one harness tool, `check_cases`, and never through the factory's CLI.** It starts a fresh copy of the app from the workspace on its own port, runs the visible cases, and answers with a scoreboard: the score, what the last change fixed, and what it broke. The agent's shell runs without the factory's environment, so it can't read the factory's credentials.
 61. **Some cases are held out from the agent, with the `held-out` tag.** They are never copied into the workspace and `check_cases` won't run them. A build's final check runs every case and reports the seen, held-out and golden cases separately, so fitting the visible cases shows up as a gap.
 62. **A workspace is named after its run, the time it started, in a folder beside the factory.** Its first commit names the factory version and commit that made it, and the run's `summary.json` records the agent, its model and the score.
+63. **Anything with a definite answer is done by the harness, not left to the model.** `check_cases` commits the workspace whenever a check of every case beats the best score, so the history marks each step forward and when it happened. Every workspace gets the case formats as JSON Schema generated from the Zod contracts, so the agent reads what each field and step means instead of inferring it.
+64. **Every clone check runs the clone on a port the operating system chooses.** Checks never collide with each other, with a running build, or with a copy of the app the agent runs itself.
+65. **The final check saves a picture of the clone at the end of each case.** Judging stays exact and textual; the pictures are for a person comparing the clone's look with Excel's, which the cases don't cover. The first one showed a clone that passes every case while aligning numbers left.
+66. **Git runs on workspaces without the factory's environment and without hooks.** A workspace's hooks are written by its agent, and would otherwise run with the factory's secrets.
 
 ## Open questions
 
