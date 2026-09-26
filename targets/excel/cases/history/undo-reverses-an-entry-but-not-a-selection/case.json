@@ -1,0 +1,14 @@
+{
+  "description": "Undo reverses the last entry but leaves the selection as it is: selecting isn't part of the undo history.",
+  "steps": [
+    { "do": "enter", "cell": "A1", "text": "5" },
+    { "do": "click", "cell": "C3" },
+    { "do": "undo" },
+    { "do": "observe-selection" },
+    { "do": "observe", "cells": ["A1"] },
+    { "do": "click", "cell": "D4" },
+    { "do": "redo" },
+    { "do": "observe-selection" },
+    { "do": "observe", "cells": ["A1"] }
+  ]
+}

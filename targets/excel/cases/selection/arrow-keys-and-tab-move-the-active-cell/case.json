@@ -1,0 +1,15 @@
+{
+  "description": "The arrow keys move the active cell one cell in their direction, and Tab moves it one cell right.",
+  "steps": [
+    { "do": "click", "cell": "B2" },
+    { "do": "press", "key": "ArrowRight" },
+    { "do": "observe-selection" },
+    { "do": "press", "key": "ArrowDown" },
+    { "do": "observe-selection" },
+    { "do": "press", "key": "Tab" },
+    { "do": "observe-selection" },
+    { "do": "press", "key": "ArrowLeft" },
+    { "do": "press", "key": "ArrowUp" },
+    { "do": "observe-selection" }
+  ]
+}

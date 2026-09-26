@@ -1,0 +1,10 @@
+{
+  "description": "Command+A selects every cell and keeps the active cell where it was, unlike clicking the corner, which makes A1 active.",
+  "steps": [
+    { "do": "click", "cell": "C3" },
+    { "do": "select-all" },
+    { "do": "observe-selection" },
+    { "do": "click-corner" },
+    { "do": "observe-selection" }
+  ]
+}

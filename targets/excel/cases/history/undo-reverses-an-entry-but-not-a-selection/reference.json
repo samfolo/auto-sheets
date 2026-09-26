@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-09-26T20:45:54.150Z",
+  "environment": "Excel for the web (en-US regional format)",
+  "checkpoints": [
+    {
+      "step": 3,
+      "cells": {},
+      "selection": {
+        "active": "C3",
+        "range": null,
+        "editing": false
+      }
+    },
+    {
+      "step": 4,
+      "cells": {
+        "A1": {
+          "raw": "",
+          "display": "",
+          "annotations": []
+        }
+      }
+    },
+    {
+      "step": 7,
+      "cells": {},
+      "selection": {
+        "active": "D4",
+        "range": null,
+        "editing": false
+      }
+    },
+    {
+      "step": 8,
+      "cells": {
+        "A1": {
+          "raw": "5",
+          "display": "5",
+          "annotations": []
+        }
+      }
+    }
+  ]
+}

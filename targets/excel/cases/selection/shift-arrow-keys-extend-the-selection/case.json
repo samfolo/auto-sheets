@@ -1,0 +1,12 @@
+{
+  "description": "Arrow keys with Shift held grow or shrink the selection from the active cell, which stays put.",
+  "steps": [
+    { "do": "click", "cell": "B2" },
+    { "do": "press", "key": "ArrowDown", "hold": ["Shift"] },
+    { "do": "press", "key": "ArrowDown", "hold": ["Shift"] },
+    { "do": "press", "key": "ArrowRight", "hold": ["Shift"] },
+    { "do": "observe-selection" },
+    { "do": "press", "key": "ArrowUp", "hold": ["Shift"] },
+    { "do": "observe-selection" }
+  ]
+}
