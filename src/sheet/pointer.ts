@@ -1,14 +1,14 @@
 /**
  * Using a sheet with the mouse, the same way on every target. Excel draws its grid on a canvas
  * and a clone may draw it any way it likes, so the driver doesn't read where cells are: it
- * measures. It clicks points spread across the grid and reads the Name Box to learn which cell
- * each one fell in, then finds the one cell size and origin that put every point in its cell,
- * like reading a vernier. With uniform cells, as in a new sheet, that gives the whole grid, and
- * the headers and the corner lie before it.
+ * measures, by clicking and reading the Name Box to learn which cell a point is in. On each axis,
+ * two binary searches find the exact pixel where a column (or row) begins, one near each end of
+ * the grid. Two exact edges a known number of cells apart give the cell size and the grid's
+ * origin, and the headers and the corner lie before it.
  *
- * The points are far apart, so no two clicks read as a double-click, and each lands in a new
- * cell, so the Name Box always changes. Clicking only changes the selection, so measuring is
- * safe to repeat; it is done once per driver, before its first pointer step.
+ * The four searches take turns, so consecutive clicks are always far apart and never read as a
+ * double-click. Clicking only changes the selection, so measuring is safe to repeat; the driver
+ * does it once, before its first pointer step, and puts the active cell back afterwards.
  */
 import { columnNumber, positionOf, type Position } from './address.ts';
 import type { CellAddress, HELD_KEYS, PointerStep, PointerTarget } from './contract.ts';
@@ -68,55 +68,81 @@ const probe = async (surface: Surface, point: Point): Promise<Position | null> =
   return position.row === 0 ? null : position;
 };
 
-/** Where a probe was along one axis, and which column or row the sheet said it was in. */
-interface Sample {
-  readonly at: number;
-  readonly index: number;
+/** Which axis a search runs along, and how to read a position on it. */
+interface Axis {
+  /** A point on the axis at a given coordinate. */
+  readonly at: (coordinate: number) => Point;
+  /** The column or row number a position is in. */
+  readonly index: (position: Position) => number;
 }
 
 /**
- * Where the probes go, as fractions of the grid across and down. Each probe reads a column and a
- * row, so the points vary in both directions, following the golden-ratio sequences that spread
- * points most evenly without repeating a pattern. They keep clear of the grid's edges, where the
- * headers are, and each point lands far from the one before.
+ * One binary search for the first coordinate in [low, high] that lands in the same column or row
+ * as `high`: the exact edge where that column or row begins.
  */
-const PROBES = 16;
-const GOLDEN = { across: 0.618_034, down: 0.754_878 };
-const MARGIN = { start: 0.1, span: 0.85 };
-const spread = (step: number, ratio: number): number =>
-  MARGIN.start + MARGIN.span * ((0.5 + step * ratio) % 1);
+interface Search {
+  readonly axis: Axis;
+  readonly low: number;
+  readonly high: number;
+  /** The column or row at `high`, once read. */
+  readonly target: number | null;
+}
 
-/** The sizes a cell may have, in pixels, and how finely to try them. */
-const CELL_SIZES = { smallest: 8, largest: 400, step: 0.5 };
-
-/** Every size to try, from the smallest to the largest. */
-const SIZES = Array.from(
-  { length: (CELL_SIZES.largest - CELL_SIZES.smallest) / CELL_SIZES.step + 1 },
-  (_, step) => CELL_SIZES.smallest + step * CELL_SIZES.step,
-);
+/** A point a fraction of the way from one coordinate to another, on a whole pixel. */
+const within = (start: number, end: number, fraction: number): number =>
+  Math.round(start + (end - start) * fraction);
 
 /**
- * The size and origin of evenly spaced cells that put every sample in the cell it read. For each
- * size, each sample bounds the origin from both sides, and the size fits if the bounds leave
- * room. Of the sizes that fit, the middle one is taken, with the middle of its origins.
+ * Where each axis's two searches run, as fractions of the grid: one near each end, clear of the
+ * window's edges, where a product can draw bars over its grid (Excel's sheet tabs and status bar).
  */
-const fitAxis = (samples: readonly Sample[]): { origin: number; size: number } | null => {
-  const fits = SIZES.flatMap((size) => {
-    const lowest = Math.max(...samples.map(({ at, index }) => at - index * size));
-    const highest = Math.min(...samples.map(({ at, index }) => at - (index - 1) * size));
-    return lowest < highest ? [{ origin: (lowest + highest) / 2, size }] : [];
-  });
-  return fits[Math.floor(fits.length / 2)] ?? null;
+const SEARCH_REGIONS = [
+  { from: 0.1, to: 0.35 },
+  { from: 0.55, to: 0.8 },
+] as const;
+
+/** Takes one step of a search: the first reads its target, each later one halves its range. */
+const advance = async (surface: Surface, search: Search): Promise<Search | null> => {
+  const { axis, low, high, target } = search;
+  if (target === null) {
+    const position = await probe(surface, axis.at(high));
+    return position === null ? null : { ...search, target: axis.index(position) };
+  }
+  const middle = Math.floor((low + high) / 2);
+  const position = await probe(surface, axis.at(middle));
+  if (position === null) return null;
+  return axis.index(position) >= target
+    ? { ...search, high: middle }
+    : { ...search, low: middle + 1 };
 };
 
-/** Clicks each point in turn and reads where the sheet says it landed; null if any can't be read. */
-const probeAll = async (surface: Surface, points: readonly Point[]): Promise<Position[] | null> => {
-  const [first, ...rest] = points;
-  if (first === undefined) return [];
-  const position = await probe(surface, first);
-  if (position === null) return null;
-  const others = await probeAll(surface, rest);
-  return others === null ? null : [position, ...others];
+const finished = (search: Search): boolean => search.target !== null && search.low >= search.high;
+
+/**
+ * Runs the searches together, one step of each in turn, so that no two consecutive clicks are
+ * close. Returns each search finished, or null if the sheet couldn't be read.
+ */
+const searchTogether = async (
+  surface: Surface,
+  searches: readonly Search[],
+): Promise<Search[] | null> => {
+  if (searches.every(finished)) return [...searches];
+  const next: Search[] = [];
+  for (const search of searches) {
+    // One click at a time, taking turns between the searches.
+    // oxlint-disable-next-line no-await-in-loop
+    const stepped = finished(search) ? search : await advance(surface, search);
+    if (stepped === null) return null;
+    next.push(stepped);
+  }
+  return searchTogether(surface, next);
+};
+
+/** The size and origin of evenly spaced cells, from two exact edges a known number of cells apart. */
+const fromEdges = (near: Search, far: Search): { origin: number; size: number } | null => {
+  if (near.target === null || far.target === null || far.target <= near.target) return null;
+  const size = (far.low - near.low) / (far.target - near.target);
+  return { origin: near.low - (near.target - 1) * size, size };
 };
 
 /** Measures the grid of the open sheet. Returns null if the grid can't be found or read. */
@@ -140,16 +166,26 @@ export const measureGrid = async (surface: Surface): Promise<GridGeometry | null
     viewport.height - 1,
     Math.max(...visible.map((box) => (box?.y ?? 0) + (box?.height ?? 0))),
   );
-  const points = Array.from({ length: PROBES }, (_, step) => ({
-    x: left + (right - left) * spread(step + 1, GOLDEN.across),
-    y: top + (bottom - top) * spread(step + 1, GOLDEN.down),
-  }));
-  const seen = await probeAll(surface, points);
-  if (seen === null) return null;
-  const columns = fitAxis(points.map(({ x }, i) => ({ at: x, index: seen[i]?.column ?? 0 })));
-  const rows = fitAxis(points.map(({ y }, i) => ({ at: y, index: seen[i]?.row ?? 0 })));
+  const across: Axis = {
+    at: (x) => ({ x, y: Math.round((top + bottom) / 2) }),
+    index: ({ column }) => column,
+  };
+  const down: Axis = {
+    at: (y) => ({ x: Math.round((left + right) / 2), y }),
+    index: ({ row }) => row,
+  };
+  const searches = SEARCH_REGIONS.flatMap(({ from, to }) => [
+    { axis: across, low: within(left, right, from), high: within(left, right, to), target: null },
+    { axis: down, low: within(top, bottom, from), high: within(top, bottom, to), target: null },
+  ]);
+  const done = await searchTogether(surface, searches);
+  if (done === null) return null;
+  const [nearColumn, nearRow, farColumn, farRow] = done;
+  if (!nearColumn || !nearRow || !farColumn || !farRow) return null;
+  const columns = fromEdges(nearColumn, farColumn);
+  const rows = fromEdges(nearRow, farRow);
   if (columns === null || rows === null) return null;
-  return {
+  const grid = {
     originX: columns.origin,
     originY: rows.origin,
     cellWidth: columns.size,
@@ -157,6 +193,26 @@ export const measureGrid = async (surface: Surface): Promise<GridGeometry | null
     left,
     top,
   };
+  return (await confirms(surface, grid, farColumn, farRow)) ? grid : null;
+};
+
+/**
+ * Whether a measurement holds: clicking the predicted middle of the far cell must select it. A
+ * search misled by something drawn over the grid fails here, rather than aiming every later
+ * click wrong.
+ */
+const confirms = async (
+  surface: Surface,
+  grid: GridGeometry,
+  column: Search,
+  row: Search,
+): Promise<boolean> => {
+  if (column.target === null || row.target === null) return false;
+  const position = await probe(surface, {
+    x: centre(grid.originX, grid.cellWidth, column.target),
+    y: centre(grid.originY, grid.cellHeight, row.target),
+  });
+  return position?.column === column.target && position.row === row.target;
 };
 
 /** The middle of a cell. */
