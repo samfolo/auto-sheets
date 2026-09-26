@@ -25,6 +25,8 @@ export type ErrorCategory = keyof typeof EXIT_CODES;
 export const ERROR_CODES = {
   /** The command was called with unknown or malformed arguments. */
   INVALID_USAGE: 'invalidInput',
+  /** Data did not match its contract in src/contracts. The details name each field and its purpose. */
+  CONTRACT_VIOLATION: 'invalidInput',
   /** A prerequisite checked by `factory doctor` is missing or invalid. */
   ENVIRONMENT_NOT_READY: 'environment',
   /** The factory threw unexpectedly. This is a bug; the stack trace is in the log. */
@@ -36,20 +38,24 @@ export type ErrorCode = keyof typeof ERROR_CODES;
 const isErrorCode = (value: unknown): value is ErrorCode =>
   typeof value === 'string' && Object.hasOwn(ERROR_CODES, value);
 
-/** A failure, described well enough that a person or an agent can act on it. */
 export const factoryErrorSchema = z
   .object({
-    code: z.custom<ErrorCode>(isErrorCode, { error: 'is not a registered error code' }),
-    /** One specific sentence: what went wrong. */
-    message: z.string(),
-    /** Where it went wrong: a file, optionally followed by a path inside it. */
-    location: z.string().optional(),
-    /** Supporting lines, such as each failed check or each schema issue. */
-    details: z.array(z.string()).readonly().optional(),
-    /** The most useful next step. */
-    hint: z.string().optional(),
+    code: z.custom<ErrorCode>(isErrorCode, { error: 'is not a registered error code' }).meta({
+      description: 'Which failure this is, from the registry in src/contracts/errors.ts.',
+    }),
+    message: z.string().meta({ description: 'One specific sentence: what went wrong.' }),
+    location: z.string().optional().meta({
+      description: 'Where it went wrong: a file, optionally followed by a path inside it.',
+    }),
+    details: z.array(z.string()).readonly().optional().meta({
+      description: 'Supporting lines, such as each failed check or each schema issue.',
+    }),
+    hint: z.string().optional().meta({ description: 'The most useful next step.' }),
   })
-  .readonly();
+  .readonly()
+  .meta({
+    description: 'A failure, described well enough that a person or an agent can act on it.',
+  });
 
 export type FactoryError = z.output<typeof factoryErrorSchema>;
 

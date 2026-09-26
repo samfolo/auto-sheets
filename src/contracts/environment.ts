@@ -16,11 +16,17 @@ export const loadEnvFile = (): void => {
   if (existsSync(PATHS.envFile)) process.loadEnvFile(PATHS.envFile);
 };
 
-/** How this process reports. A build sets both, so every command it runs shares one log. */
 const runtimeSchema = z
   .object({
-    FACTORY_LOG: z.string().min(1, { error: 'is empty' }).optional(),
-    FACTORY_RUN_ID: z.string().min(1, { error: 'is empty' }).optional(),
+    FACTORY_LOG: z.string().min(1, { error: 'is empty' }).optional().meta({
+      description: 'The file telemetry lines are appended to. A build sets it to its own log.',
+    }),
+    FACTORY_RUN_ID: z.string().min(1, { error: 'is empty' }).optional().meta({
+      description: 'The build this process belongs to. Unset outside a build.',
+    }),
+  })
+  .meta({
+    description: 'How this process reports. A build sets both, so its commands share one log.',
   })
   .transform((env) => ({
     /** Where telemetry lines go. */
@@ -36,12 +42,20 @@ const requiredString = () => z.string({ error: 'is not set' }).min(1, { error: '
 /** Secrets. Never log them, and never parse them with reportInput. */
 const credentialsSchema = z
   .object({
-    OPENROUTER_API_KEY: requiredString(),
-    MICROSOFT_ACCOUNT_EMAIL: z.email({
-      error: (issue) => (issue.input === undefined ? 'is not set' : 'is not an email address'),
+    OPENROUTER_API_KEY: requiredString().meta({
+      description: 'Pays for the model calls made by the factory’s agent.',
     }),
-    MICROSOFT_ACCOUNT_PASSWORD: requiredString(),
+    MICROSOFT_ACCOUNT_EMAIL: z
+      .email({
+        error: (issue) => (issue.input === undefined ? 'is not set' : 'is not an email address'),
+      })
+      .meta({ description: 'The dedicated test account used to sign in to Excel for the web.' }),
+    MICROSOFT_ACCOUNT_PASSWORD: requiredString().meta({
+      description:
+        'The test account’s password. The account is passwordless in practice, so sign-in uses an emailed code.',
+    }),
   })
+  .meta({ description: 'Credentials for the services the factory uses.' })
   .transform((env) => ({
     /** Pays for the model calls made by the factory's agent. */
     openRouterApiKey: env.OPENROUTER_API_KEY,
