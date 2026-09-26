@@ -125,18 +125,19 @@ const scoreColumn = ({ check }: BuildSummary): string =>
     ? 'not checked'
     : `${tallied(check.score.seen)} seen, ${tallied(check.score.heldOut)} held out`;
 
-export const renderRuns = (summaries: readonly BuildSummary[]): string =>
-  summaries.length === 0
-    ? 'No finished runs with a summary yet.'
-    : summaries
-        .map((summary) =>
-          [
-            summary.runId,
-            summary.agent.model.padEnd(48),
-            clock(Date.parse(summary.finishedAt) - Date.parse(summary.startedAt)).padStart(6),
-            `$${summary.run.costUsd.toFixed(2)}`.padStart(6),
-            OUTCOMES[summary.run.outcome].padEnd(26),
-            scoreColumn(summary),
-          ].join('  '),
-        )
-        .join('\n');
+export const renderRuns = (summaries: readonly BuildSummary[]): string => {
+  if (summaries.length === 0) return 'No finished runs with a summary yet.';
+  const idWidth = Math.max(...summaries.map(({ runId }) => runId.length));
+  return summaries
+    .map((summary) =>
+      [
+        summary.runId.padEnd(idWidth),
+        summary.agent.model.padEnd(48),
+        clock(Date.parse(summary.finishedAt) - Date.parse(summary.startedAt)).padStart(6),
+        `$${summary.run.costUsd.toFixed(2)}`.padStart(6),
+        OUTCOMES[summary.run.outcome].padEnd(26),
+        scoreColumn(summary),
+      ].join('  '),
+    )
+    .join('\n');
+};
