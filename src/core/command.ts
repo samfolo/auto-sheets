@@ -1,7 +1,7 @@
 import { render, type Rendered } from './render.ts';
 import { fail, type Result } from './result.ts';
 import { readStamp } from './stamp.ts';
-import type { Telemetry } from './telemetry.ts';
+import type { Telemetry, Trace } from './telemetry.ts';
 
 /** One command invocation: what's running, and how it should report. */
 export interface Invocation {
@@ -27,11 +27,11 @@ export const internalError = (thrown: unknown, telemetry: Telemetry): Result<nev
 };
 
 const settle = async <T>(
-  run: () => Promise<Result<T>>,
+  run: (trace: Trace) => Promise<Result<T>>,
   telemetry: Telemetry,
 ): Promise<Result<T>> => {
   try {
-    return await run();
+    return await run(telemetry.trace);
   } catch (thrown) {
     return internalError(thrown, telemetry);
   }
@@ -39,11 +39,12 @@ const settle = async <T>(
 
 /**
  * Runs a command and reports its Result. Logs the start and end, turns an unexpected
- * throw into an INTERNAL error, prints the output and sets the exit code.
+ * throw into an INTERNAL error, prints the output and sets the exit code. The command gets
+ * a Trace for recording events of its own, such as each driver action.
  */
 export const runCommand = async <T>(
   { command, argv, json, telemetry }: Invocation,
-  run: () => Promise<Result<T>>,
+  run: (trace: Trace) => Promise<Result<T>>,
   renderData: (data: T) => string,
 ): Promise<void> => {
   const started = performance.now();
