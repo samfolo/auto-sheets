@@ -27,8 +27,20 @@ export const ERROR_CODES = {
   INVALID_USAGE: 'invalidInput',
   /** Data did not match its contract in src/contracts. The details name each field and its purpose. */
   CONTRACT_VIOLATION: 'invalidInput',
+  /** A file that should hold JSON could not be parsed. */
+  INVALID_JSON: 'invalidInput',
+  /** A file could not be read: usually it doesn't exist. */
+  FILE_UNREADABLE: 'invalidInput',
+  /** A file could not be written. */
+  FILE_UNWRITABLE: 'environment',
   /** A prerequisite checked by `factory doctor` is missing or invalid. */
   ENVIRONMENT_NOT_READY: 'environment',
+  /** A command needs the browser session, and none is running. */
+  BROWSER_NOT_RUNNING: 'environment',
+  /** `factory browser start` could not bring the browser up. */
+  BROWSER_START_FAILED: 'environment',
+  /** The browser didn't do what was asked: a page didn't load, or a control wasn't there. */
+  BROWSER_ACTION_FAILED: 'environment',
   /** The factory threw unexpectedly. This is a bug; the stack trace is in the log. */
   INTERNAL: 'internal',
 } as const satisfies Record<string, ErrorCategory>;

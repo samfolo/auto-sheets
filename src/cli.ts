@@ -1,5 +1,14 @@
 #!/usr/bin/env node
 import { Command, CommanderError } from '@commander-js/extra-typings';
+import {
+  browserStatus,
+  inspectPage,
+  renderInspection,
+  renderSession,
+  renderStop,
+  startBrowser,
+  stopBrowser,
+} from './commands/browser.ts';
 import { doctor, renderChecks } from './commands/doctor.ts';
 import { loadEnvFile, readRuntime } from './contracts/environment.ts';
 import { exitCodeFor } from './contracts/errors.ts';
@@ -40,6 +49,37 @@ const createProgram = (telemetry: Telemetry) => {
     .command('doctor')
     .description('check that everything the factory needs is in place')
     .action(() => runCommand(invocation('doctor'), doctor, renderChecks));
+
+  const browser = program
+    .command('browser')
+    .description('a long-lived browser that other commands attach to');
+
+  browser
+    .command('start')
+    .description('launch the browser, or report the one already running')
+    .option('--headless', 'hide the browser window')
+    .action(({ headless }) =>
+      runCommand(
+        invocation('browser start'),
+        () => startBrowser({ headless: headless === true }),
+        renderSession,
+      ),
+    );
+
+  browser
+    .command('status')
+    .description('report whether the browser is running')
+    .action(() => runCommand(invocation('browser status'), browserStatus, renderSession));
+
+  browser
+    .command('stop')
+    .description('close the browser')
+    .action(() => runCommand(invocation('browser stop'), stopBrowser, renderStop));
+
+  browser
+    .command('inspect')
+    .description('list the controls on the current page, by frame, and save a screenshot')
+    .action(() => runCommand(invocation('browser inspect'), inspectPage, renderInspection));
 
   return program;
 };

@@ -4,6 +4,7 @@ import packageJson from '../../package.json' with { type: 'json' };
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const artifacts = join(root, 'artifacts');
+const browser = join(artifacts, 'browser');
 
 /** Facts about the factory itself. Other modules read them from here instead of repeating them. */
 export const PROJECT = {
@@ -25,4 +26,18 @@ export const PATHS = {
   artifacts,
   /** Where telemetry goes when no build has set FACTORY_LOG. */
   defaultLog: join(artifacts, 'factory.jsonl'),
+  /** The long-lived browser session. See src/browser/session.ts. */
+  browser: {
+    /** The process that launches and owns the browser. */
+    host: join(root, 'src', 'browser', 'host.ts'),
+    /** Chromium's own state, including the Microsoft sign-in cookies. Never commit it. */
+    profile: join(browser, 'profile'),
+    /** Which session is running: its process and port. */
+    session: join(browser, 'session.json'),
+    /** What the host process printed, for when the browser fails to start. */
+    hostLog: join(browser, 'host.log'),
+    screenshots: join(browser, 'screenshots'),
+  },
+  /** Recorded cases for Excel: steps, what Excel did, and optional seed workbooks. */
+  excelCases: join(root, 'targets', 'excel', 'cases'),
 } as const;
