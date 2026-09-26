@@ -67,3 +67,18 @@ Observed 26 September 2026, later the same day.
 - Even after the page moves, the new editor keeps loading helper frames for a few more seconds; the clipboard frame (`shared.officeapps.live.com/clipboard/`) comes last. An entry made before then can be dropped too.
 - A dropped entry looks like a successful one: the selection still moves down after Enter. The cell is simply empty afterwards. Only reading the cell back shows it.
 - So the driver waits for the saved address and the clipboard frame, pauses, and then confirms every entry. The typed text must be in the cell editor before Enter, the selection must reach the cell below, and non-blank text must leave the cell non-empty. Otherwise it retries once. A lost overwrite, where the old value stays, gets past these checks; recording twice is what catches it.
+
+## Selections, operations and files
+
+Observed 26 September 2026, in the afternoon.
+
+- Typing a range such as `B1:B3` into the Name Box selects it. The Name Box then shows the active cell (`B1`), and the readout switches format: `1 . Selected range . B1:B3 . ` gives the active cell's display, the words "Selected range", the range, then any annotations.
+- The readout has no label at all until the first selection in a newly opened workbook, and the first selection after a browser restart can fail to take. Selecting again works.
+- Ctrl+Enter puts the typed text in every selected cell. It is Ctrl+Enter even on a Mac; Cmd+Enter only fills the active cell. One undo reverts all the cells.
+- Delete clears every selected cell, and one undo restores them all.
+- Cmd+D (Ctrl+D elsewhere) fills the top row of the selection down, adjusting relative references: `=B1*2` becomes `=B2*2` and `=B3*2`.
+- Copy and paste (Cmd+C, Cmd+V) work within the sheet. The browser is launched with clipboard permission.
+- The status bar's totals for a selection are not exposed as readable text.
+- File, then Create a Copy, then Download a Copy downloads the workbook as `.xlsx`. The file keeps each formula (`<f>`) with its last computed value (`<v>`) and each cell's type, which the readout can't give.
+- "Upload a file" on the Excel home page opens a file chooser. Playwright can hand it a file directly, with no folder navigation, and Excel then opens the uploaded workbook. This is how a case's seed workbook is loaded.
+- Every blank workbook and upload is saved to the test account's OneDrive, so workbooks accumulate (Book 1 to Book 37 by mid-afternoon).

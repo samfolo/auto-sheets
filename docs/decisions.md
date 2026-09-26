@@ -57,6 +57,12 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 47. **The browser session is a first-class tool.** One long-lived browser, which commands attach to over the Chrome DevTools Protocol. The driver's actions (open, enter, observe, undo, redo) are CLI commands, so a person or the agent can build a journey a few steps at a time before writing it down as a case.
 48. **The driver checks the effect of every entry, not a stand-in for it.** The selection must reach the cell below and non-blank text must leave the cell non-empty; otherwise the entry is retried once. A new workbook counts as open only once Excel has moved it to its saved address and its new editor has loaded.
 49. **The driver enters content by selecting the cell and typing into it, as a person overwriting a cell does.** Overwrites through the formula bar kept the old value. The typed text is checked in the cell editor before Enter, and retyped after Escape if keystrokes were dropped.
+50. **Cases are written in semantic steps: select, enter, enter-in-selection, clear, fill-down, copy, paste, undo, redo and observe.** Each step is also a command, `factory excel do <step> …`, run by the same code, so a person or the agent can try a journey by hand before writing it down.
+51. **One sheet driver drives any target that exposes Excel's accessible controls.** A target supplies only where its four controls are (Name Box, formula bar, cell editor, screen-reader readout) and how to open a sheet. The clone must expose the same controls with the same readout format, so the same case runs on Excel and on the clone.
+52. **Every action declares whether it may be repeated.** Reads (select, observe) repeat freely. Typing before a commit repeats after Escape. Anything that changes the undo history repeats only when the sheet provably didn't change; otherwise the problem is reported or traced, and recording twice catches the rest. Every retry is logged.
+53. **A case can start from `seed.xlsx` in its folder.** The Excel driver uploads it; the clone loads it. Excel works in one tab, so tabs never accumulate.
+54. **The clone's "OneDrive" is an in-memory document store.** Seed workbooks are read from the repository at startup, an upload loads a workbook into memory, and reset returns to the seeds. Nothing is written to disk, as the brief requires.
+55. **The factory's agent is Pi (`@earendil-works/pi-coding-agent` 0.87.1) on OpenRouter with `deepseek/deepseek-v4.1-flash`.** It is introduced the way the Pi spike proved: a subprocess with `--mode json`, an explicit tool list, its own session directory, and the key redacted from every log.
 
 ## Open questions
 
@@ -65,5 +71,5 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 - **Schema changes.** How to change a contract once cases written against it exist.
 - **Stall detection.** Proposed: the verify script detects repeated failures and tells the agent to stop and reassess.
 - **Grid.** Glide Data Grid is the likely choice. It exposes an accessible table, but its peer dependencies cap React at 18.
-- **Reference capture of typed values.** The readout gives displayed text and whether a cell holds a formula or an error, but not whether a value is a number or text. Options: a downloaded `.xlsx`, or asking Excel itself with `=TYPE()`.
-- **Clone UI contract.** Proposed: the clone exposes the same accessible controls as Excel (Name Box, formula bar, an active-cell readout in the same format), so one driver with a selector map per target drives both.
+- **Reference capture of typed values.** The readout gives displayed text and whether a cell holds a formula or an error, but not whether a value is a number or text. Downloading the workbook as `.xlsx` works and gives types for the final state; asking Excel with `=TYPE()` is the alternative.
+- **Cleaning up OneDrive.** Every recording leaves workbooks in the test account's OneDrive. They should be deleted after recording.

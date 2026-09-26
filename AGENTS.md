@@ -8,7 +8,7 @@ This repository is the factory. Clones are built elsewhere. Landed decisions are
 - `npm run check` type-checks, lints, checks formatting and runs the tests. Run it before every commit.
 - `npm run format` formats everything with Prettier.
 - `npx factory browser start` launches the long-lived browser session that the Excel and case commands attach to. `npx factory browser inspect` lists the controls on the current page and saves a screenshot.
-- `npx factory excel open | enter <cell> <text> | observe <cells...> | undo | redo` drive Excel one step at a time. `npx factory excel sign-in` signs the session in (the account is passwordless; a person supplies the emailed code with `--code`).
+- `npx factory excel open [--seed <file>]` opens a workbook, and `npx factory excel do <step> …` runs one case step on it (`--help` lists the steps). `npx factory excel sign-in` signs the session in: the account is passwordless, so a person supplies the emailed code with `--code`.
 - `npx factory case list` lists cases; `npx factory case record <id>` records one against Excel. Cases and their layout are explained in `targets/README.md`.
 
 ## Conventions
@@ -17,6 +17,7 @@ This repository is the factory. Clones are built elsewhere. Landed decisions are
 - Functions are `const` arrow functions. The linter enforces this.
 - Static values (configuration, registries, tables, fixed strings) are named in `SCREAMING_SNAKE_CASE`, such as `PATHS` and `ERROR_CODES`. Functions and Zod schemas are `camelCase`. No lint rule enforces this, so follow it by hand.
 - There is one way to do each thing. Facts about the project (names, versions, paths) come from `src/core/project.ts`. Environment variables are read only in `src/contracts/environment.ts`, which the linter enforces. Small shared helpers, such as `sentence()` in `src/core/text.ts`, replace patterns that would otherwise be repeated inline.
+- Driving a spreadsheet is shared by every target, in `src/sheet/`. Every action states whether it may be repeated: reads freely, typing after Escape, and changes to the undo history only when the sheet provably didn't change. Log retries with the Trace a command receives.
 - Each third-party library enters through one place: commander in `src/cli.ts`, pino in `src/core/telemetry.ts`, Zod in `src/contracts/`, Playwright in `src/browser/` and the target drivers. Code that throws (Node, Playwright) is wrapped with `attempt()` from `src/core/attempt.ts` so failures come back as Results.
 - Failures are values. Return a `Result` from `src/core/result.ts` using `ok()` and `fail()`. Throw only for bugs; the CLI turns a throw into `INTERNAL`.
 - Every error code is declared in `src/contracts/errors.ts`, with a comment saying what it means. A message is one specific sentence; add a location, details and a hint when they help someone act.
