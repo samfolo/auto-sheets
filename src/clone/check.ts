@@ -22,7 +22,7 @@ export const scoreClone = (verdicts: readonly Verdict[]): CloneScore => ({
   golden: tally(tagged(verdicts, CASE_TAGS.golden)),
 });
 
-export type CheckOptions = Pick<VerifyOptions, 'ids' | 'withoutTags' | 'screenshots'> & {
+export type CheckOptions = Pick<VerifyOptions, 'cases' | 'screenshots'> & {
   /** Show the browser window while the cases run. */
   readonly headed?: boolean;
   /** Where the clone's own output goes. */

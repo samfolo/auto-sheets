@@ -10,7 +10,7 @@
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
 import { type AgentDefinition, loadAgentDefinition, OUTCOMES, runAgent } from '../agent/index.ts';
-import { CASE_TAGS, selectCases } from '../cases/index.ts';
+import { CASE_TAGS, type RecordedCase, selectCases } from '../cases/index.ts';
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
   displayPath,
@@ -65,13 +65,13 @@ const newRunId = (): string =>
 const finalCheck = async (
   workspace: string,
   runDir: string,
-  ids: readonly string[],
+  cases: readonly RecordedCase[],
   trace: Trace,
 ): Promise<FinalCheck> => {
   const verdicts = await checkClone(
     workspace,
     {
-      ids,
+      cases,
       logFile: join(runDir, RUN_FILES.appLog),
       screenshots: join(runDir, RUN_FILES.screenshots),
     },
@@ -99,7 +99,8 @@ export const build = async (
     });
   }
 
-  // The cases are fixed now: ones recorded while the agent works belong to later builds.
+  // The cases, and what Excel did in each, are fixed now: anything recorded while the agent
+  // works belongs to later builds.
   const cases = await selectCases({ ids: [] });
   if (!cases.success) return cases;
   const visible = cases.data.filter(
@@ -130,18 +131,13 @@ export const build = async (
       apiKey: credentials.data.openRouterApiKey,
       minutes,
       maxUsd: options.data.maxUsd ?? null,
-      caseIds: visible.map(({ id }) => id),
+      cases: visible,
     },
     runTrace,
   );
   if (!run.success) return run;
   trace('build.agent', { runId, ...run.data });
-  const check = await finalCheck(
-    workspace.data,
-    runDir,
-    cases.data.map(({ id }) => id),
-    runTrace,
-  );
+  const check = await finalCheck(workspace.data, runDir, cases.data, runTrace);
 
   const summary: BuildSummary = {
     runId,

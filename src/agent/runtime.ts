@@ -24,6 +24,7 @@ import {
 } from '@earendil-works/pi-coding-agent';
 import { InMemoryCredentialStore } from '@earendil-works/pi-ai';
 import { join } from 'node:path';
+import type { RecordedCase } from '../cases/index.ts';
 import { attempt, fail, NO_TRACE, ok, type Result, type Trace } from '../kernel/index.ts';
 import type { AgentRun, AgentSettings, AgentToolName } from './contract.ts';
 import type { AgentDefinition } from './definition.ts';
@@ -103,8 +104,8 @@ export interface AgentPlace {
 export interface AgentOptions extends AgentPlace {
   readonly apiKey: string;
   readonly minutes: number;
-  /** The cases the agent may check against, fixed when the run started. */
-  readonly caseIds: readonly string[];
+  /** The cases the agent may check against, as they were when the run started. */
+  readonly cases: readonly RecordedCase[];
   /** A spending limit in dollars, or null for none. */
   readonly maxUsd: number | null;
 }
@@ -315,7 +316,7 @@ export const runAgent = async (
   options: AgentOptions,
   trace: Trace,
 ): Promise<Result<AgentRun>> => {
-  const checker = createCaseChecker(options.workspace, options.runDir, options.caseIds, trace);
+  const checker = createCaseChecker(options.workspace, options.runDir, options.cases, trace);
   const opened = await openSession(
     definition,
     options,

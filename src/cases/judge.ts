@@ -16,13 +16,24 @@ import { createSheetDriver } from '../sheet/index.ts';
 /** Joins a case id's folders in a screenshot's file name. */
 const SCREENSHOT_SEPARATOR = '--';
 
+/** A case with its reference read: what a judge compares against, fixed when it was loaded. */
+export interface RecordedCase extends LoadedCase {
+  readonly reference: Reference;
+}
+
+/** Which recorded cases to load: some by id, or every one, less any with an excluded tag. */
+export interface CaseSelection {
+  /** The cases to load; every recorded case when empty. */
+  readonly ids: readonly string[];
+  /** Leaves out cases with any of these tags, such as the held-out ones. */
+  readonly withoutTags?: readonly string[];
+}
+
 export interface VerifyOptions {
   /** Where the clone is running. */
   readonly url: string;
-  /** The cases to run; every recorded case when empty. */
-  readonly ids: readonly string[];
-  /** Leaves out cases with any of these tags, such as held-out cases while an agent works. */
-  readonly withoutTags?: readonly string[];
+  /** The cases to run, as they were when they were selected. */
+  readonly cases: readonly RecordedCase[];
   /** A folder for a picture of the clone at the end of each case, for a person to compare. */
   readonly screenshots?: string;
   /** Show the browser window while the cases run. */
@@ -30,11 +41,10 @@ export interface VerifyOptions {
 }
 
 /** What's wrong with a clone's run of a case: each difference from Excel, or why it didn't run. */
-const problemsWith = (reference: Result<Reference>, actual: Result<Checkpoint[]>): string[] => {
-  if (!reference.success) return [reference.error.message, ...(reference.error.details ?? [])];
-  if (!actual.success) return [actual.error.message, ...(actual.error.details ?? [])];
-  return compareTrajectories(reference.data.checkpoints, actual.data).map(formatDifference);
-};
+const problemsWith = (reference: Reference, actual: Result<Checkpoint[]>): string[] =>
+  actual.success
+    ? compareTrajectories(reference.checkpoints, actual.data).map(formatDifference)
+    : [actual.error.message, ...(actual.error.details ?? [])];
 
 const checkRunning = async (url: string): Promise<Result<Response>> =>
   attempt(
@@ -54,18 +64,28 @@ const loadCases = async (ids: readonly string[]): Promise<Result<LoadedCase[]>> 
   return ok(loaded.flatMap((result) => (result.success ? [result.data] : [])));
 };
 
-/** The recorded cases to run: the ones asked for, or every one, less any with an excluded tag. */
+/**
+ * Loads recorded cases with their references, so that everything judged from them later is
+ * judged against what existed now, whatever is recorded meanwhile.
+ */
 export const selectCases = async ({
   ids,
   withoutTags = [],
-}: Pick<VerifyOptions, 'ids' | 'withoutTags'>): Promise<Result<LoadedCase[]>> => {
+}: CaseSelection): Promise<Result<RecordedCase[]>> => {
   const loaded = await loadCases(ids);
   if (!loaded.success) return loaded;
+  const wanted = loaded.data.filter(
+    ({ recorded, definition }) =>
+      recorded && !definition.tags.some((tag) => withoutTags.includes(tag)),
+  );
+  const references = await Promise.all(wanted.map(readReference));
+  const failure = references.find((result) => !result.success);
+  if (failure !== undefined && !failure.success) return failure;
   return ok(
-    loaded.data.filter(
-      ({ recorded, definition }) =>
-        recorded && !definition.tags.some((tag) => withoutTags.includes(tag)),
-    ),
+    wanted.flatMap((loadedCase, index) => {
+      const reference = references[index];
+      return reference?.success ? [{ ...loadedCase, reference: reference.data }] : [];
+    }),
   );
 };
 
@@ -74,22 +94,18 @@ export const selectCases = async ({
  * check itself are failures here; a case that differs from Excel is a verdict.
  */
 export const judgeClone = async (
-  { url, headed, screenshots, ...selection }: VerifyOptions,
+  { url, headed, screenshots, cases }: VerifyOptions,
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
   const running = await checkRunning(url);
   if (!running.success) return running;
-  const cases = await selectCases(selection);
-  if (!cases.success) return cases;
 
   return withFreshBrowser(
     async (context) => {
       const driver = createSheetDriver(cloneTarget(context, url), trace);
       const results: Verdict[] = [];
-      for (const loaded of cases.data) {
+      for (const loaded of cases) {
         // Cases share one browser and one clone, so they run one at a time.
-        // oxlint-disable-next-line no-await-in-loop
-        const reference = await readReference(loaded);
         // oxlint-disable-next-line no-await-in-loop
         const actual = await runSteps(driver, loaded.definition.steps, loaded.seedFile);
         if (screenshots !== undefined) {
@@ -98,7 +114,7 @@ export const judgeClone = async (
             join(screenshots, `${loaded.id.replaceAll('/', SCREENSHOT_SEPARATOR)}.png`),
           );
         }
-        const problems = problemsWith(reference, actual);
+        const problems = problemsWith(loaded.reference, actual);
         trace('case.verdict', { id: loaded.id, passed: problems.length === 0, problems });
         results.push({
           id: loaded.id,

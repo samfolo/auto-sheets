@@ -8,6 +8,7 @@
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from '@earendil-works/pi-ai';
 import { join } from 'node:path';
+import type { RecordedCase } from '../../cases/index.ts';
 import { checkClone } from '../../clone/index.ts';
 import { git, type Trace } from '../../kernel/index.ts';
 import { createScoreboard, formatScoreReport } from '../scoreboard.ts';
@@ -69,15 +70,15 @@ const incomplete = (text: string): CheckOutcome => ({ text, complete: false });
 export const createCaseChecker = (
   workspace: string,
   runDir: string,
-  caseIds: readonly string[],
+  cases: readonly RecordedCase[],
   trace: Trace,
 ): CaseChecker => {
   const scoreboard = createScoreboard();
   const best = { passed: 0 };
-  const known = new Set(caseIds);
+  const known = new Set(cases.map(({ id }) => id));
   return {
-    check: async (cases) => {
-      const unknown = cases.filter((id) => !known.has(id));
+    check: async (ids) => {
+      const unknown = ids.filter((id) => !known.has(id));
       if (unknown.length > 0) {
         return incomplete(
           `There are no cases ${unknown.join(', ')}. The cases are the folders under cases/.`,
@@ -85,7 +86,10 @@ export const createCaseChecker = (
       }
       const verdicts = await checkClone(
         workspace,
-        { ids: cases.length > 0 ? cases : caseIds, logFile: join(runDir, CHECK_CASES.logFile) },
+        {
+          cases: ids.length > 0 ? cases.filter(({ id }) => ids.includes(id)) : cases,
+          logFile: join(runDir, CHECK_CASES.logFile),
+        },
         trace,
       );
       if (!verdicts.success) {
@@ -101,7 +105,7 @@ export const createCaseChecker = (
         fixed: report.fixed,
         broken: report.broken,
       });
-      const everyCase = cases.length === 0;
+      const everyCase = ids.length === 0;
       if (everyCase && report.passed > best.passed) {
         best.passed = report.passed;
         checkpoint(workspace, report.passed, report.total);

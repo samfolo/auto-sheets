@@ -4,7 +4,7 @@
  * build against cases added since, or watching one case run with `--headed`.
  */
 import { join } from 'node:path';
-import { renderVerdicts, reportVerdicts, type Verdict } from '../cases/index.ts';
+import { renderVerdicts, reportVerdicts, selectCases, type Verdict } from '../cases/index.ts';
 import type { CommandRegistry } from '../cli/index.ts';
 import { PATHS, PROJECT, type Result, type Trace } from '../kernel/index.ts';
 import { checkClone } from './check.ts';
@@ -21,9 +21,11 @@ export const checkWorkspace = async (
   headed: boolean,
   trace: Trace,
 ): Promise<Result<Verdict[]>> => {
+  const cases = await selectCases({ ids });
+  if (!cases.success) return cases;
   const verdicts = await checkClone(
     workspace,
-    { ids, headed, logFile: CHECK_OUTPUT.log, screenshots: CHECK_OUTPUT.screenshots },
+    { cases: cases.data, headed, logFile: CHECK_OUTPUT.log, screenshots: CHECK_OUTPUT.screenshots },
     trace,
   );
   if (!verdicts.success) return verdicts;
