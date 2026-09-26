@@ -12,6 +12,7 @@ import { CASE_TAGS, selectCases } from '../../cases/index.ts';
 import { checkClone } from '../../clone/index.ts';
 import { git, type Trace } from '../../kernel/index.ts';
 import { createScoreboard, formatScoreReport } from '../scoreboard.ts';
+import { toolText } from './text.ts';
 
 export const CHECK_CASES = {
   name: 'check_cases',
@@ -49,11 +50,6 @@ const parameters = Type.Object({
   ),
 });
 
-const text = (message: string) => ({
-  content: [{ type: 'text' as const, text: message }],
-  details: undefined,
-});
-
 export const createCheckCasesTool = (workspace: string, runDir: string, trace: Trace) => {
   const scoreboard = createScoreboard();
   const best = { passed: 0 };
@@ -66,11 +62,11 @@ export const createCheckCasesTool = (workspace: string, runDir: string, trace: T
     executionMode: 'sequential',
     execute: async (_toolCallId, { cases = [] }) => {
       const visible = await selectCases({ ids: [], withoutTags: CHECK_CASES.withoutTags });
-      if (!visible.success) return text(visible.error.message);
+      if (!visible.success) return toolText(visible.error.message);
       const known = new Set(visible.data.map(({ id }) => id));
       const unknown = cases.filter((id) => !known.has(id));
       if (unknown.length > 0) {
-        return text(
+        return toolText(
           `There are no cases ${unknown.join(', ')}. The cases are the folders under cases/.`,
         );
       }
@@ -86,7 +82,7 @@ export const createCheckCasesTool = (workspace: string, runDir: string, trace: T
       if (!verdicts.success) {
         const { message, details = [] } = verdicts.error;
         trace('agent.check', { problem: message });
-        return text([message, ...details].join('\n'));
+        return toolText([message, ...details].join('\n'));
       }
       const report = scoreboard.record(verdicts.data);
       trace('agent.score', {
@@ -100,7 +96,7 @@ export const createCheckCasesTool = (workspace: string, runDir: string, trace: T
         best.passed = report.passed;
         checkpoint(workspace, report.passed, report.total);
       }
-      return text(formatScoreReport(report));
+      return toolText(formatScoreReport(report));
     },
   });
 };

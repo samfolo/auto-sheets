@@ -5,7 +5,7 @@
     "id": "deepseek/deepseek-v4.1-flash",
     "thinking": "high"
   },
-  "tools": ["read", "bash", "edit", "write", "grep", "ls", "check_cases"],
+  "tools": ["read", "bash", "edit", "write", "grep", "ls", "check_cases", "try_steps"],
   "context": ["standards/code.md"],
   "budgetMinutes": 30
 }

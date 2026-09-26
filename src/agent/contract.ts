@@ -11,7 +11,16 @@ export const THINKING_LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhig
  * Every tool an agent can be given: Pi's built-in tools, less `find`, which needs `fd` installed,
  * and the factory's harness tools. `bash` is the factory's own, without the factory's secrets.
  */
-export const AGENT_TOOLS = ['read', 'bash', 'edit', 'write', 'grep', 'ls', 'check_cases'] as const;
+export const AGENT_TOOLS = [
+  'read',
+  'bash',
+  'edit',
+  'write',
+  'grep',
+  'ls',
+  'check_cases',
+  'try_steps',
+] as const;
 
 export type AgentToolName = (typeof AGENT_TOOLS)[number];
 

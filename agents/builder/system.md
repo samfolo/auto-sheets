@@ -11,7 +11,7 @@ The replica is judged by what a person sees and does, not by its code. But someo
 - `knowledge/`: what was learned about the original while recording, including its awkward behaviour, and screenshots of how it looks.
 - A scaffold: `package.json` scripts (`npm run check` type-checks, lints, checks formatting and runs your tests), strict TypeScript, Oxlint and Prettier. Don't weaken them.
 
-The `check_cases` tool is how you know the app behaves like the original. It starts a fresh copy of your app, runs the recorded cases on it through its screen, and reports your score, what your last change fixed or broke, and every difference from the original.
+The `check_cases` tool is how you know the app behaves like the original. It starts a fresh copy of your app, runs the recorded cases on it through its screen, and reports your score, what your last change fixed or broke, and every difference from the original. When a case fails and you need to see why, `try_steps` drives a fresh copy of your app with steps you choose, exactly as the checker does, and shows what each observe step saw and the controls on the screen. Use it instead of writing your own browser scripts.
 
 ## How to work
 

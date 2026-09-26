@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { attempt, fail, NO_TRACE, ok, type Result, type Trace } from '../kernel/index.ts';
 import type { AgentRun, AgentSettings, AgentToolName } from './contract.ts';
 import type { AgentDefinition } from './definition.ts';
-import { createBashTool, createCheckCasesTool } from './tools/index.ts';
+import { createBashTool, createCheckCasesTool, createTryStepsTool } from './tools/index.ts';
 
 /** Where Pi keeps the agent's session, inside the run's folder. */
 const SESSIONS_FOLDER = 'sessions';
@@ -113,6 +113,7 @@ const harnessTools = (
 ): Partial<Record<AgentToolName, ToolDefinition>> => ({
   bash: createBashTool(workspace),
   check_cases: createCheckCasesTool(workspace, runDir, trace),
+  try_steps: createTryStepsTool(workspace, runDir, trace),
 });
 
 /**
