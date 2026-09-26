@@ -32,6 +32,7 @@ import {
   createBashTool,
   createCaseChecker,
   createCheckCasesTool,
+  createFileTools,
   createTryStepsTool,
 } from './tools/index.ts';
 
@@ -122,12 +123,16 @@ const resourcesFor = (definition: AgentDefinition): ResourceLoader => ({
   reload: async () => undefined,
 });
 
-/** The factory's tools, by the name the definition uses. Other names are Pi's built-in tools. */
+/**
+ * The factory's tools, by the name the definition uses: its own harness tools, and Pi's built-in
+ * tools confined to the workspace in place of the originals.
+ */
 const harnessTools = (
   { workspace, runDir }: AgentPlace,
   checker: CaseChecker,
   trace: Trace,
 ): Partial<Record<AgentToolName, ToolDefinition>> => ({
+  ...createFileTools(workspace),
   bash: createBashTool(workspace),
   check_cases: createCheckCasesTool(checker),
   try_steps: createTryStepsTool(workspace, runDir, trace),

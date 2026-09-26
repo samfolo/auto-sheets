@@ -10,7 +10,7 @@ import { mkdir } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { dirname, join } from 'node:path';
 import { CLONE } from '../../targets/excel/index.ts';
-import { childEnvironment, fail, poll, type Result } from '../kernel/index.ts';
+import { childEnvironment, fail, poll, type Result, sandboxed } from '../kernel/index.ts';
 
 export const CLONE_APP = {
   /** How long a clone has to answer its health check after `npm start`. */
@@ -55,7 +55,9 @@ export const withCloneApp = async <T>(
   await mkdir(dirname(logFile), { recursive: true });
   const log = createWriteStream(logFile, { flags: 'a' });
   const output: string[] = [];
-  const app = spawn('npm', ['start'], {
+  // The clone is the agent's code, so it runs in the agent's sandbox.
+  const start = sandboxed(workspace, 'npm', ['start']);
+  const app = spawn(start.command, start.args, {
     cwd: workspace,
     env: { ...childEnvironment(), PORT: String(port) },
     stdio: ['ignore', 'pipe', 'pipe'],

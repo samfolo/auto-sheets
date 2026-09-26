@@ -7,6 +7,7 @@ export * from './log-line.ts';
 export * from './poll.ts';
 export * from './project.ts';
 export * from './result.ts';
+export * from './sandbox.ts';
 export * from './stamp.ts';
 export * from './telemetry.ts';
 export * from './text.ts';

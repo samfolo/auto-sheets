@@ -80,6 +80,7 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 70. **Builds run in parallel, one model each, with `build --model`.** Each run has its own workspace, its own clone ports and its own browser. Its id is its start time plus a short random suffix, because two builds can start in the same millisecond.
 71. **The harness retries a model for about five minutes before a run fails.** Pi's defaults give up after about 14 seconds, which is shorter than a free model's shared rate limit takes to clear. A run that still fails records the provider's error in its summary.
 72. **The agent is told how much time it has, and is sent back to work if it stops early.** Done is definite: every visible case passes. If the agent stops before that, the harness replies with the scoreboard and the time left, up to five times.
+73. **Everything an agent runs is sandboxed with macOS's Seatbelt (`sandbox-exec`).** Its shell commands and its clone (when a check starts it) can read and write only the workspace and temporary files, and signal only processes in the same sandbox. They can't read the factory (its `.env`, its references, the held-out cases) or other builds. Pi's file tools run in the factory's process, so they refuse any path that resolves outside the workspace, including through a link. The factory's own checker and browser run outside the sandbox.
 
 ## Open questions
 

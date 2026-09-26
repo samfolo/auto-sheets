@@ -6,6 +6,8 @@ The replica is judged by what a person sees and does, not by its code. But someo
 
 ## What the workspace holds
 
+You work in a sandbox. Your commands can read and write this workspace and temporary files, and reach the network, but nothing else on the machine; they can stop only processes you started. Stop your own servers by the process ID you started them with.
+
 - `SPEC.md`: what the app must provide.
 - `cases/`: behaviour recorded from the original product. Each case has `case.json` (what a person did) and `reference.json` (what the original showed at each checkpoint). The references are the ground truth. `cases/case.schema.json` and `cases/reference.schema.json` say what every field and step means.
 - `knowledge/`: what was learned about the original while recording, including its awkward behaviour, and screenshots of how it looks.
