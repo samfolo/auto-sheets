@@ -128,7 +128,26 @@ The idea behind checkpointing: if it passes more cases than the last time you ra
 
 ## Next
 
-I would take time to think about which abstractions are too opinionated, how they can be generalised, and how instrumentation can be improved as well. I would also think about how to upstream changes and bugs more effectively instead of having to dig through the logs myself. We have the beginnings of a flywheel or the beginnings of a self-improvement loop for the factory, but it is bare-bones at the moment.
+With 2 more days, I would have spent a little more time planning and building the tooling with even more care. With a deeper understanding of the problem statement and the constraints under which things needed to be built, I may have made different design decisions on the tool shape, on instrumentation, etc.
+
+### With two more days
+
+- **Sandboxing.** I would look into the shape that things need to take so that the builds themselves were properly sandboxed. I'd be wary of the implementing agent working outside of the sanctioned area and causing actual damage. The incident that I caught was minor, but it's indicative of what the actual risk is. It shows that sometimes the system might behave in ways that you can't predict and are not prepared to handle.
+- **Rendering and state.** I would spend more time thinking about how best to capture computed styles, computed values, and states. The browser itself manages a lot of this state. I would need to see what's actually available, how we can hook into those data sources, and capture more accurate representations of what's happening, not just the selectors that we happen to find in our recon.
+- **Fuzzing.** I have an idea for running the original implementation and the clone side by side with the same random actions, and sorting all of the differences into tasks that need to be built, rules that need to be canonised, and noise that is safe to ignore.
+- **Control around runs.** Can I resume or otherwise supervise a run to avoid outages and killed processes? Burning longer-running builds costs money and a lot of time. Some of our builds went as long as 108 minutes; others were affected by low credit on an API key or a killed process. This means a lot of wasted work and a lot of wasted resource.
+- **Viewports.** I would spawn the application in different viewport sizes, zoom levels, etc., to tease out the responsive behaviour, as well as other things that are hidden when the browser and viewport are set to the default state. The replica assumes 100% zoom level and a full screen.
+- **A plan for coverage.** I would want a solid plan as to how we are going to verify that all the behaviour in all the scenarios that we care about has been faithfully captured.
+
+### Scaling to a much larger target
+
+In order to scale this thing properly, you would have to plan a lot more. The things that already scale: the target is just a folder. It has the driver, its cases, knowledge, docs, and a spec. If you want to capture more of the product, you just add new cases and explore on different axes. Builds are able to run in parallel already, and coverage is already generated, not listed. However, a new product means defining a new driver.
+
+- **Parallel agents.** At the moment, there is a single agent responsible for the entire implementation. Whilst that has its benefits (one agent's work can't clutter another agent's work; we don't have to worry about git merge conflicts or time-of-check, time-of-use issues), we also only move as fast as a single model can handle. I suspect that there is a shape of the system where a single model might be responsible for orchestrating multiple agents, each frontloaded with its own set of file system permissions and specialised tools, so each agent could do one job well and quickly.
+- **Schema design.** Some of the schemas are generic enough to be shared across products, whereas some things are Excel-specific. I would spend more time thinking about schema design, to make sure that bootstrapping a new factory to handle a different product isn't a matter of having to reinvent the wheel or leave behind hard-won lessons from efforts like this one.
+- **Checks.** The checks themselves don't scale, because a full check runs every test. I would segment those checks so that different properties of the system have their own sub-suites and can be run independently; if we're working on one quality of the system, we only have to run a subset of the tests, which would help with iteration time.
+- **Drift.** Selectors would either have to be versioned, or I would need a stronger definition for what is being replicated.
+- **Identity.** AgentMail comes to mind. I would want to understand exactly how identity is provided to implementing agents that need access to the live site at any stage, and have more intentional management of credentials.
 
 I've thought about what it might take to convert this into something more general-purpose able to take any accessible piece of closed-source software and devise its own strategy to replicate it. I've come away from this exercise with a newfound respect for the scope of that problem. It's an incredibly interesting and ambitious project, and one that I'll likely be thinking about for some time.
 
