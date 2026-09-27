@@ -98,6 +98,7 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 88. **Exploration's `entry` focus fills in values and formulas that refer to each other**, by every route a person uses: Enter, typing after a click, typing then clicking away, the formula bar, and double-clicking to add to a cell, with undo and redo among them. After each entry it observes the latest cells written.
 89. **The clone in `clone/` is copied from a build, not written by hand.** It is the DeepSeek v4.1 Flash build on factory 0.2.0 that passed 37 of 37 visible cases. The factory's linter reads only its own configuration, so the clone keeps its own tools. Sandboxed code may read the details, not the contents, of every folder above its workspace, since resolving a path needs them; that lets the factory check a clone inside itself.
 90. **A build is judged on the agent's best work, not its last keystroke.** If the final state scores below the agent's best checkpoint, the build restores the checkpoint as a new commit, checks it instead, and keeps both scores in its summary. The agent's later commits stay in the history.
+91. **`try_steps` returns a picture of the screen as well as what the checker read.** Every builder model accepts images, and rendering is invisible to the text checks. The clone in `clone/` is never edited by hand: its bugs are listed as known issues in the README, and fixing them is a job for a new build.
 
 ## Open questions
 
@@ -115,3 +116,4 @@ The factory is a directory of contracts, tools and reference knowledge that a Pi
 - **Modifier keys and mixed targets.** Shift and Command with clicks and drags, drags that start on a header and end on a cell, clicking a selected header again, and multiple selected areas. They need steps that can hold keys and drag between any two targets, and cases recorded on Excel.
 - **Exploring interactions.** Generate random, seeded sequences of gestures, targets and modifiers, record them on Excel as cases, and run them on clones. Coverage of an interface this large can't be listed by hand; it has to be found.
 - **Shading.** How Excel shades selected cells, headers and overlapping areas. Observing it needs a new kind of checkpoint, such as sampling the grid's colour at each cell.
+- **A visual reviewer.** A separate model that compares the clone's screen with Excel's in the same state, after the same steps, to catch what the text checks can't: values not drawn, headers that scroll away, elements drawn over each other.
