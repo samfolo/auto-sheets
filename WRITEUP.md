@@ -98,7 +98,7 @@ Things that were very easily verifiable, like the formula evaluation, passed pre
 | DeepSeek v4.1 Flash                            | 39                  | 1              | $0.22  | 50 min  |
 | Space Bunny Alpha                              | 21                  | 0              | $0.00  | 75 min  |
 
-Every arithmetic, error, reference and undo case passes on the submitted clone. The six it fails, including one held-out case, are listed in the [README](README.md#verify-it).
+All but six of the cases submitted with this implementation pass against the clone. I listed the failing cases, including the one held-out case, in the [README](README.md#verify-it).
 
 The gaps were primarily in interactivity. For instance, in the submitted version:
 
