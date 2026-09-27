@@ -6,13 +6,19 @@ I saw they only wanted a single day's worth of effort; I knew this would have an
 
 ## Defining the problem
 
-I gave myself a day to think about the problem. I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
+I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
 
 Ultimately, I decided to take on Microsoft Excel; tried, tested, well-specified, and closed-source. Excel was the most verifiable and predictable product I could think of - complex enough to demonstrate my ability to build a system that could replicate non-trivial software. The XLSX file format, the ECMA formal specification, and Microsoft's deviations were all documented and could be referenced directly [3].
 
 I wanted to focus on cell values and formula calculation. I also wanted to implement basic cell interactions: highlighting columns, rows, individual cells, etc. I don't spend a lot of time in Excel, so I was caught by surprise as to how complex the highlighting and selection logic turned out to be.
 
 ## Approaches and trade-offs
+
+| Approach                                                                        | Fidelity                                         | Speed and robustness                                                                 | How it's verified                                                  |
+| ------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Tell the agent how to build Excel in its prompt                                 | Capped by my assumptions about Excel             | Fast to start; fails wherever an assumption is wrong                                 | Only against what I assumed                                        |
+| A generic computer-use agent that explores the UI and reverse-engineers from it | Potentially high, and general                    | Slow (screenshot, think, act); hard to make repeatable; a far bigger project         | By the agent's own judgement                                       |
+| Record Excel first as a black box, then build against the recordings (chosen)   | High on everything recorded; blind to what isn't | Fast, scripted checks; references recorded twice and pinned; opinionated about Excel | Exact comparison with Excel's recordings, including held-out cases |
 
 My initial instinct was to come up with the system prompt I could pass to a Pi agent that explained exactly how it might implement Excel. I quickly caught a number of issues with that approach:
 
@@ -29,8 +35,6 @@ I moved some of the extra detail on unreliable selectors and identity provision 
 
 ## How AI was used
 
-I was already aware of Pi as the framework behind a lot of successful agent projects. I used the SDK directly (`7166ac5`), which let me integrate Pi idiomatically; the SDK-exposed primitives allowed us to instrument agent tools.
-
 When writing the system prompt for the Pi agent, I wanted to make sure the instructions were generic. They needed to focus on how to engage with the problem, as opposed to imperative instructions on how to implement the replica itself. I had experience writing lexers, parsers, and evaluators and resisted the temptation to prescribe that approach, but a large majority of the runs decided on structuring things that way anyway.
 
 Error quality has an outsized impact on the success and effectiveness of a system like this. The models are trained to understand natural language. Often, it's a matter of describing what went wrong, whose fault it was, and how to remedy the situation [2]. A combination of having a read tool, a write tool, and a bash tool alone is often enough; we can focus on giving it the context it needs to act.
@@ -43,7 +47,9 @@ I also added two custom tools:
 - `check_cases`, a way to run the tests themselves; if this beats the previous best score, the harness commits a new checkpoint, and if not, the changes are left as they were.
 - `try_steps`, a way to check whether the current implementation gives you a certain output: an on-the-fly test case where you can see, given these steps, what the output is.
 
-I wrote a little more on the project bootstrapping, observability, and the two custom tools in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md). I also cover how Kimi K3 broke out of the project boundary to go find a Playwright install so it could spin up a browser.
+Kimi K3 was driving a run: the app wasn't opening. It called `try_steps` three times, but I didn't design the tool correctly; Kimi couldn't really investigate the error based on the context that I gave it through the tool, so it went looking for an instance of Playwright outside of the sanctioned area. It found an install for Playwright somewhere else in my home directory and used that to spin up its own Chrome instance, observe the 404 for itself, and fix the problem in about 5 minutes. The next check reached 20 out of 37; this is more corroborating evidence for how important sandboxes are (`docs/evidence/2026-09-26-an-error-that-named-nothing/`).
+
+I wrote a little more on Pi, the project bootstrapping, observability, and the two custom tools in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
 
 ## Verification
 
@@ -91,6 +97,8 @@ Things that were very easily verifiable, like the formula evaluation, passed pre
 | Kimi K3, final run                             | 40                  | 1              | $10.08 | 41 min  |
 | DeepSeek v4.1 Flash                            | 39                  | 1              | $0.22  | 50 min  |
 | Space Bunny Alpha                              | 21                  | 0              | $0.00  | 75 min  |
+
+Every arithmetic, error, reference and undo case passes on the submitted clone. The six it fails, including one held-out case, are listed in the [README](README.md#verify-it).
 
 The gaps were primarily in interactivity. For instance, in the submitted version:
 

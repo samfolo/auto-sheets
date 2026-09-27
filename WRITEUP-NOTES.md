@@ -31,17 +31,19 @@ I wanted to focus on the logic of the thin, focused slice and remove any issues 
 
 I wanted to make sure the project skeleton was reliable and predictable. Agents didn't know about any other runs or what was in any of the other directories, but I wanted to remove slight differences in project setup from the equation. If you're making changes that, in a stable environment, would lead to better results, but due to variance in project setup, you start to get unpredictable results, it becomes harder and harder to trust the decisions that you're making.
 
-## Two `try_steps` episodes
+## Pi
 
-Two examples come from a run where `check_cases` reported a failed test, and DeepSeek suspected the checker; it ran `try_steps` with three steps:
+I was already aware of Pi as the framework behind a lot of successful agent projects. I used the SDK directly (`7166ac5`), which let me integrate Pi idiomatically; the SDK-exposed primitives allowed us to instrument agent tools.
+
+## A `try_steps` episode
+
+In a run where `check_cases` reported a failed test, DeepSeek suspected the checker; it ran `try_steps` with three steps:
 
 ```json
 [{ "do": "click-column", "column": "K" }, { "do": "click-row", "row": 5 }, { "do": "click-corner" }]
 ```
 
 The model questioned the harness rather than second-guessing its own implementation, and turned out to be right.
-
-A second instance was when Kimi K3 was driving a run: the app wasn't opening. It called `try_steps` three times, but I didn't design the tool correctly; Kimi couldn't really investigate the error based on the context that I gave it through the tool, so it went looking for an instance of Playwright outside of the sanctioned area. It found an install for Playwright somewhere else in my home directory and used that to spin up its own Chrome instance, observe the 404 for itself, and fix the problem in about 5 minutes. The next check reached 20 out of 37; this is more corroborating evidence for how important sandboxes are (`docs/evidence/2026-09-26-an-error-that-named-nothing/`).
 
 ## Schema design, for a larger target
 
