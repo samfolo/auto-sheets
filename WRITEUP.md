@@ -8,11 +8,6 @@ I saw they only wanted a single day's worth of effort; I knew this would have an
 
 I gave myself a day to think about the problem. I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
 
-My mind naturally went to two familiar places: LeetCode (the coding platform) and Logic Pro/Premiere Pro.
-
-- Logic Pro was quite interesting; I had always wanted to do a timeline editor. There are likely several open-source libraries that could help, but the problem statement said closed-source software only, so I was hesitant.
-- LeetCode stood out because code is incredibly verifiable. I'm very glad I didn't choose this one; I would have burned the day and made less progress.
-
 Ultimately, I decided to take on Microsoft Excel; tried, tested, well-specified, and closed-source. Excel was the most verifiable and predictable product I could think of - complex enough to demonstrate my ability to build a system that could replicate non-trivial software. The XLSX file format, the ECMA formal specification, and Microsoft's deviations were all documented and could be referenced directly [3].
 
 I wanted to focus on cell values and formula calculation. I also wanted to implement basic cell interactions: highlighting columns, rows, individual cells, etc. I don't spend a lot of time in Excel, so I was caught by surprise as to how complex the highlighting and selection logic turned out to be.
@@ -30,9 +25,7 @@ What I ended up building was far more opinionated; to successfully replicate a p
 
 I wanted to treat the problem as a black box exercise; Claude pointed me to some methodology for black box testing or testing based on constraints and behaviour [1]. It served as the foundation for the approach we ultimately took. We used pre-existing general-purpose CLIs, specifically Playwright, to click around and log actions we took and their side effects on the perceived state of the application. This is the view of the world we have to work with; we use the application as a real user might, and generate something to serve as the guardrails or scaffolding for an agent to course-correct and verify it's doing the right thing.
 
-When you're scripting interactions with a system served as SaaS or something with continuous deployment, the DOM selectors cannot be trusted to remain stable. Either reference elements by role, or find a way to identify the exact snapshot or the exact build you're scripting for. We captured the selectors, roles, and names we would script against in a dedicated file (`targets/excel/driver/excel.ts`).
-
-Another concern I had was login credentials; I considered the risk involved with giving my personal email and Microsoft account to the agent. I decided I was not comfortable with that, so instead I created a new Proton email: sam.test.harness@proton.me. If you need to replicate other systems, having identity, having warmed-up accounts, or having verified credentials you're not afraid of sharing with inference providers is a necessity.
+More on a target that changes underneath you, and on identity, is in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
 
 ## How AI was used
 
@@ -42,34 +35,15 @@ When writing the system prompt for the Pi agent, I wanted to make sure the instr
 
 Error quality has an outsized impact on the success and effectiveness of a system like this. The models are trained to understand natural language. Often, it's a matter of describing what went wrong, whose fault it was, and how to remedy the situation [2]. A combination of having a read tool, a write tool, and a bash tool alone is often enough; we can focus on giving it the context it needs to act.
 
-The factory needs to be able to observe itself and what it's building, but so do we; I decided to rely on pino, a well-known logging library for the tracing I didn't get for free as part of the Pi coding harness. After laying foundations, Opus 5.5 would sometimes add more instrumentation as part of drive-by fixes. I asked it to say, in one or two sentences, what it understood about the permission it was given to add its own observability:
-
-```
-I was told how the factory reports rather than what to report: every command receives a Trace, events go through the one telemetry module into the run's events.jsonl, and nothing that could hold a secret is ever logged. So whenever something happened that someone would want to know about afterwards (a retry, a repeated click, a restored checkpoint), I gave it a named event with its details, without waiting to be asked.
-```
-
 I wanted the decisions as well as the append-only log to be first-class assets in the repo (`docs/decisions.md` and `docs/log.md`); their contents are machine-authored: less documentation, more field notes.
 
 Once things were stable enough to run multiple builds at the same time, I started to see that they were affecting each other, so we needed to wrap the tool handlers in considerations that isolated them from each other: the sandboxing part of this. We had first class evidence of the need for sandboxing (`docs/evidence/2026-09-26-parallel-interference/`); the only sandboxing that I added was basic enough to avoid killing siblings.
-
-I wanted to focus on the logic of the thin, focused slice and remove any issues that would come from leaving an agent to decide the tech stack, entry points, and workspace scaffolding; I found it necessary to automatically bootstrap new workspaces at the start of runs. I also wanted to give it offline access to Microsoft's public documentation to remove the need for a web search tool entirely.
-
-I wanted to make sure the project skeleton was reliable and predictable. Agents didn't know about any other runs or what was in any of the other directories, but I wanted to remove slight differences in project setup from the equation. If you're making changes that, in a stable environment, would lead to better results, but due to variance in project setup, you start to get unpredictable results, it becomes harder and harder to trust the decisions that you're making.
-
 I also added two custom tools:
 
 - `check_cases`, a way to run the tests themselves; if this beats the previous best score, the harness commits a new checkpoint, and if not, the changes are left as they were.
 - `try_steps`, a way to check whether the current implementation gives you a certain output: an on-the-fly test case where you can see, given these steps, what the output is.
 
-Two examples come from a run where `check_cases` reported a failed test, and DeepSeek suspected the checker; it ran `try_steps` with three steps:
-
-```json
-[{ "do": "click-column", "column": "K" }, { "do": "click-row", "row": 5 }, { "do": "click-corner" }]
-```
-
-The model questioned the harness rather than second-guessing its own implementation, and turned out to be right.
-
-A second instance was when Kimi K3 was driving a run: the app wasn't opening. It called `try_steps` three times, but I didn't design the tool correctly; Kimi couldn't really investigate the error based on the context that I gave it through the tool, so it went looking for an instance of Playwright outside of the sanctioned area. It found an install for Playwright somewhere else in my home directory and used that to spin up its own Chrome instance, observe the 404 for itself, and fix the problem in about 5 minutes. The next check reached 20 out of 37; this is more corroborating evidence for how important sandboxes are (`docs/evidence/2026-09-26-an-error-that-named-nothing/`).
+Observability, how each build is bootstrapped, and two `try_steps` episodes (including Kimi K3 going outside its workspace to debug a page the tool couldn't explain) are in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
 
 ## Verification
 
@@ -147,9 +121,6 @@ With 2 more days, I would have spent more time planning and building the tooling
 The things that already scale: the target is just a folder (the driver, its cases, knowledge documents, docs, and a spec.md). If you want to capture more of the product, you just add new cases and explore on different axes. Builds are able to run in parallel already, and coverage is already generated, not listed. However, a new product means defining a new driver.
 
 At the moment, there is a single agent responsible for the entire implementation; that has its benefits (one agent's work can't clutter another agent's work, and we don't have to worry about git merge conflicts), but we also only move as fast as a single model can handle. I suspect there is a shape of the system where a single model might be responsible for managing and orchestrating multiple agents to get the work done quicker, each frontloaded with its own set of file system permissions and specialised tools.
-
-Some of the schema, some of the artefacts, and manifest schemas are generic enough to be shared across products, whereas some things are Excel-specific. I would spend more time thinking about schema design to make sure bootstrapping a new factory to handle a different product isn't a matter of having to reinvent the wheel or leave behind hard-won lessons from efforts like this one.
-
 The checks themselves don't scale currently because a full check runs every test; I'll segment those checks so that different properties of the system have their own sub-suites and can be run independently.
 
 I would solve the identity problem as well (AgentMail comes to mind) and have more intentional management of credentials.
