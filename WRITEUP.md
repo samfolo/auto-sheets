@@ -8,6 +8,11 @@ I saw they only wanted a single day's worth of effort; I knew this would have an
 
 I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
 
+My mind naturally went to two familiar places: LeetCode (the coding platform) and Logic Pro/Premiere Pro.
+
+- Logic Pro was quite interesting; I had always wanted to do a timeline editor. There are likely several open-source libraries that could help, but the problem statement said closed-source software only, so I was hesitant.
+- LeetCode stood out because code is incredibly verifiable. I'm very glad I didn't choose this one; I would have burned the day and made less progress.
+
 Ultimately, I decided to take on Microsoft Excel; tried, tested, well-specified, and closed-source. Excel was the most verifiable and predictable product I could think of - complex enough to demonstrate my ability to build a system that could replicate non-trivial software. The XLSX file format, the ECMA formal specification, and Microsoft's deviations were all documented and could be referenced directly [3].
 
 I wanted to focus on cell values and formula calculation. I also wanted to implement basic cell interactions: highlighting columns, rows, individual cells, etc. I don't spend a lot of time in Excel, so I was caught by surprise as to how complex the highlighting and selection logic turned out to be.

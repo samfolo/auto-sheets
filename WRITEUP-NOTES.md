@@ -2,13 +2,6 @@
 
 I wanted to share some other details that didn't fit in the main [`WRITEUP.md`](WRITEUP.md); there was a 2-3 page restriction, so I moved the extra details here.
 
-## The other candidates
-
-My mind naturally went to two familiar places: LeetCode (the coding platform) and Logic Pro/Premiere Pro.
-
-- Logic Pro was quite interesting; I had always wanted to do a timeline editor. There are likely several open-source libraries that could help, but the problem statement said closed-source software only, so I was hesitant.
-- LeetCode stood out because code is incredibly verifiable. I'm very glad I didn't choose this one; I would have burned the day and made less progress.
-
 ## A target that changes underneath you
 
 When you're scripting interactions with a system served as SaaS or something with continuous deployment, the DOM selectors cannot be trusted to remain stable. Either reference elements by role, or find a way to identify the exact snapshot or the exact build you're scripting for. We captured the selectors, roles, and names we would script against in a dedicated file (`targets/excel/driver/excel.ts`).
