@@ -18,7 +18,8 @@ export const columnNumber = (letters: string): number =>
     0,
   );
 
-const columnLetters = (column: number): string =>
+/** The letters of a column counted from 1: 1 is A, 26 is Z, 27 is AA. */
+export const columnLetters = (column: number): string =>
   column <= 0
     ? ''
     : columnLetters(Math.floor((column - 1) / LETTERS)) +

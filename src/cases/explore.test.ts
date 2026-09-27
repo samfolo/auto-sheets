@@ -1,6 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { caseSchema } from './contract.ts';
-import { exploredCase } from './explore.ts';
+import { caseSchema, exploreOptionsSchema } from './contract.ts';
+import { exploredCase, exploredId } from './explore.ts';
+import { listCaseIds, loadAllCases } from './repository.ts';
+
+/** How a committed explored case was generated, read back from its id and description. */
+const generatedBy = (id: string, description: string) => {
+  const [, focus = 'mixed', seed, index] = /^explore\/(?:(\w+)-)?seed-(\d+)-(\d+)$/.exec(id) ?? [];
+  const [, length] = /sequence of (\d+) random/.exec(description) ?? [];
+  return {
+    focus: exploreOptionsSchema.shape.focus.parse(focus),
+    seed: Number(seed),
+    index: Number(index),
+    length: Number(length),
+  };
+};
+
+describe('committed explored cases', async () => {
+  const loaded = await loadAllCases();
+  const explored = loaded.success ? loaded.data.filter(({ id }) => id.startsWith('explore/')) : [];
+
+  it('exist', async () => {
+    expect((await listCaseIds()).some((id) => id.startsWith('explore/'))).toBe(true);
+    expect(explored.length).toBeGreaterThan(0);
+  });
+
+  it.each(explored.map(({ id, definition }) => [id, definition] as const))(
+    '%s is generated again, step for step, from its seed',
+    (id, definition) => {
+      const { focus, seed, index, length } = generatedBy(id, definition.description);
+      expect(exploredId(focus, seed, index)).toBe(id);
+      // Descriptions have been reworded since some were written; the steps are what was recorded.
+      expect(exploredCase(seed, index, length, focus).steps).toEqual(definition.steps);
+    },
+  );
+});
 
 describe('exploredCase', () => {
   it('gives the same case for the same seed, so an exploration can be repeated', () => {

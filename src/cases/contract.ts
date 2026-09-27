@@ -133,3 +133,6 @@ export const exploreOptionsSchema = z
     }),
   })
   .meta({ description: 'What `factory case explore` was asked to do.' });
+
+/** What an exploration concentrates on. */
+export type FocusName = z.output<typeof exploreOptionsSchema>['focus'];
