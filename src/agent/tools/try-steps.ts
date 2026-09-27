@@ -19,8 +19,8 @@ export const TRY_STEPS = {
   description: [
     'Drives your app exactly as check_cases does, with steps you choose, to see what the checker sees.',
     'It starts a fresh copy of your app with `npm start`, runs the steps on a blank sheet, then stops it.',
-    'It reports what each observe step saw (raw content, displayed text and readout annotations)',
-    'and the controls on the screen at the end.',
+    'It reports what each observe step saw (raw content, displayed text and readout annotations),',
+    'the controls on the screen at the end, and a picture of the screen, to compare with the original’s screenshots.',
   ].join(' '),
   /** The app's output from every try, in the run's folder. */
   logFile: 'try-app.log',
@@ -62,7 +62,7 @@ export const createTryStepsTool = (workspace: string, runDir: string, trace: Tra
       if (!tried.success) {
         return toolText([tried.error.message, ...(tried.error.details ?? [])].join('\n'));
       }
-      return toolText(
+      const report = toolText(
         [
           'Observed:',
           JSON.stringify(tried.data.checkpoints, null, 2),
@@ -71,5 +71,19 @@ export const createTryStepsTool = (workspace: string, runDir: string, trace: Tra
           ...describeControls(tried.data.controls),
         ].join('\n'),
       );
+      const { screenshot } = tried.data;
+      return screenshot === null
+        ? report
+        : {
+            ...report,
+            content: [
+              ...report.content,
+              {
+                type: 'image' as const,
+                data: screenshot.toString('base64'),
+                mimeType: 'image/png',
+              },
+            ],
+          };
     },
   });

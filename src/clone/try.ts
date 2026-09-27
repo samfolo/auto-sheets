@@ -1,7 +1,7 @@
 /**
  * Trying steps on a clone: the same driver the checker uses, run on a fresh copy of the clone
- * with any steps, not only a recorded case's. It answers with what each observe step saw and
- * the controls on the screen at the end, so whoever is debugging the clone (a person or its
+ * with any steps, not only a recorded case's. It answers with what each observe step saw, the
+ * controls on the screen at the end, and a picture of the screen, so whoever is debugging the clone (a person or its
  * agent) sees exactly what the checker sees, without writing a browser script.
  */
 import { cloneTarget } from '../../targets/excel/index.ts';
@@ -15,6 +15,8 @@ export interface Tried {
   readonly checkpoints: readonly Checkpoint[];
   /** The controls on the clone's screen after the last step. */
   readonly controls: readonly Control[];
+  /** A picture of the screen after the last step, as a PNG: what a person would see. */
+  readonly screenshot: Buffer | null;
 }
 
 /** Starts the clone in the workspace, runs the steps on a blank sheet, and stops it. */
@@ -35,7 +37,8 @@ export const trySteps = (
         const page = context.pages().at(-1);
         const controls = page === undefined ? ok([]) : await listControls(page);
         if (!controls.success) return controls;
-        return ok({ checkpoints: checkpoints.data, controls: controls.data });
+        const screenshot = page === undefined ? null : await page.screenshot();
+        return ok({ checkpoints: checkpoints.data, controls: controls.data, screenshot });
       },
       { headless: true },
     ),
