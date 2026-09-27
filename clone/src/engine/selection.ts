@@ -1,191 +1,211 @@
-/**
- * The selection: which rectangles are selected, where the active cell is, and the
- * screen-reader readout Excel produces for it.
- */
+// The selection model: areas, gestures, and how they move the active cell.
+
 import {
-  MAX_COLS,
-  MAX_ROWS,
-  formatRect,
-  isSingleCell,
-  normalizeRect,
-  spanRects,
-  type Rect,
-} from './address.js';
-import type { Sheet } from './sheet.js';
+  areaContains,
+  colsArea,
+  MAX_COL,
+  MAX_ROW,
+  normArea,
+  rectBetween,
+  rowsArea,
+  wholeSheet,
+  type Area,
+  type CellAddr,
+} from './address.ts';
 
-/** A cell's zero-based position. */
-export interface CellPoint {
-  col: number;
-  row: number;
+export interface Selection {
+  areas: Area[];
+  active: CellAddr;
+  focus: CellAddr;
+  editing: boolean;
 }
 
-/** The whole selection, including the anchor Shift gestures extend from. */
-export interface SelectionState {
-  areas: Rect[];
-  active: CellPoint;
-  anchor: CellPoint;
-  /** The moving corner Shift gestures extend to; equal to the active cell otherwise. */
-  focus: CellPoint;
+export interface Hold {
+  shift?: boolean;
+  cmd?: boolean;
 }
 
-/** A selection holding one cell. */
-export const singleSelection = (col: number, row: number): SelectionState => ({
-  areas: [{ c1: col, r1: row, c2: col, r2: row }],
-  active: { col, row },
-  anchor: { col, row },
-  focus: { col, row },
+/** Where a drag can start or end: a cell, a column header or a row header. */
+export type DragEnd =
+  | { type: 'cell'; cell: CellAddr }
+  | { type: 'col'; col: number }
+  | { type: 'row'; row: number };
+
+export const initialSelection = (): Selection => {
+  const a1 = { col: 1, row: 1 };
+  return { areas: [{ c1: 1, r1: 1, c2: 1, r2: 1 }], active: a1, focus: a1, editing: false };
+};
+
+const single = (cell: CellAddr): Selection => ({
+  areas: [{ c1: cell.col, r1: cell.row, c2: cell.col, r2: cell.row }],
+  active: cell,
+  focus: cell,
+  editing: false,
 });
 
-/** True when a cell lies inside any selected area. */
-export const isSelected = (selection: SelectionState, col: number, row: number): boolean =>
-  selection.areas.some(
-    (area) => col >= area.c1 && col <= area.c2 && row >= area.r1 && row <= area.r2,
-  );
+const covered = (areas: Area[], cell: CellAddr): boolean =>
+  areas.some((a) => areaContains(a, cell));
 
-const contains = (outer: Rect, inner: Rect): boolean =>
-  inner.c1 >= outer.c1 && inner.c2 <= outer.c2 && inner.r1 >= outer.r1 && inner.r2 <= outer.r2;
+/** Whether whole column `col` lies inside one single area (the toggle test). */
+const colCovered = (areas: Area[], col: number): boolean =>
+  areas.some((a) => col >= a.c1 && col <= a.c2 && a.r1 === 1 && a.r2 === MAX_ROW);
 
-/** True when a rectangle lies entirely inside any selected area. */
-export const isRectSelected = (selection: SelectionState, rect: Rect): boolean =>
-  selection.areas.some((area) => contains(area, rect));
+/** Whether whole row `row` lies inside one single area (the toggle test). */
+const rowCovered = (areas: Area[], row: number): boolean =>
+  areas.some((a) => row >= a.r1 && row <= a.r2 && a.c1 === 1 && a.c2 === MAX_COL);
 
-const overlap = (a: Rect, b: Rect): Rect | null => {
-  const c1 = Math.max(a.c1, b.c1);
-  const r1 = Math.max(a.r1, b.r1);
-  const c2 = Math.min(a.c2, b.c2);
-  const r2 = Math.min(a.r2, b.r2);
-  if (c1 > c2 || r1 > r2) return null;
-  return { c1, r1, c2, r2 };
+/** Remove a rectangle from an area, Excel's fragment order: below, right, left, above. */
+export const subtractArea = (a: Area, r: Area): Area[] => {
+  const ic1 = Math.max(a.c1, r.c1);
+  const ic2 = Math.min(a.c2, r.c2);
+  const ir1 = Math.max(a.r1, r.r1);
+  const ir2 = Math.min(a.r2, r.r2);
+  if (ic1 > ic2 || ir1 > ir2) return [a];
+  const out: Area[] = [];
+  if (ir2 < a.r2) out.push({ c1: a.c1, r1: ir2 + 1, c2: a.c2, r2: a.r2 });
+  if (ic2 < a.c2) out.push({ c1: ic2 + 1, r1: ir1, c2: a.c2, r2: ir2 });
+  if (ic1 > a.c1) out.push({ c1: a.c1, r1: ir1, c2: ic1 - 1, r2: ir2 });
+  if (ir1 > a.r1) out.push({ c1: a.c1, r1: a.r1, c2: a.c2, r2: ir1 - 1 });
+  return out;
 };
 
-/**
- * Remove a rectangle from an area, the way Excel splits one: what is below the cut first,
- * then to the right, then to the left, then above it.
- */
-export const subtractRect = (area: Rect, cut: Rect): Rect[] => {
-  const shared = overlap(area, cut);
-  if (!shared) return [area];
-  const parts: Rect[] = [];
-  if (shared.r2 < area.r2) {
-    parts.push({ c1: area.c1, r1: shared.r2 + 1, c2: area.c2, r2: area.r2 });
+/** Subtract a rectangle from the whole selection. */
+const subtract = (sel: Selection, r: Area): Selection => {
+  const holder =
+    sel.areas.findLast((a) => areaContains(a, sel.active)) ?? sel.areas[sel.areas.length - 1];
+  const areas = sel.areas.flatMap((a) => subtractArea(a, r));
+  let active = holder ? { col: holder.c1, row: holder.r1 } : sel.active;
+  if (areas.length > 0 && !covered(areas, active)) {
+    const frags = holder ? subtractArea(holder, r) : [];
+    const home = frags[0] ?? areas[areas.length - 1];
+    active = home ? { col: home.c1, row: home.r1 } : active;
   }
-  if (shared.c2 < area.c2) {
-    parts.push({
-      c1: shared.c2 + 1,
-      r1: Math.max(area.r1, shared.r1),
-      c2: area.c2,
-      r2: Math.min(area.r2, shared.r2),
-    });
-  }
-  if (shared.c1 > area.c1) {
-    parts.push({
-      c1: area.c1,
-      r1: Math.max(area.r1, shared.r1),
-      c2: shared.c1 - 1,
-      r2: Math.min(area.r2, shared.r2),
-    });
-  }
-  if (shared.r1 > area.r1) {
-    parts.push({ c1: area.c1, r1: area.r1, c2: area.c2, r2: shared.r1 - 1 });
-  }
-  return parts;
+  return { ...sel, areas, active, focus: active, editing: false };
 };
 
-/** The result of cutting a rectangle out of a selection, and where the active cell lands. */
-export const subtractFromSelection = (
-  selection: SelectionState,
-  cut: Rect,
-): { areas: Rect[]; lastPart?: Rect } => {
-  const areas: Rect[] = [];
-  let lastPart: Rect | undefined;
-  for (const area of selection.areas) {
-    for (const part of subtractRect(area, cut)) {
-      areas.push(part);
-      lastPart = part;
-    }
-  }
-  return { areas, lastPart };
+const extendTo = (sel: Selection, cell: CellAddr): Selection => ({
+  ...sel,
+  areas: [rectBetween(sel.active, cell)],
+  focus: cell,
+  editing: false,
+});
+
+/** A fresh selection of the given areas; the active cell is the last area's top-left. */
+const topLeftActive = (areas: Area[]): Selection => {
+  const a = areas[areas.length - 1] as Area;
+  const act = { col: a.c1, row: a.r1 };
+  return { areas, active: act, focus: act, editing: false };
 };
 
-/** Add a rectangle to a selection, keeping it as its own area. */
-export const addArea = (
-  selection: SelectionState,
-  rect: Rect,
-  active: CellPoint,
-): SelectionState => ({
-  areas: [...selection.areas, normalizeRect(rect)],
+/** A plain click or a click with Shift or Command on a cell. */
+export const clickCell = (sel: Selection, cell: CellAddr, hold: Hold): Selection => {
+  if (hold.shift) return extendTo(sel, cell);
+  if (hold.cmd) {
+    if (covered(sel.areas, cell)) return subtract(sel, rectBetween(cell, cell));
+    return { ...sel, areas: [...sel.areas, rectBetween(cell, cell)], active: cell, focus: cell, editing: false };
+  }
+  return single(cell);
+};
+
+/** Click a column header. */
+export const clickCol = (sel: Selection, col: number, hold: Hold): Selection => {
+  if (hold.shift)
+    return { ...sel, areas: [colsArea(sel.active.col, col)], focus: { col, row: sel.active.row }, editing: false };
+  if (hold.cmd) {
+    if (colCovered(sel.areas, col)) return subtract(sel, colsArea(col, col));
+    return topLeftActive([...sel.areas, colsArea(col, col)]);
+  }
+  return topLeftActive([colsArea(col, col)]);
+};
+
+/** Click a row header. */
+export const clickRow = (sel: Selection, row: number, hold: Hold): Selection => {
+  if (hold.shift) return { ...sel, areas: [rowsArea(sel.active.row, row)], focus: { col: sel.active.col, row }, editing: false };
+  if (hold.cmd) {
+    if (rowCovered(sel.areas, row)) return subtract(sel, rowsArea(row, row));
+    return topLeftActive([...sel.areas, rowsArea(row, row)]);
+  }
+  return topLeftActive([rowsArea(row, row)]);
+};
+
+const addArea = (sel: Selection, area: Area, active: CellAddr): Selection => ({
+  areas: [...sel.areas, area],
   active,
-  anchor: active,
   focus: active,
+  editing: false,
 });
 
-/** Extend the selection to a rectangle's far corner, keeping the anchor active. */
-export const extendTo = (selection: SelectionState, corner: Rect): SelectionState => {
-  const anchor: Rect = {
-    c1: selection.anchor.col,
-    r1: selection.anchor.row,
-    c2: selection.anchor.col,
-    r2: selection.anchor.row,
-  };
-  return {
-    areas: [spanRects(corner, anchor)],
-    active: selection.anchor,
-    anchor: selection.anchor,
-    focus: { col: corner.c1, row: corner.r1 },
-  };
+/** Drag from one place to another, with Shift or Command held or not. */
+export const drag = (sel: Selection, from: DragEnd, to: DragEnd, hold: Hold): Selection => {
+  if (from.type === 'col') return colDrag(sel, from.col, to, hold);
+  if (from.type === 'row') return rowDrag(sel, from.row, to, hold);
+  return cellDrag(sel, from.cell, to, hold);
 };
 
-const clamp = (value: number, max: number): number => Math.min(Math.max(value, 0), max);
+const endCol = (to: DragEnd): number => (to.type === 'row' ? MAX_COL : to.type === 'col' ? to.col : to.cell.col);
+const endRow = (to: DragEnd): number => (to.type === 'col' ? MAX_ROW : to.type === 'row' ? to.row : to.cell.row);
 
-/** Move the active cell by a delta, collapsing to a single-cell selection. */
-export const moveActive = (
-  selection: SelectionState,
-  dCol: number,
-  dRow: number,
-): SelectionState => {
-  const col = clamp(selection.active.col + dCol, MAX_COLS - 1);
-  const row = clamp(selection.active.row + dRow, MAX_ROWS - 1);
-  return singleSelection(col, row);
-};
-
-/** Extend the selection by a delta from the anchor (Shift+arrow). */
-export const extendBy = (selection: SelectionState, dCol: number, dRow: number): SelectionState => {
-  const col = clamp(selection.focus.col + dCol, MAX_COLS - 1);
-  const row = clamp(selection.focus.row + dRow, MAX_ROWS - 1);
-  const corner: Rect = { c1: col, r1: row, c2: col, r2: row };
-  return extendTo(selection, corner);
-};
-
-/** The screen-reader readout for the current selection. */
-export const readout = (selection: SelectionState, sheet: Sheet, editing: boolean): string => {
-  if (editing) return 'Editing';
-  const { areas, active } = selection;
-  if (areas.length > 1) {
-    return `${areas.length} ranges selected . ${areas.map(formatRect).join(' . ')} . `;
+const colDrag = (sel: Selection, col: number, to: DragEnd, hold: Hold): Selection => {
+  if (hold.shift)
+    return {
+      ...sel,
+      areas: [normArea({ c1: sel.active.col, r1: sel.active.row, c2: endCol(to), r2: MAX_ROW })],
+      editing: false,
+    };
+  const area = colsArea(col, endCol(to));
+  const active = { col, row: 1 };
+  if (hold.cmd) {
+    if (colCovered(sel.areas, col)) return subtract(sel, area);
+    return addArea(sel, area, active);
   }
-  const area = areas[0] ?? pointRect(active);
-  const view = sheet.view(active.col, active.row);
-  const annotation = view.annotations[0];
-  if (isSingleCell(area)) {
-    const parts: string[] = [];
-    if (view.display !== '') parts.push(view.display);
-    parts.push(addressOf(active));
-    if (annotation) parts.push(annotation);
-    return `${parts.join(' . ')} . `;
-  }
-  const parts: string[] = [];
-  if (view.display !== '') parts.push(view.display);
-  parts.push('Selected range');
-  parts.push(formatRect(area));
-  if (annotation) parts.push(annotation);
-  return `${parts.join(' . ')} . `;
+  return { areas: [area], active, focus: active, editing: false };
 };
 
-const addressOf = (point: CellPoint): string => formatRect(pointRect(point));
+const rowDrag = (sel: Selection, row: number, to: DragEnd, hold: Hold): Selection => {
+  if (hold.shift)
+    return {
+      ...sel,
+      areas: [normArea({ c1: sel.active.col, r1: sel.active.row, c2: MAX_COL, r2: endRow(to) })],
+      editing: false,
+    };
+  const area = rowsArea(row, endRow(to));
+  const active = { col: 1, row };
+  if (hold.cmd) {
+    if (rowCovered(sel.areas, row)) return subtract(sel, area);
+    return addArea(sel, area, active);
+  }
+  return { areas: [area], active, focus: active, editing: false };
+};
 
-const pointRect = (point: CellPoint): Rect => ({
-  c1: point.col,
-  r1: point.row,
-  c2: point.col,
-  r2: point.row,
-});
+const cellDrag = (sel: Selection, from: CellAddr, to: DragEnd, hold: Hold): Selection => {
+  const target: CellAddr =
+    to.type === 'cell' ? to.cell : { col: endCol(to), row: endRow(to) };
+  if (hold.shift) return extendTo(sel, target);
+  const area = rectBetween(from, target);
+  if (hold.cmd) {
+    if (covered(sel.areas, from)) return subtract(sel, area);
+    return addArea(sel, area, from);
+  }
+  return { areas: [area], active: from, focus: from, editing: false };
+};
+
+/** Click the select-all corner: everything, active cell A1. */
+export const clickCorner = (): Selection => {
+  const a1 = { col: 1, row: 1 };
+  return { areas: [wholeSheet()], active: a1, focus: a1, editing: false };
+};
+
+/** Ctrl+A: the area holding the active cell becomes the whole sheet; active stays. */
+export const selectAll = (sel: Selection): Selection => {
+  const index = sel.areas.findIndex((a) => areaContains(a, sel.active));
+  const areas = [...sel.areas];
+  if (index >= 0) areas[index] = wholeSheet();
+  else areas.push(wholeSheet());
+  return { ...sel, areas, editing: false };
+};
+
+/** Name Box navigation: select the typed cell or range. */
+export const selectArea = (area: Area): Selection => {
+  const active = { col: area.c1, row: area.r1 };
+  return { areas: [area], active, focus: active, editing: false };
+};

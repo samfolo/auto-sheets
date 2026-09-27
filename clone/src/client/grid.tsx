@@ -1,241 +1,234 @@
-/**
- * The grid: column headers, row headers and the cells, drawn as a table so every cell can be
- * clicked, dragged and read. All gestures are sent to the server, which owns the selection.
- */
-import * as React from 'react';
-import type { JSX } from 'react';
-import { MAX_COLS, MAX_ROWS, columnLetter, parseArea, type Rect } from '../engine/address.js';
-import type { SessionState } from '../engine/session.js';
+// The grid: headers, cells, selection overlays and mouse gestures.
+
+import { useCallback, useRef, type RefObject } from 'react';
+import { indexToCol, type Area, type CellAddr } from '../engine/address.ts';
 import {
-  COL_WIDTH,
-  HEADER_HEIGHT,
-  HEADER_WIDTH,
-  ROW_HEIGHT,
-  VISIBLE_COLS,
-  VISIBLE_ROWS,
-} from './theme';
-import { useGestures, type GestureHandlers } from './use-gestures';
-import styles from './grid.module.css';
+  clickCell,
+  clickCol,
+  clickCorner,
+  clickRow,
+  drag as dragGesture,
+  type DragEnd,
+  type Selection,
+} from '../engine/selection.ts';
+import type { CellView } from '../engine/workbook.ts';
 
-/** What the grid needs from the screen. */
-export interface GridProps {
-  state: SessionState | null;
-  call: (type: string, body?: Record<string, unknown>) => Promise<void>;
-  onEditStart: (raw: string) => void;
-  onGesture: () => void;
-}
-
-const inRect = (rect: Rect, col: number, row: number): boolean =>
-  col >= rect.c1 && col <= rect.c2 && row >= rect.r1 && row <= rect.r2;
-
-const cellClass = (
-  view: SessionState['cells'][number] | undefined,
-  selected: boolean,
-  active: boolean,
-): string => {
-  const classes = [styles.cell];
-  if (selected) classes.push(styles.cellSelected);
-  if (active) classes.push(styles.cellActive);
-  if (view?.annotations.includes('Contains error')) classes.push(styles.cellError);
-  if (view?.annotations.includes('The formula in this cell contains an error.'))
-    classes.push(styles.cellBroken);
-  if (view && view.display !== '' && /^-?[\d.,]+(%|E[+-]\d+)?$/.test(view.display))
-    classes.push(styles.numeric);
-  return classes.join(' ');
+export const GEO = {
+  rowHeaderW: 46,
+  colHeaderH: 24,
+  cellW: 80,
+  cellH: 22,
+  cols: 30,
+  rows: 60,
 };
 
-/** One cell of the sheet. */
-const GridCell = ({
-  address,
-  view,
-  selected,
-  active,
-  col,
-  row,
-  handlers,
-  onEditStart,
-}: {
-  address: string;
-  view: SessionState['cells'][number] | undefined;
-  selected: boolean;
-  active: boolean;
-  col: number;
-  row: number;
-  handlers: GestureHandlers;
-  onEditStart: (raw: string) => void;
-}): JSX.Element => (
-  <td
-    data-address={address}
-    aria-label={address}
-    className={cellClass(view, selected, active)}
-    style={{ height: ROW_HEIGHT }}
-    onMouseDown={(event) => handlers.begin(event, { kind: 'cell', col, row })}
-    onMouseOver={() => handlers.hover({ kind: 'cell', col, row })}
-    onFocus={() => handlers.hover({ kind: 'cell', col, row })}
-    onMouseUp={handlers.finish}
-    onDoubleClick={() => onEditStart(view?.raw ?? '')}
-  >
-    {view?.display ?? ''}
-  </td>
-);
+interface GridProps {
+  cells: Map<string, CellView>;
+  sel: Selection;
+  setSel: (sel: Selection) => void;
+  editing: boolean;
+  editorRef: RefObject<HTMLDivElement | null>;
+  onEditorKeyDown: (e: React.KeyboardEvent) => void;
+  onEditorInput: () => void;
+  onCommitAway: () => void;
+  startEdit: (text: string) => void;
+  focusEditor: () => void;
+}
 
-/** The corner that selects every cell. */
-const SelectAllCorner = ({ onClick }: { onClick: () => void }): JSX.Element => (
-  <th
-    scope="col"
-    className={styles.cornerCell}
-    style={{ width: HEADER_WIDTH, height: HEADER_HEIGHT }}
-  >
-    <button
-      type="button"
-      className={styles.cornerButton}
-      aria-label="Select all"
-      onClick={onClick}
-    />
-  </th>
-);
+type Target =
+  | { kind: 'corner' }
+  | { kind: 'col'; col: number }
+  | { kind: 'row'; row: number }
+  | { kind: 'cell'; cell: CellAddr };
 
-/** The column headers and the select-all corner. */
-const GridHead = ({
-  columns,
-  selected,
-  handlers,
-  onCorner,
-}: {
-  columns: number[];
-  selected: (col: number) => boolean;
-  handlers: GestureHandlers;
-  onCorner: () => void;
-}): JSX.Element => (
-  <thead>
-    <tr style={{ height: HEADER_HEIGHT }}>
-      <SelectAllCorner onClick={onCorner} />
-      {columns.map((col) => (
-        <th
-          key={col}
-          scope="col"
-          data-col={columnLetter(col)}
-          aria-label={columnLetter(col)}
-          className={selected(col) ? styles.colHeaderSelected : styles.colHeader}
-          onMouseDown={(event) => handlers.begin(event, { kind: 'column', col })}
-          onMouseOver={() => handlers.hover({ kind: 'column', col })}
-          onFocus={() => handlers.hover({ kind: 'column', col })}
-          onMouseUp={handlers.finish}
-        >
-          {columnLetter(col)}
-        </th>
-      ))}
-    </tr>
-  </thead>
-);
+interface DragState {
+  target: Target;
+  hold: { shift: boolean; cmd: boolean };
+  preSel: Selection;
+  moved: boolean;
+}
 
-/** One row of cells with its row header. */
-const SheetRow = ({
-  row,
-  columns,
-  views,
-  selected,
-  activeRow,
-  activeCol,
-  headers,
-  handlers,
-  onEditStart,
-}: {
-  row: number;
-  columns: number[];
-  views: Map<string, SessionState['cells'][number]>;
-  selected: (col: number, row: number) => boolean;
-  activeRow: number;
-  activeCol: number;
-  headers: { selected: (row: number) => boolean };
-  handlers: GestureHandlers;
-  onEditStart: (raw: string) => void;
-}): JSX.Element => (
-  <tr style={{ height: ROW_HEIGHT }}>
-    <th
-      scope="row"
-      data-row={row + 1}
-      aria-label={String(row + 1)}
-      className={headers.selected(row) ? styles.rowHeaderSelected : styles.rowHeader}
-      onMouseDown={(event) => handlers.begin(event, { kind: 'row', row })}
-      onMouseOver={() => handlers.hover({ kind: 'row', row })}
-      onFocus={() => handlers.hover({ kind: 'row', row })}
-      onMouseUp={handlers.finish}
-    >
-      {row + 1}
-    </th>
-    {columns.map((col) => {
-      const address = `${columnLetter(col)}${row + 1}`;
-      return (
-        <GridCell
-          key={address}
-          address={address}
-          view={views.get(address)}
-          selected={selected(col, row)}
-          active={col === activeCol && row === activeRow}
-          col={col}
-          row={row}
-          handlers={handlers}
-          onEditStart={onEditStart}
-        />
+const dragEndOf = (t: Target): DragEnd | null => {
+  if (t.kind === 'col') return { type: 'col', col: t.col };
+  if (t.kind === 'row') return { type: 'row', row: t.row };
+  if (t.kind === 'cell') return { type: 'cell', cell: t.cell };
+  return null;
+};
+
+/** The visible part of an area, as CSS geometry. */
+const overlayStyle = (area: Area): React.CSSProperties | null => {
+  const c2 = Math.min(area.c2, GEO.cols);
+  const r2 = Math.min(area.r2, GEO.rows);
+  if (area.c1 > c2 || area.r1 > r2) return null;
+  return {
+    left: GEO.rowHeaderW + (area.c1 - 1) * GEO.cellW,
+    top: GEO.colHeaderH + (area.r1 - 1) * GEO.cellH,
+    width: (c2 - area.c1 + 1) * GEO.cellW,
+    height: (r2 - area.r1 + 1) * GEO.cellH,
+  };
+};
+
+export const Grid = (props: GridProps) => {
+  const { cells, sel, setSel, editing, editorRef } = props;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<DragState | null>(null);
+
+  const locate = useCallback((clientX: number, clientY: number): Target | null => {
+    const el = containerRef.current;
+    if (!el) return null;
+    const rect = el.getBoundingClientRect();
+    const x = clientX - rect.left + el.scrollLeft;
+    const y = clientY - rect.top + el.scrollTop;
+    if (x < 0 || y < 0) return null;
+    const inColHeader = y < GEO.colHeaderH;
+    const inRowHeader = x < GEO.rowHeaderW;
+    const col = Math.floor((x - GEO.rowHeaderW) / GEO.cellW) + 1;
+    const row = Math.floor((y - GEO.colHeaderH) / GEO.cellH) + 1;
+    if (inColHeader && inRowHeader) return { kind: 'corner' };
+    if (inColHeader) return col >= 1 && col <= GEO.cols ? { kind: 'col', col } : null;
+    if (inRowHeader) return row >= 1 && row <= GEO.rows ? { kind: 'row', row } : null;
+    if (col < 1 || col > GEO.cols || row < 1 || row > GEO.rows) return null;
+    return { kind: 'cell', cell: { col, row } };
+  }, []);
+
+  const applyDrag = useCallback(
+    (state: DragState, to: Target) => {
+      const from = dragEndOf(state.target);
+      const end = dragEndOf(to);
+      if (!from || !end) return;
+      setSel(dragGesture(state.preSel, from, end, state.hold));
+    },
+    [setSel],
+  );
+
+  const onMove = useCallback(
+    (e: MouseEvent) => {
+      const state = dragRef.current;
+      const to = locate(e.clientX, e.clientY);
+      if (!state || !to) return;
+      state.moved = true;
+      applyDrag(state, to);
+    },
+    [applyDrag, locate],
+  );
+
+  const onUp = useCallback(
+    (e: MouseEvent) => {
+      const state = dragRef.current;
+      dragRef.current = null;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      if (!state || state.moved || !state.hold.cmd) return;
+      const target = locate(e.clientX, e.clientY);
+      if (!target) return;
+      if (target.kind === 'cell') setSel(clickCell(state.preSel, target.cell, state.hold));
+      else if (target.kind === 'col') setSel(clickCol(state.preSel, target.col, state.hold));
+      else if (target.kind === 'row') setSel(clickRow(state.preSel, target.row, state.hold));
+    },
+    [locate, onMove, setSel],
+  );
+
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.button !== 0) return;
+      const target = locate(e.clientX, e.clientY);
+      if (!target) return;
+      e.preventDefault();
+      props.focusEditor();
+      const hold = { shift: e.shiftKey, cmd: e.metaKey || e.ctrlKey };
+      if (e.detail === 2 && target.kind === 'cell') {
+        props.startEdit(cells.get(`${indexToCol(target.cell.col)}${target.cell.row}`)?.raw ?? '');
+        return;
+      }
+      if (editing) props.onCommitAway();
+      if (target.kind === 'corner') {
+        setSel(clickCorner());
+        return;
+      }
+      dragRef.current = { target, hold, preSel: sel, moved: false };
+      if (!hold.cmd) {
+        if (target.kind === 'cell') setSel(clickCell(sel, target.cell, hold));
+        else if (target.kind === 'col') setSel(clickCol(sel, target.col, hold));
+        else setSel(clickRow(sel, target.row, hold));
+      }
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    },
+    [locate, sel, setSel, cells, editing, onMove, onUp, props],
+  );
+
+  const headers: React.ReactNode[] = [];
+  for (let c = 1; c <= GEO.cols; c += 1) {
+    headers.push(
+      <div key={`h${c}`} className={`col-header${colSelected(sel, c) ? ' selected' : ''}`}>
+        {indexToCol(c)}
+      </div>,
+    );
+  }
+  const body: React.ReactNode[] = [];
+  for (let r = 1; r <= GEO.rows; r += 1) {
+    const rowCells: React.ReactNode[] = [
+      <div key={`r${r}`} className={`row-header${rowSelected(sel, r) ? ' selected' : ''}`}>
+        {r}
+      </div>,
+    ];
+    for (let c = 1; c <= GEO.cols; c += 1) {
+      const view = cells.get(`${indexToCol(c)}${r}`);
+      rowCells.push(
+        <div key={`c${c}`} className={`cell align-${view?.align ?? 'left'}`}>
+          {view?.display ?? ''}
+        </div>,
       );
-    })}
-  </tr>
-);
-
-/** The grid of cells with its headers. */
-export const Grid = ({ state, call, onEditStart, onGesture }: GridProps): JSX.Element => {
-  const handlers = useGestures(call, onGesture);
-
-  const selectedRects = (state?.selection.areas ?? []).map(parseArea);
-  const activeRect = state ? parseArea(state.selection.active) : null;
-  const views = new Map((state?.cells ?? []).map((cell) => [cell.address, cell]));
-  const columns = Array.from({ length: VISIBLE_COLS }, (_, index) => index);
-  const rows = Array.from({ length: VISIBLE_ROWS }, (_, index) => index);
-  const columnSelected = (col: number): boolean =>
-    selectedRects.some(
-      (rect) => rect.r1 === 0 && rect.r2 === MAX_ROWS - 1 && col >= rect.c1 && col <= rect.c2,
+    }
+    body.push(
+      <div key={`row${r}`} className="row">
+        {rowCells}
+      </div>,
     );
-  const rowSelected = (row: number): boolean =>
-    selectedRects.some(
-      (rect) => rect.c1 === 0 && rect.c2 === MAX_COLS - 1 && row >= rect.r1 && row <= rect.r2,
-    );
+  }
+
+  const activeStyle = overlayStyle({
+    c1: sel.active.col,
+    r1: sel.active.row,
+    c2: sel.active.col,
+    r2: sel.active.row,
+  });
 
   return (
-    <div id="grid" className={styles.grid}>
-      <table className={styles.table}>
-        <colgroup>
-          <col style={{ width: HEADER_WIDTH }} />
-          {columns.map((col) => (
-            <col key={col} style={{ width: COL_WIDTH }} />
-          ))}
-        </colgroup>
-        <GridHead
-          columns={columns}
-          selected={columnSelected}
-          handlers={handlers}
-          onCorner={() => {
-            onGesture();
-            void call('click-corner');
-          }}
-        />
-        <tbody>
-          {rows.map((row) => (
-            <SheetRow
-              key={row}
-              row={row}
-              columns={columns}
-              views={views}
-              selected={(col, atRow) => selectedRects.some((rect) => inRect(rect, col, atRow))}
-              activeRow={activeRect?.r1 ?? 0}
-              activeCol={activeRect?.c1 ?? 0}
-              headers={{ selected: rowSelected }}
-              handlers={handlers}
-              onEditStart={onEditStart}
-            />
-          ))}
-        </tbody>
-      </table>
+    <div id="grid" className="grid" ref={containerRef} onMouseDown={onMouseDown}>
+      <div className="grid-inner" style={{ width: GEO.rowHeaderW + GEO.cols * GEO.cellW }}>
+        <div className="header-row">
+          <div className="corner" />
+          {headers}
+        </div>
+        {body}
+        {sel.areas.map((area, i) => {
+          const style = overlayStyle(area);
+          return style ? (
+            <div key={`area${i}`} className={i === sel.areas.length - 1 ? 'area-active' : 'area-other'} style={style} />
+          ) : null;
+        })}
+        {activeStyle ? <div className="active-cell" style={activeStyle} /> : null}
+        {activeStyle ? (
+          <div
+            id="cell-editor"
+            className="cell-editor"
+            ref={editorRef}
+            contentEditable
+            suppressContentEditableWarning
+            tabIndex={0}
+            onKeyDown={props.onEditorKeyDown}
+            onInput={props.onEditorInput}
+            style={activeStyle}
+          />
+        ) : null}
+      </div>
     </div>
   );
 };
+
+const colSelected = (sel: Selection, col: number): boolean =>
+  sel.areas.some((a) => col >= a.c1 && col <= a.c2);
+
+const rowSelected = (sel: Selection, row: number): boolean =>
+  sel.areas.some((a) => row >= a.r1 && row <= a.r2);

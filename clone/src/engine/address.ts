@@ -1,148 +1,116 @@
-/**
- * A1-style cell addresses and rectangles, in both directions. These are the shared
- * vocabulary every other engine module uses to talk about places on the sheet.
- */
+// Cell and range addresses: parsing, formatting and the sheet's bounds.
 
-/** The sheet's full extent, matching Excel's limits. */
-export const MAX_ROWS = 1048576;
-/** The sheet's full extent, matching Excel's limits. */
-export const MAX_COLS = 16384;
+export const MAX_COL = 16384; // XFD
+export const MAX_ROW = 1048576;
 
-/** A rectangle of cells, inclusive, with c1 <= c2 and r1 <= r2. */
-export interface Rect {
+export interface CellAddr {
+  col: number; // 1-based
+  row: number; // 1-based
+}
+
+export interface Area {
   c1: number;
   r1: number;
   c2: number;
   r2: number;
 }
 
-/** A zero-based column index as its A1 letters, such as 0 -> A, 27 -> AB. */
-export const columnLetter = (col: number): string => {
-  let n = col + 1;
-  let out = '';
+/** Column letters to 1-based index: A→1, XFD→16384. */
+export const colToIndex = (letters: string): number => {
+  let n = 0;
+  for (const ch of letters.toUpperCase()) n = n * 26 + (ch.charCodeAt(0) - 64);
+  return n;
+};
+
+/** 1-based index to column letters: 1→A. */
+export const indexToCol = (index: number): string => {
+  let s = '';
+  let n = index;
   while (n > 0) {
     const rem = (n - 1) % 26;
-    out = String.fromCharCode(65 + rem) + out;
+    s = String.fromCharCode(65 + rem) + s;
     n = Math.floor((n - 1) / 26);
   }
-  return out;
+  return s;
 };
 
-/** A1 letters as a zero-based column index, such as A -> 0, AB -> 27. */
-export const columnIndex = (letters: string): number => {
-  let n = 0;
-  for (const ch of letters.toUpperCase()) {
-    n = n * 26 + (ch.charCodeAt(0) - 64);
-  }
-  return n - 1;
+/** Format a cell as A1 notation. */
+export const cellName = (cell: CellAddr): string => `${indexToCol(cell.col)}${cell.row}`;
+
+/** Parse a cell address such as B7, with optional $ markers. Null when invalid. */
+export const parseCell = (text: string): CellAddr | null => {
+  const m = /^\$?([A-Za-z]{1,3})\$?(\d{1,7})$/.exec(text.trim());
+  if (!m || !m[1] || !m[2]) return null;
+  const col = colToIndex(m[1]);
+  const row = Number(m[2]);
+  if (col < 1 || col > MAX_COL || row < 1 || row > MAX_ROW) return null;
+  return { col, row };
 };
 
-/** A zero-based row index as its 1-based number, such as 0 -> 1. */
-export const rowNumber = (row: number): number => row + 1;
-
-/** A 1-based row number as a zero-based index, such as 1 -> 0. */
-export const rowIndex = (number: number): number => number - 1;
-
-/** Render a rectangle the way Excel names it: B2, C3:E6, K:K, 5:5, A:XFD. */
-export const formatRect = (rect: Rect): string => {
-  const fullCols = rect.c1 === 0 && rect.c2 === MAX_COLS - 1;
-  const fullRows = rect.r1 === 0 && rect.r2 === MAX_ROWS - 1;
-  if (fullCols && fullRows) return 'A:XFD';
-  if (fullRows) {
-    return rect.c1 === rect.c2
-      ? `${columnLetter(rect.c1)}:${columnLetter(rect.c1)}`
-      : `${columnLetter(rect.c1)}:${columnLetter(rect.c2)}`;
-  }
-  if (fullCols) {
-    return rect.r1 === rect.r2 ? `${rect.r1 + 1}:${rect.r1 + 1}` : `${rect.r1 + 1}:${rect.r2 + 1}`;
-  }
-  const first = `${columnLetter(rect.c1)}${rect.r1 + 1}`;
-  const second = `${columnLetter(rect.c2)}${rect.r2 + 1}`;
-  return first === second ? first : `${first}:${second}`;
-};
-
-/** Render a rectangle as a plain cell range, never using whole-column/row shorthand. */
-export const formatCellRect = (rect: Rect): string => {
-  const first = `${columnLetter(rect.c1)}${rect.r1 + 1}`;
-  const second = `${columnLetter(rect.c2)}${rect.r2 + 1}`;
-  return first === second ? first : `${first}:${second}`;
-};
-
-/** A1 notation as a rectangle; throws when the text is not an address. */
-export const parseRect = (text: string): Rect => {
-  const match = /^([A-Z]{1,3})([1-9]\d{0,6})(?::([A-Z]{1,3})([1-9]\d{0,6}))?$/i.exec(text.trim());
-  if (!match) throw new Error(`not a cell range: ${text}`);
-  const c1 = columnIndex(match[1]!);
-  const r1 = rowIndex(Number(match[2]));
-  const c2 = match[3] ? columnIndex(match[3]) : c1;
-  const r2 = match[4] ? rowIndex(Number(match[4])) : r1;
-  return normalizeRect({ c1, r1, c2, r2 });
-};
-
-/** A whole column header such as B or AB as a one-column rectangle. */
-export const columnRect = (letters: string): Rect => {
-  const c = columnIndex(letters);
-  return { c1: c, r1: 0, c2: c, r2: MAX_ROWS - 1 };
-};
-
-/** A whole row header such as 5 as a one-row rectangle. */
-export const rowRect = (number: number): Rect => {
-  const r = rowIndex(number);
-  return { c1: 0, r1: r, c2: MAX_COLS - 1, r2: r };
-};
-
-/** The rectangle covering every cell. */
-export const wholeSheetRect = (): Rect => ({ c1: 0, r1: 0, c2: MAX_COLS - 1, r2: MAX_ROWS - 1 });
-
-/**
- * A rectangle as Excel's readout names it, in reverse: B2:C3, K:K, 5:5 and A:XFD all become
- * rectangles. Used by the screen to highlight exactly what the readout describes.
- */
-export const parseArea = (text: string): Rect => {
-  if (text === 'A:XFD') return wholeSheetRect();
-  const columnRange = /^([A-Z]{1,3}):([A-Z]{1,3})$/.exec(text);
-  if (columnRange) {
-    const c1 = columnIndex(columnRange[1]!);
-    const c2 = columnIndex(columnRange[2]!);
-    return normalizeRect({ c1, r1: 0, c2, r2: MAX_ROWS - 1 });
-  }
-  const rowRange = /^([1-9]\d{0,6}):([1-9]\d{0,6})$/.exec(text);
-  if (rowRange) {
-    const r1 = rowIndex(Number(rowRange[1]));
-    const r2 = rowIndex(Number(rowRange[2]));
-    return normalizeRect({ c1: 0, r1, c2: MAX_COLS - 1, r2 });
-  }
-  return parseRect(text);
-};
-
-/** Put a rectangle's corners in order. */
-export const normalizeRect = (rect: Rect): Rect => ({
-  c1: Math.min(rect.c1, rect.c2),
-  r1: Math.min(rect.r1, rect.r2),
-  c2: Math.max(rect.c1, rect.c2),
-  r2: Math.max(rect.r1, rect.r2),
+/** Normalise an area so c1<=c2 and r1<=r2. */
+export const normArea = (a: Area): Area => ({
+  c1: Math.min(a.c1, a.c2),
+  c2: Math.max(a.c1, a.c2),
+  r1: Math.min(a.r1, a.r2),
+  r2: Math.max(a.r1, a.r2),
 });
 
-/** True when the rectangle is a single cell. */
-export const isSingleCell = (rect: Rect): boolean => rect.c1 === rect.c2 && rect.r1 === rect.r2;
+/** The rectangle between two cells. */
+export const rectBetween = (a: CellAddr, b: CellAddr): Area =>
+  normArea({ c1: a.col, r1: a.row, c2: b.col, r2: b.row });
 
-/** True when the rectangle covers every row. */
-export const isFullRows = (rect: Rect): boolean => rect.r1 === 0 && rect.r2 === MAX_ROWS - 1;
+/** Whole columns c1..c2. */
+export const colsArea = (c1: number, c2: number): Area =>
+  normArea({ c1, r1: 1, c2, r2: MAX_ROW });
 
-/** True when the rectangle covers every column. */
-export const isFullCols = (rect: Rect): boolean => rect.c1 === 0 && rect.c2 === MAX_COLS - 1;
+/** Whole rows r1..r2. */
+export const rowsArea = (r1: number, r2: number): Area =>
+  normArea({ c1: 1, r1, c2: MAX_COL, r2 });
 
-/** The rectangle spanning two cells or two rectangles. */
-export const spanRects = (a: Rect, b: Rect): Rect =>
-  normalizeRect({ c1: a.c1, r1: a.r1, c2: b.c2, r2: b.r2 });
+/** The whole sheet, A:XFD. */
+export const wholeSheet = (): Area => ({ c1: 1, r1: 1, c2: MAX_COL, r2: MAX_ROW });
 
-/** The address of a cell inside a rectangle. */
-export const cellAddress = (rect: Rect): string => `${columnLetter(rect.c1)}${rect.r1 + 1}`;
+/** Whether the area is exactly one cell. */
+export const isSingleCell = (a: Area): boolean =>
+  a.c1 === a.c2 && a.r1 === a.r2 && a.c2 !== MAX_COL && a.r2 !== MAX_ROW;
 
-/** The top-left cell of a rectangle as its own rectangle. */
-export const topLeft = (rect: Rect): Rect => ({
-  c1: rect.c1,
-  r1: rect.r1,
-  c2: rect.c1,
-  r2: rect.r1,
-});
+/** Whether the area covers whole columns (every row). */
+export const isFullCols = (a: Area): boolean => a.r1 === 1 && a.r2 === MAX_ROW;
+
+/** Whether the area covers whole rows (every column). */
+export const isFullRows = (a: Area): boolean => a.c1 === 1 && a.c2 === MAX_COL;
+
+/** Whether a cell lies inside an area. */
+export const areaContains = (a: Area, cell: CellAddr): boolean =>
+  cell.col >= a.c1 && cell.col <= a.c2 && cell.row >= a.r1 && cell.row <= a.r2;
+
+/** The name the readout gives an area: B2, B2:C4, B:D, 5:6 or A:XFD. */
+export const areaName = (a: Area): string => {
+  if (isFullCols(a) && isFullRows(a)) return 'A:XFD';
+  if (isFullCols(a)) {
+    const c1 = indexToCol(a.c1);
+    const c2 = indexToCol(a.c2);
+    return c1 === c2 ? `${c1}:${c1}` : `${c1}:${c2}`;
+  }
+  if (isFullRows(a)) return a.r1 === a.r2 ? `${a.r1}:${a.r1}` : `${a.r1}:${a.r2}`;
+  const tl = cellName({ col: a.c1, row: a.r1 });
+  if (a.c1 === a.c2 && a.r1 === a.r2) return tl;
+  return `${tl}:${cellName({ col: a.c2, row: a.r2 })}`;
+};
+
+/** Parse a name-box target: one cell or one rectangle. */
+export const parseArea = (text: string): Area | null => {
+  const t = text.trim();
+  const single = parseCell(t);
+  if (single) return { c1: single.col, r1: single.row, c2: single.col, r2: single.row };
+  const parts = t.split(':');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) return null;
+  const a = parseCell(parts[0]);
+  const b = parseCell(parts[1]);
+  if (a && b) return rectBetween(a, b);
+  if (/^[A-Za-z]{1,3}$/.test(parts[0]) && /^[A-Za-z]{1,3}$/.test(parts[1]))
+    return colsArea(colToIndex(parts[0]), colToIndex(parts[1]));
+  if (/^\d+$/.test(parts[0]) && /^\d+$/.test(parts[1]))
+    return rowsArea(Number(parts[0]), Number(parts[1]));
+  return null;
+};

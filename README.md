@@ -11,7 +11,9 @@ cd clone && npm install && npm start      # http://localhost:4321, or the port i
 curl -X POST localhost:4321/api/reset      # back to a blank workbook, with no undo history
 ```
 
-State lives in memory only, so restarting also resets it. The clone was built by the factory, not by hand: run `2026-09-26T21-07-58-162Z-bbf4`, DeepSeek v4.1 Flash on factory 0.2.0, in 50 minutes for about $0.22. Its own notes are in [`clone/NOTES.md`](clone/NOTES.md).
+State lives in memory only, so restarting also resets it.
+
+The clone was built by the factory, not by hand, and is kept exactly as built: Kimi K3 on factory 0.2.0, run `2026-09-26T21-09-30-433Z-4023`, for about $5.84. It passed all 37 cases it could see at checkpoint `4cc2228`; a lint sweep afterwards stopped its page rendering, and the run ended before the agent noticed, so this is that checkpoint, restored. Its notes on the rules it inferred are in [`clone/NOTES.md`](clone/NOTES.md).
 
 ## Verify it
 
@@ -20,7 +22,12 @@ npm install && npx playwright install chromium
 ./factory.sh clone check clone             # every case recorded on Excel, run on the clone
 ```
 
-It passes 38 of the 39 cases it was built against; it misses one held-out case (General number format rounding to the column's width). Cases recorded after it was built are listed as failures until a new build learns them. Seeding from a workbook is in the spec but not in the clone, and no case exercises it yet.
+It passes 42 of the 48 recorded cases, including cases recorded after it was built. It fails:
+
+- one held-out case: Excel's General format rounds a number to fit its column, and the clone doesn't;
+- four behaviours recorded after it was built: entering through the formula bar, the formula bar during a selection, the selection following a drag before release, and two of the five explored entry sequences.
+
+Known issues the cases don't cover: the active cell hides its own value (the formula bar shows it); the row headers scroll away horizontally, and the cell being edited draws over the column headers when scrolled; seeding from a workbook, which the spec asks for, isn't implemented; and the clone has no README of its own, which the spec also asks for.
 
 ## What the factory does
 
