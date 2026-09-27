@@ -6,7 +6,7 @@ I saw they only wanted a single day's worth of effort; I knew this would have an
 
 ## Defining the problem
 
-I gave myself a day to think about the problem. I thought about the constraints mentioned in the brief, especially the part where it said it was more important to have a faithful replication than a fully featured, less accurate implementation. I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
+I gave myself a day to think about the problem. I was thinking I should choose something simpler in nature, where the functionality is recognisable and the product itself is focused on a core set of affordances. Intuitively, I also wanted to lean toward something easy to verify, which immediately disqualified a number of applications. For instance, something like Photoshop, where it's harder to verify it's been replicated faithfully.
 
 My mind naturally went to two familiar places: LeetCode (the coding platform) and Logic Pro/Premiere Pro.
 
@@ -19,8 +19,6 @@ I wanted to focus on cell values and formula calculation. I also wanted to imple
 
 ## Approaches and trade-offs
 
-I took time up front to get myself in the right headspace. I wasn't building an agent that needed to know everything there is to know about building specific types of software. I needed to build an agent able to look at an arbitrary piece of software and reverse engineer it to replicate it faithfully.
-
 My initial instinct was to come up with the system prompt I could pass to a Pi agent that explained exactly how it might implement Excel. I quickly caught a number of issues with that approach:
 
 - A lot of my initial assumptions may be wrong.
@@ -32,13 +30,13 @@ What I ended up building was far more opinionated; to successfully replicate a p
 
 I wanted to treat the problem as a black box exercise; Claude pointed me to some methodology for black box testing or testing based on constraints and behaviour [1]. It served as the foundation for the approach we ultimately took. We used pre-existing general-purpose CLIs, specifically Playwright, to click around and log actions we took and their side effects on the perceived state of the application. This is the view of the world we have to work with; we use the application as a real user might, and generate something to serve as the guardrails or scaffolding for an agent to course-correct and verify it's doing the right thing.
 
-When you're scripting interactions with a system served as SaaS or something with continuous deployment, the DOM selectors cannot be trusted to remain stable. Either reference elements by role, or find a way to identify the exact snapshot or the exact build you're scripting for. For the purposes of this, we didn't do that. We instead captured the selectors, roles, and names we would script against in a dedicated file (`targets/excel/driver/excel.ts`).
+When you're scripting interactions with a system served as SaaS or something with continuous deployment, the DOM selectors cannot be trusted to remain stable. Either reference elements by role, or find a way to identify the exact snapshot or the exact build you're scripting for. We captured the selectors, roles, and names we would script against in a dedicated file (`targets/excel/driver/excel.ts`).
 
 Another concern I had was login credentials; I considered the risk involved with giving my personal email and Microsoft account to the agent. I decided I was not comfortable with that, so instead I created a new Proton email: sam.test.harness@proton.me. If you need to replicate other systems, having identity, having warmed-up accounts, or having verified credentials you're not afraid of sharing with inference providers is a necessity.
 
 ## How AI was used
 
-I was already aware of Pi as the framework behind a lot of successful agent projects. I used the SDK directly (`7166ac5`), which let me integrate Pi idiomatically; the SDK-exposed primitives allowed us to instrument agent tools and introduce makeshift sandboxing to prevent it from taking harmful actions.
+I was already aware of Pi as the framework behind a lot of successful agent projects. I used the SDK directly (`7166ac5`), which let me integrate Pi idiomatically; the SDK-exposed primitives allowed us to instrument agent tools.
 
 When writing the system prompt for the Pi agent, I wanted to make sure the instructions were generic. They needed to focus on how to engage with the problem, as opposed to imperative instructions on how to implement the replica itself. I had experience writing lexers, parsers, and evaluators and resisted the temptation to prescribe that approach, but a large majority of the runs decided on structuring things that way anyway.
 
@@ -120,8 +118,6 @@ Things that were very easily verifiable, like the formula evaluation, passed pre
 | DeepSeek v4.1 Flash                            | 39                  | 1              | $0.22  | 50 min  |
 | Space Bunny Alpha                              | 21                  | 0              | $0.00  | 75 min  |
 
-The 48 cases were each recorded on Excel twice and kept only when both recordings agreed: 31 written by hand and 17 explored. Across every build attempt, inference cost about $19.
-
 The gaps were primarily in interactivity. For instance, in the submitted version:
 
 - Selecting a cell that already has a value obscures the underlying value: an opaque white highlight gets drawn over the cell (`clone/src/client/theme.css:162`).
@@ -137,8 +133,6 @@ The idea of checkpointing was that if you run verification and it passes more ca
 
 With 2 more days, I would have spent more time planning and building the tooling with even more care.
 
-### With two more days
-
 - Look into the shape that things need to take so the builds were properly sandboxed. The incident that I caught was minor, but it's indicative of the actual risk: the implementing agent working outside of the sanctioned area and causing actual damage.
 - Spend more time thinking about how best to capture computed styles, computed values, and states; the browser itself manages a lot of this state.
 - Spend more time on the fuzzing infrastructure: running the original implementation and the clone side by side with the same random actions, and sorting all the differences into:
@@ -150,7 +144,7 @@ With 2 more days, I would have spent more time planning and building the tooling
 
 ### Scaling to a much larger target
 
-The things that already scale: the target is just a folder (the driver, its cases, knowledge documents, docs, and a spec.md). If you want to capture more of the product, you just add new cases and explore on different axes. Builds are able to run in parallel already, and coverage is already generated, not listed. However, at the moment, a new product means defining a new driver.
+The things that already scale: the target is just a folder (the driver, its cases, knowledge documents, docs, and a spec.md). If you want to capture more of the product, you just add new cases and explore on different axes. Builds are able to run in parallel already, and coverage is already generated, not listed. However, a new product means defining a new driver.
 
 At the moment, there is a single agent responsible for the entire implementation; that has its benefits (one agent's work can't clutter another agent's work, and we don't have to worry about git merge conflicts), but we also only move as fast as a single model can handle. I suspect there is a shape of the system where a single model might be responsible for managing and orchestrating multiple agents to get the work done quicker, each frontloaded with its own set of file system permissions and specialised tools.
 
