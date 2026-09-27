@@ -25,7 +25,7 @@ What I ended up building was far more opinionated; to successfully replicate a p
 
 I wanted to treat the problem as a black box exercise; Claude pointed me to some methodology for black box testing or testing based on constraints and behaviour [1]. It served as the foundation for the approach we ultimately took. We used pre-existing general-purpose CLIs, specifically Playwright, to click around and log actions we took and their side effects on the perceived state of the application. This is the view of the world we have to work with; we use the application as a real user might, and generate something to serve as the guardrails or scaffolding for an agent to course-correct and verify it's doing the right thing.
 
-More on a target that changes underneath you, and on identity, is in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
+I moved some of the extra detail on unreliable selectors and identity provision to [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
 
 ## How AI was used
 
@@ -43,7 +43,7 @@ I also added two custom tools:
 - `check_cases`, a way to run the tests themselves; if this beats the previous best score, the harness commits a new checkpoint, and if not, the changes are left as they were.
 - `try_steps`, a way to check whether the current implementation gives you a certain output: an on-the-fly test case where you can see, given these steps, what the output is.
 
-Observability, how each build is bootstrapped, and two `try_steps` episodes (including Kimi K3 going outside its workspace to debug a page the tool couldn't explain) are in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md).
+I wrote a little more on the project bootstrapping, observability, and the two custom tools in [`WRITEUP-NOTES.md`](WRITEUP-NOTES.md). I also cover how Kimi K3 broke out of the project boundary to go find a Playwright install so it could spin up a browser.
 
 ## Verification
 

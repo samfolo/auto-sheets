@@ -1,6 +1,6 @@
 # Write-up notes
 
-Detail that didn't fit in [`WRITEUP.md`](WRITEUP.md)'s two to three pages, moved here word for word.
+I wanted to share some other details that didn't fit in the main [`WRITEUP.md`](WRITEUP.md); there was a 2-3 page restriction, so I moved the extra details here.
 
 ## The other candidates
 
