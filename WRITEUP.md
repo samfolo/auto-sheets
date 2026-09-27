@@ -14,12 +14,6 @@ I wanted to focus on cell values and formula calculation. I also wanted to imple
 
 ## Approaches and trade-offs
 
-| Approach                                                                        | Fidelity                                         | Speed and robustness                                                                 | How it's verified                                                  |
-| ------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| Tell the agent how to build Excel in its prompt                                 | Capped by my assumptions about Excel             | Fast to start; fails wherever an assumption is wrong                                 | Only against what I assumed                                        |
-| A generic computer-use agent that explores the UI and reverse-engineers from it | Potentially high, and general                    | Slow (screenshot, think, act); hard to make repeatable; a far bigger project         | By the agent's own judgement                                       |
-| Record Excel first as a black box, then build against the recordings (chosen)   | High on everything recorded; blind to what isn't | Fast, scripted checks; references recorded twice and pinned; opinionated about Excel | Exact comparison with Excel's recordings, including held-out cases |
-
 My initial instinct was to come up with the system prompt I could pass to a Pi agent that explained exactly how it might implement Excel. I quickly caught a number of issues with that approach:
 
 - A lot of my initial assumptions may be wrong.
