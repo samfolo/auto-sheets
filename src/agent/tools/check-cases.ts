@@ -10,7 +10,8 @@ import { Type } from '@earendil-works/pi-ai';
 import { join } from 'node:path';
 import type { RecordedCase } from '../../cases/index.ts';
 import { checkClone } from '../../clone/index.ts';
-import { git, type Trace } from '../../kernel/index.ts';
+import type { Trace } from '../../kernel/index.ts';
+import { saveCheckpoint } from '../checkpoints.ts';
 import { createScoreboard, formatScoreReport } from '../scoreboard.ts';
 import { toolText } from './text.ts';
 
@@ -26,18 +27,6 @@ export const CHECK_CASES = {
   /** The app's output from every check, in the run's folder. */
   logFile: 'check-app.log',
 } as const;
-
-/** How a checkpoint commit names the score it reached, written here and read by the build. */
-export const CHECKPOINT = {
-  message: (passed: number, total: number) => `chore: checkpoint at ${passed} of ${total} cases`,
-  pattern: /^chore: checkpoint at (\d+) of (\d+) cases$/,
-} as const;
-
-/** Commits the workspace as it stands, recording the score it reached. */
-const checkpoint = (workspace: string, passed: number, total: number): void => {
-  git(workspace, 'add', '--all');
-  git(workspace, 'commit', '--quiet', '--message', CHECKPOINT.message(passed, total));
-};
 
 const parameters = Type.Object({
   cases: Type.Optional(
@@ -108,7 +97,7 @@ export const createCaseChecker = (
       const everyCase = ids.length === 0;
       if (everyCase && report.passed > best.passed) {
         best.passed = report.passed;
-        checkpoint(workspace, report.passed, report.total);
+        saveCheckpoint(workspace, report.passed, report.total);
       }
       return {
         text: formatScoreReport(report),

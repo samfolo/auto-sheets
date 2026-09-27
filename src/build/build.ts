@@ -9,7 +9,14 @@
  */
 import { randomBytes } from 'node:crypto';
 import { join } from 'node:path';
-import { type AgentDefinition, loadAgentDefinition, OUTCOMES, runAgent } from '../agent/index.ts';
+import {
+  type AgentDefinition,
+  bestCheckpoint,
+  loadAgentDefinition,
+  OUTCOMES,
+  restoreCheckpoint,
+  runAgent,
+} from '../agent/index.ts';
 import { CASE_TAGS, type RecordedCase, selectCases } from '../cases/index.ts';
 import { checkClone, scoreClone, type Tally } from '../clone/index.ts';
 import {
@@ -28,7 +35,7 @@ import {
   writeJsonFile,
 } from '../kernel/index.ts';
 import { buildOptionsSchema, type BuildSummary, type FinalCheck } from './contract.ts';
-import { bestCheckpoint, prepareWorkspace, restoreCheckpoint } from './workspace.ts';
+import { prepareWorkspace } from './workspace.ts';
 
 /** What each run's folder holds. */
 export const RUN_FILES = {
