@@ -25,7 +25,7 @@ npm install && npx playwright install chromium
 It passes 42 of the 48 recorded cases, including cases recorded after it was built. It fails:
 
 - one held-out case: Excel's General format rounds a number to fit its column, and the clone doesn't;
-- four behaviours recorded after it was built: entering through the formula bar, the formula bar during a selection, the selection following a drag before release, and two of the five explored entry sequences.
+- four behaviours recorded after it was built: entering through the formula bar, the formula bar during a selection, the Name Box during a drag (the selection follows the pointer, but Excel's Name Box shows its size, such as `3R x 3C`, and the clone's shows the active cell), and two of the five explored entry sequences.
 
 Known issues the cases don't cover: the active cell hides its own value (the formula bar shows it); the row headers scroll away horizontally, and the cell being edited draws over the column headers when scrolled; seeding from a workbook, which the spec asks for, isn't implemented; and the clone has no README of its own, which the spec also asks for.
 
