@@ -3,7 +3,7 @@
  * since observing a cell selects it; an observe-selection step reads the selection without
  * changing it; every other step is one action.
  */
-import { ok, type Result } from '../kernel/index.ts';
+import { inOrder, ok, type Result } from '../kernel/index.ts';
 import type { CellAddress, CellObservation, SelectionObservation, Step } from './contract.ts';
 import type { Driver } from './driver.ts';
 
@@ -15,15 +15,12 @@ export const observeCells = async (
   driver: Driver,
   cells: readonly CellAddress[],
 ): Promise<Result<Observed>> => {
-  const observed: Record<CellAddress, CellObservation> = {};
-  for (const cell of cells) {
-    // Observing a cell selects it, so cells are read one at a time.
-    // oxlint-disable-next-line no-await-in-loop
+  // Observing a cell selects it, so cells are read one at a time.
+  const observations = await inOrder(cells, async (cell) => {
     const observation = await driver.observe(cell);
-    if (!observation.success) return observation;
-    observed[cell] = observation.data;
-  }
-  return ok(observed);
+    return observation.success ? ok([cell, observation.data] as const) : observation;
+  });
+  return observations.success ? ok(Object.fromEntries(observations.data)) : observations;
 };
 
 /** What a checkpoint saw: cells, or the selection. */

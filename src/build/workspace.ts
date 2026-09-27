@@ -13,6 +13,7 @@ import { CHECKPOINT } from '../agent/index.ts';
 import { caseSchema, type LoadedCase, referenceSchema } from '../cases/index.ts';
 import {
   attempt,
+  eachInOrder,
   fail,
   git,
   jsonSchemaOf,
@@ -90,19 +91,17 @@ export const prepareWorkspace = async (
       await mkdir(workspace, { recursive: true });
       await cp(PATHS.standards.scaffold, workspace, { recursive: true });
       await cp(PATHS.cloneSpec, join(workspace, WORKSPACE.spec));
-      for (const { id, definitionFile } of cases) {
-        // oxlint-disable-next-line no-await-in-loop
-        await cp(dirname(definitionFile), join(workspace, WORKSPACE.cases, ...id.split('/')), {
+      await eachInOrder(cases, ({ id, definitionFile }) =>
+        cp(dirname(definitionFile), join(workspace, WORKSPACE.cases, ...id.split('/')), {
           recursive: true,
-        });
-      }
-      for (const { file, schema } of CASE_FORMATS) {
-        // oxlint-disable-next-line no-await-in-loop
-        await writeFile(
+        }),
+      );
+      await eachInOrder(CASE_FORMATS, ({ file, schema }) =>
+        writeFile(
           join(workspace, WORKSPACE.cases, file),
           `${JSON.stringify(jsonSchemaOf(schema), null, 2)}\n`,
-        );
-      }
+        ),
+      );
       await cp(PATHS.excelKnowledge, join(workspace, WORKSPACE.knowledge), { recursive: true });
       await cp(PATHS.excelDocs, join(workspace, WORKSPACE.docs), { recursive: true });
       mustGit(workspace, 'init', '--quiet');

@@ -18,6 +18,7 @@ import {
   attempt,
   displayPath,
   fail,
+  inOrder,
   ok,
   PATHS,
   readJsonFile,
@@ -58,17 +59,12 @@ const readText = (file: string): Promise<Result<string>> =>
       fail('FILE_UNREADABLE', `Could not read ${displayPath(file)}.`, { details: [reason] }),
   );
 
-const readContext = async (paths: readonly string[]): Promise<Result<ContextFile[]>> => {
-  const files: ContextFile[] = [];
-  for (const path of paths) {
-    // Read in order, so the first missing document is the one reported.
-    // oxlint-disable-next-line no-await-in-loop
+/** Reads the context documents in order, so the first missing one is the one reported. */
+const readContext = (paths: readonly string[]): Promise<Result<ContextFile[]>> =>
+  inOrder(paths, async (path) => {
     const content = await readText(join(PATHS.root, path));
-    if (!content.success) return content;
-    files.push({ path: CONTEXT_LABEL(path), content: content.data });
-  }
-  return ok(files);
-};
+    return content.success ? ok({ path: CONTEXT_LABEL(path), content: content.data }) : content;
+  });
 
 /** Reads an agent's definition from `agents/<name>/`, with the context it carries. */
 export const loadAgentDefinition = async (name: string): Promise<Result<AgentDefinition>> => {

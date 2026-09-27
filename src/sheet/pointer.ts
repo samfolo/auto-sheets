@@ -11,10 +11,8 @@
  * does it once, before its first pointer step, and puts the active cell back afterwards.
  */
 import { columnNumber, positionOf, type Position } from './address.ts';
-import type { CellAddress, HELD_KEYS, PointerStep, PointerTarget } from './contract.ts';
-
-type HeldKey = (typeof HELD_KEYS)[number];
-import { poll, type Trace } from '../kernel/index.ts';
+import type { CellAddress, HeldKey, PointerStep, PointerTarget } from './contract.ts';
+import { eachInOrder, poll, type Trace } from '../kernel/index.ts';
 import { HELD_KEY_CODES } from './keys.ts';
 import type { Surface } from './surface.ts';
 
@@ -120,23 +118,20 @@ const advance = async (surface: Surface, search: Search): Promise<Search | null>
 const finished = (search: Search): boolean => search.target !== null && search.low >= search.high;
 
 /**
- * Runs the searches together, one step of each in turn, so that no two consecutive clicks are
- * close. Returns each search finished, or null if the sheet couldn't be read.
+ * Runs the searches together, taking turns one click at a time, so that no two consecutive clicks
+ * are close. Returns each search finished, or null if the sheet couldn't be read.
  */
 const searchTogether = async (
   surface: Surface,
   searches: readonly Search[],
+  turn = 0,
 ): Promise<Search[] | null> => {
   if (searches.every(finished)) return [...searches];
-  const next: Search[] = [];
-  for (const search of searches) {
-    // One click at a time, taking turns between the searches.
-    // oxlint-disable-next-line no-await-in-loop
-    const stepped = finished(search) ? search : await advance(surface, search);
-    if (stepped === null) return null;
-    next.push(stepped);
-  }
-  return searchTogether(surface, next);
+  const index = turn % searches.length;
+  const search = searches[index];
+  if (search === undefined || finished(search)) return searchTogether(surface, searches, turn + 1);
+  const stepped = await advance(surface, search);
+  return stepped === null ? null : searchTogether(surface, searches.with(index, stepped), turn + 1);
 };
 
 /** The size and origin of evenly spaced cells, from two exact edges a known number of cells apart. */
@@ -250,18 +245,13 @@ const holding = async (
   gesture: () => Promise<void>,
 ): Promise<void> => {
   const { keyboard } = surface.page;
-  for (const key of keys ?? []) {
-    // Keys go down in order, as a hand presses them.
-    // oxlint-disable-next-line no-await-in-loop
-    await keyboard.down(HELD_KEY_CODES[key]);
-  }
+  const held = keys ?? [];
+  // Keys go down in order, as a hand presses them, and come up in reverse.
+  await eachInOrder(held, (key) => keyboard.down(HELD_KEY_CODES[key]));
   try {
     await gesture();
   } finally {
-    for (const key of [...(keys ?? [])].toReversed()) {
-      // oxlint-disable-next-line no-await-in-loop
-      await keyboard.up(HELD_KEY_CODES[key]);
-    }
+    await eachInOrder(held.toReversed(), (key) => keyboard.up(HELD_KEY_CODES[key]));
   }
 };
 

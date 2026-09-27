@@ -10,7 +10,7 @@ import { compareTrajectories, formatDifference } from './compare.ts';
 import { loadAllCases, loadCase, readReference, type LoadedCase } from './repository.ts';
 import { runSteps } from './run.ts';
 import type { Checkpoint, Reference, Verdict } from './contract.ts';
-import { attempt, fail, ok, type Result, type Trace } from '../kernel/index.ts';
+import { attempt, fail, inOrder, ok, type Result, type Trace } from '../kernel/index.ts';
 import { createSheetDriver } from '../sheet/index.ts';
 
 /** Joins a case id's folders in a screenshot's file name. */
@@ -103,27 +103,23 @@ export const judgeClone = async (
   return withFreshBrowser(
     async (context) => {
       const driver = createSheetDriver(cloneTarget(context, url), trace);
-      const results: Verdict[] = [];
-      for (const loaded of cases) {
-        // Cases share one browser and one clone, so they run one at a time.
-        // oxlint-disable-next-line no-await-in-loop
+      // Cases share one browser and one clone, so they run one at a time.
+      return inOrder(cases, async (loaded): Promise<Result<Verdict>> => {
         const actual = await runSteps(driver, loaded.definition.steps, loaded.seedFile);
         if (screenshots !== undefined) {
-          // oxlint-disable-next-line no-await-in-loop
           await driver.capture(
             join(screenshots, `${loaded.id.replaceAll('/', SCREENSHOT_SEPARATOR)}.png`),
           );
         }
         const problems = problemsWith(loaded.reference, actual);
         trace('case.verdict', { id: loaded.id, passed: problems.length === 0, problems });
-        results.push({
+        return ok({
           id: loaded.id,
           tags: loaded.definition.tags,
           passed: problems.length === 0,
           problems,
         });
-      }
-      return ok(results);
+      });
     },
     { headless: !headed },
   );

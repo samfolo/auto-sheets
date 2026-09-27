@@ -52,6 +52,8 @@ export type PointerTarget = z.output<typeof pointerTargetSchema>;
 /** Keys a person holds down during a gesture. */
 export const HELD_KEYS = ['Shift', 'Command'] as const;
 
+export type HeldKey = (typeof HELD_KEYS)[number];
+
 const heldKeys = z.array(z.enum(HELD_KEYS)).min(1).optional().meta({
   description:
     'Keys held down during the gesture: Shift, or Command (Control outside a Mac), which Excel uses to extend and add to selections.',

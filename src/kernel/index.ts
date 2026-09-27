@@ -3,6 +3,7 @@ export * from './environment.ts';
 export * from './errors.ts';
 export * from './files.ts';
 export * from './git.ts';
+export * from './in-order.ts';
 export * from './log-line.ts';
 export * from './poll.ts';
 export * from './project.ts';

@@ -4,7 +4,7 @@
  * reads it from the inbox and passes it to the second. The session then lasts across restarts.
  */
 import type { BrowserContext, Page } from 'playwright';
-import { attempt, PROJECT, fail, type Result } from '../../../src/kernel/index.ts';
+import { attempt, eachInOrder, PROJECT, fail, type Result } from '../../../src/kernel/index.ts';
 import { EXCEL } from './excel.ts';
 
 export type SignInState = 'signed-in' | 'code-sent';
@@ -36,11 +36,10 @@ const requestCode = async (page: Page, email: string): Promise<SignInState> => {
 };
 
 const enterCode = async (page: Page, code: string): Promise<SignInState> => {
-  for (const [index, digit] of Array.from(code).entries()) {
-    // Each box takes one digit, in order.
-    // oxlint-disable-next-line no-await-in-loop
-    await page.getByRole('textbox', { name: signIn.codeDigit(index + 1) }).fill(digit);
-  }
+  // Each box takes one digit, in order.
+  await eachInOrder(Array.from(code), (digit, index) =>
+    page.getByRole('textbox', { name: signIn.codeDigit(index + 1) }).fill(digit),
+  );
   // Microsoft may ask whether to stay signed in; staying signed in keeps the session.
   const staySignedIn = page.getByRole('button', { name: 'Yes' });
   await staySignedIn.click({ timeout: timing.actionMs }).catch(() => undefined);
