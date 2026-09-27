@@ -2,7 +2,7 @@
 
 A software factory that replicates a slice of Excel for the web (typed entry, formulas, recalculation, errors, selection, and undo and redo) and proves the replica against recordings of the real product.
 
-<!-- The write-up goes here. -->
+The write-up, on the approach, how AI was used, verification and what comes next, is in [`WRITEUP.md`](WRITEUP.md).
 
 ## Run the clone
 
