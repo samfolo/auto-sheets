@@ -31,7 +31,7 @@ Known issues the cases don't cover: the active cell hides its own value (the for
 
 ## What the factory does
 
-Requires Node 26. Building needs macOS (for the sandbox) and an OpenRouter key in `.env`; recording needs a Microsoft account signed in once in the factory's browser. `./factory.sh doctor` checks all of it.
+Requires Node 26. Building needs macOS (for the sandbox) and an OpenRouter key in `.env` (`.env.example` lists the variables); recording needs a Microsoft account signed in once in the factory's browser. `./factory.sh doctor` checks all of it.
 
 | Command                               | What it does                                                                   |
 | ------------------------------------- | ------------------------------------------------------------------------------ |
